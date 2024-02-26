@@ -22,6 +22,7 @@ namespace x
 		void pop_scope();
 
 	public:
+		x::scope * global_scope() const;
 		bool is_scope( x::symbol * sym ) const;
 		x::scope * find_scope( x::symbol_t type ) const;
 		x::symbol * find_symbol( std::string_view name, x::scope * scope = nullptr ) const;

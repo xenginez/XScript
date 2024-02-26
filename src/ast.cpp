@@ -10,6 +10,10 @@ void x::ast_visitor::visit( x::type_ast * val )
 {
 }
 
+void x::ast_visitor::visit( x::import_ast * val )
+{
+}
+
 void x::ast_visitor::visit( x::enum_decl_ast * val )
 {
 	for ( const auto & it : val->elements )

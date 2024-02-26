@@ -87,6 +87,11 @@ void x::symbols::pop_scope()
 	_cur = (x::scope *)_cur->parent;
 }
 
+x::scope * x::symbols::global_scope() const
+{
+	return _global;
+}
+
 bool x::symbols::is_scope( x::symbol * sym ) const
 {
 	if ( sym != nullptr )

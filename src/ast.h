@@ -4,7 +4,7 @@
 
 namespace x
 {
-#define PTR( T ) class T; using T##_ptr = std::shared_ptr<T>;
+#define PTR( T ) class T; using T##_ptr = std::shared_ptr< T >;
 	PTR( unit_ast );
 	PTR( type_ast );
 	PTR( import_ast );
@@ -38,6 +38,7 @@ namespace x
 	PTR( local_stat_ast );
 
 	PTR( exp_stat_ast );
+	PTR( binary_exp_ast );
 	PTR( assignment_exp_ast );
 	PTR( conditional_exp_ast );
 	PTR( logical_or_exp_ast );
@@ -76,6 +77,7 @@ namespace x
 	public:
 		virtual void visit( x::unit_ast * val );
 		virtual void visit( x::type_ast * val );
+		virtual void visit( x::import_ast * val );
 
 		virtual void visit( x::enum_decl_ast * val );
 		virtual void visit( x::class_decl_ast * val );
@@ -132,13 +134,14 @@ namespace x
 		virtual void visit( x::string_const_exp_ast * val );
 	};
 
-#define AST public: void accept( ast_visitor * visitor ) override { visitor->visit( static_cast< decltype( this ) >( this ) ); }
+#define AST( TYPE ) public: x::ast_t ast_type() const override { return x::ast_t::##TYPE; } void accept( ast_visitor * visitor ) override { visitor->visit( static_cast< decltype( this ) >( this ) ); }
 	class ast : public std::enable_shared_from_this<ast>
 	{
 	public:
 		virtual ~ast() = default;
 
 	public:
+		virtual ast_t ast_type() const = 0;
 		virtual void accept( ast_visitor * visitor )
 		{
 			ASSERT( true, "" );
@@ -150,7 +153,7 @@ namespace x
 
 	class unit_ast : public ast
 	{
-		AST
+		AST( UNIT )
 
 	public:
 		std::vector<import_ast_ptr> imports;
@@ -158,7 +161,7 @@ namespace x
 	};
 	class type_ast : public ast
 	{
-		AST
+		AST( TYPE )
 
 	public:
 		bool is_ref = false;
@@ -168,6 +171,8 @@ namespace x
 	};
 	class import_ast : public ast
 	{
+		AST( IMPORT )
+
 	public:
 		std::string path;
 	};
@@ -181,14 +186,14 @@ namespace x
 	};
 	class enum_decl_ast : public decl_ast
 	{
-		AST
+		AST( ENUM_DECL )
 
 	public:
 		std::vector<x::enum_element_ast_ptr> elements;
 	};
 	class class_decl_ast : public decl_ast
 	{
-		AST
+		AST( CLASS_DECL )
 
 	public:
 		x::type_ast_ptr base;
@@ -198,14 +203,14 @@ namespace x
 	};
 	class using_decl_ast : public decl_ast
 	{
-		AST
+		AST( USING_DECL )
 
 	public:
 		x::type_ast_ptr type;
 	};
 	class enum_element_ast : public ast
 	{
-		AST
+		AST( ENUM_DECL )
 
 	public:
 		std::string name;
@@ -213,7 +218,7 @@ namespace x
 	};
 	class template_decl_ast : public decl_ast
 	{
-		AST
+		AST( TEMPLATE_DECL )
 
 	public:
 		x::type_ast_ptr base;
@@ -223,7 +228,7 @@ namespace x
 	};
 	class variable_decl_ast : public decl_ast
 	{
-		AST
+		AST( VARIABLE_DECL )
 
 	public:
 		x::type_ast_ptr type;
@@ -231,7 +236,7 @@ namespace x
 	};
 	class function_decl_ast : public decl_ast
 	{
-		AST
+		AST( FUNCTION_DECL )
 
 	public:
 		x::stat_ast_ptr stat;
@@ -240,7 +245,7 @@ namespace x
 	};
 	class parameter_decl_ast : public ast
 	{
-		AST
+		AST( PARAMETER_DECL )
 
 	public:
 		std::string name;
@@ -248,7 +253,7 @@ namespace x
 	};
 	class namespace_decl_ast : public decl_ast
 	{
-		AST
+		AST( NAMESPACE_DECL )
 
 	public:
 		std::vector<x::decl_ast_ptr> members;
@@ -259,25 +264,25 @@ namespace x
 	};
 	class empty_stat_ast : public stat_ast
 	{
-		AST
+		AST( EMPTY_STAT )
 	};
 	class compound_stat_ast : public stat_ast
 	{
-		AST
+		AST( COMPOUND_STAT )
 
 	public:
 		std::vector<x::stat_ast_ptr> stats;
 	};
 	class await_stat_ast : public stat_ast
 	{
-		AST
+		AST( AWAIT_STAT )
 
 	public:
 		x::exp_stat_ast_ptr exp;
 	};
 	class yield_stat_ast : public stat_ast
 	{
-		AST
+		AST( YIELD_STAT )
 
 	public:
 		bool is_break;
@@ -285,7 +290,7 @@ namespace x
 	};
 	class try_stat_ast : public stat_ast
 	{
-		AST
+		AST( TRY_STAT )
 
 	public:
 		x::compound_stat_ast_ptr body;
@@ -293,7 +298,7 @@ namespace x
 	};
 	class catch_stat_ast : public stat_ast
 	{
-		AST
+		AST( CATCH_STAT )
 
 	public:
 		x::parameter_decl_ast_ptr type;
@@ -301,14 +306,14 @@ namespace x
 	};
 	class throw_stat_ast : public stat_ast
 	{
-		AST
+		AST( THROW_STAT )
 
 	public:
 		x::stat_ast_ptr stat;
 	};
 	class if_stat_ast : public stat_ast
 	{
-		AST
+		AST( IF_STAT )
 
 	public:
 		x::exp_stat_ast_ptr exp;
@@ -317,7 +322,7 @@ namespace x
 	};
 	class while_stat_ast : public stat_ast
 	{
-		AST
+		AST( WHILE_STAT )
 
 	public:
 		x::stat_ast_ptr stat;
@@ -325,7 +330,7 @@ namespace x
 	};
 	class for_stat_ast : public stat_ast
 	{
-		AST
+		AST( FOR_STAT )
 
 	public:
 		x::stat_ast_ptr init;
@@ -335,7 +340,7 @@ namespace x
 	};
 	class foreach_stat_ast : public stat_ast
 	{
-		AST
+		AST( FOREACH_STAT )
 
 	public:
 		x::stat_ast_ptr init;
@@ -344,22 +349,22 @@ namespace x
 	};
 	class break_stat_ast : public stat_ast
 	{
-		AST
+		AST( BREAK_STAT )
 	};
 	class return_stat_ast : public stat_ast
 	{
-		AST
+		AST( RETURN_STAT )
 
 	public:
 		x::exp_stat_ast_ptr exp;
 	};
 	class continue_stat_ast : public stat_ast
 	{
-		AST
+		AST( CONTINUE_STAT )
 	};
 	class local_stat_ast : public stat_ast
 	{
-		AST
+		AST( LOCAL_STAT )
 
 	public:
 		std::string name;
@@ -379,11 +384,11 @@ namespace x
 	};
 	class assignment_exp_ast : public binary_exp_ast
 	{
-		AST
+		AST( ASSIGNMENT_EXP )
 	};
 	class conditional_exp_ast : public exp_stat_ast
 	{
-		AST
+		AST( CONDITIONAL_EXP )
 
 	public:
 		x::token_t type;
@@ -391,43 +396,43 @@ namespace x
 	};
 	class logical_or_exp_ast : public binary_exp_ast
 	{
-		AST
+		AST( LOGICAL_OR_EXP )
 	};
 	class logical_and_exp_ast : public binary_exp_ast
 	{
-		AST
+		AST( LOGICAL_AND_EXP )
 	};
 	class or_exp_ast : public binary_exp_ast
 	{
-		AST
+		AST( OR_EXP )
 	};
 	class xor_exp_ast : public binary_exp_ast
 	{
-		AST
+		AST( XOR_EXP )
 	};
 	class and_exp_ast : public binary_exp_ast
 	{
-		AST
+		AST( AND_EXP )
 	};
 	class compare_exp_ast : public binary_exp_ast
 	{
-		AST
+		AST( COMPARE_EXP )
 	};
 	class shift_exp_ast : public binary_exp_ast
 	{
-		AST
+		AST( SHIFT_EXP )
 	};
 	class add_exp_ast : public binary_exp_ast
 	{
-		AST
+		AST( ADD_EXP )
 	};
 	class mul_exp_ast : public binary_exp_ast
 	{
-		AST
+		AST( MUL_EXP )
 	};
 	class as_exp_ast : public exp_stat_ast
 	{
-		AST
+		AST( AS_EXP )
 
 	public:
 		x::exp_stat_ast_ptr value;
@@ -435,7 +440,7 @@ namespace x
 	};
 	class is_exp_ast : public exp_stat_ast
 	{
-		AST
+		AST( IS_EXP )
 
 	public:
 		x::exp_stat_ast_ptr value;
@@ -443,7 +448,7 @@ namespace x
 	};
 	class unary_exp_ast : public exp_stat_ast
 	{
-		AST
+		AST( UNARY_EXP )
 
 	public:
 		x::token_t type;
@@ -451,25 +456,25 @@ namespace x
 	};
 	class postfix_exp_ast : public unary_exp_ast
 	{
-		AST
+		AST( POSTFIX_EXP )
 	};
 	class index_exp_ast : public exp_stat_ast
 	{
-		AST
+		AST( INDEX_EXP )
 
 	public:
 		x::exp_stat_ast_ptr left, right;
 	};
 	class invoke_exp_ast : public exp_stat_ast
 	{
-		AST
+		AST( INVOKE_EXP )
 
 	public:
 		x::exp_stat_ast_ptr left, right;
 	};
 	class member_exp_ast : public exp_stat_ast
 	{
-		AST
+		AST( MEMBER_EXP )
 
 	public:
 		x::exp_stat_ast_ptr left;
@@ -477,14 +482,14 @@ namespace x
 	};
 	class identifier_exp_ast : public exp_stat_ast
 	{
-		AST
+		AST( IDENTIFIER_EXP )
 
 	public:
 		std::string ident;
 	};
 	class closure_exp_ast : public exp_stat_ast
 	{
-		AST
+		AST( CLOSURE_EXP )
 
 	public:
 		std::string name;
@@ -493,14 +498,14 @@ namespace x
 	};
 	class arguments_exp_ast : public exp_stat_ast
 	{
-		AST
+		AST( ARGUMENTS_EXP )
 
 	public:
 		std::vector<x::exp_stat_ast_ptr> args;
 	};
 	class initializers_exp_ast : public exp_stat_ast
 	{
-		AST
+		AST( INITIALIZERS_EXP )
 
 	public:
 		std::vector<x::exp_stat_ast_ptr> args;
@@ -510,32 +515,32 @@ namespace x
 	};
 	class null_const_exp_ast : public const_exp_ast
 	{
-		AST
+		AST( NULL_CONST_EXP )
 	};
 	class bool_const_exp_ast : public const_exp_ast
 	{
-		AST
+		AST( BOOL_CONST_EXP )
 
 	public:
 		bool value;
 	};
 	class int_const_exp_ast : public const_exp_ast
 	{
-		AST
+		AST( INT_CONST_EXP )
 
 	public:
 		int64_t value;
 	};
 	class float_const_exp_ast : public const_exp_ast
 	{
-		AST
+		AST( FLOAT_CONST_EXP )
 
 	public:
 		double value;
 	};
 	class string_const_exp_ast : public const_exp_ast
 	{
-		AST
+		AST( STRING_CONST_EXP )
 
 	public:
 		std::string value;
