@@ -9,7 +9,7 @@ namespace sample
         private static var var_1 = 1;
 
         public func func_0( arg_0 : int, arg_1 : float ) -> void {
-            return arg_0 * arg_1 + var_0;
+            var_0 = arg_0 * arg_1 + var_0 + var_1;
         };
         public static func func_1(arg: int) {
             var_1 = arg;

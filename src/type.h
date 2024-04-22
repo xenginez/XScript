@@ -1,8 +1,9 @@
 #pragma once
 
 #include <memory>
-#include <string>
 #include <vector>
+#include <string>
+#include <format>
 #include <cassert>
 #include <exception>
 
@@ -16,7 +17,7 @@
 
 namespace x
 {
-    static constexpr const int magic_num = 'xsc\0';
+    static constexpr const int magic_num = 'xsl\0';
     static constexpr const int version_num = '0001';
 
     enum class ast_t
@@ -83,12 +84,27 @@ namespace x
 
     enum class meta_t
     {
-        ENUM,
-        CLASS,
-        EXTERN,
-        VARIABLE,
-        FUNCTION,
-        NAMESPACE,
+        ENUM        = 1 << 0,
+        CLASS       = 1 << 1,
+        VARIABLE    = 1 << 2,
+        FUNCTION    = 1 << 3,
+        NAMESPACE   = 1 << 4,
+
+        EXTERN      = 1 << 5,
+        NATIVE      = 1 << 6,
+        SCRIPT      = 1 << 7,
+        
+        EXTERN_FUNCTION    = FUNCTION | EXTERN,
+
+        NATIVE_ENUM        = ENUM | NATIVE,
+        NATIVE_CLASS       = CLASS | NATIVE,
+        NATIVE_VARIABLE    = VARIABLE | NATIVE,
+        NATIVE_FUNCTION    = FUNCTION | NATIVE,
+
+        SCRIPT_ENUM        = ENUM | SCRIPT,
+        SCRIPT_CLASS       = CLASS | SCRIPT,
+        SCRIPT_VARIABLE    = VARIABLE | SCRIPT,
+        SCRIPT_FUNCTION    = FUNCTION | SCRIPT,
     };
 
     enum class code_t
@@ -228,7 +244,7 @@ namespace x
         LOOP,
         BLOCK,
         ALIAS,
-        PARAMETER,
+        PARAM,
         LOCAL,
         CLASS,
         ELEMENT,
@@ -310,7 +326,7 @@ namespace x
         PROTECTED,
     };
 
-    enum class modify_t
+    enum modify_flag
     {
         NONE = 0,
         ASYNC = 1 << 0,
@@ -365,19 +381,6 @@ namespace x
         uint64_t hashcode = 0;
     };
 
-    struct symbol
-    {
-        ast * ast;
-        symbol_t type;
-        symbol * parent;
-        std::string_view name;
-    };
-
-    struct scope : public symbol
-    {
-        std::vector<symbol *> symbols;
-    };
-
     struct token
     {
         token_t type;
@@ -390,4 +393,13 @@ namespace x
         code_t type;
         uint64_t idx;
     };
+
+    inline x::modify_flag operator|( x::modify_flag left, x::modify_flag right )
+    {
+        return (x::modify_flag)( (int)left | (int)right );
+    }
+    inline std::string to_string( const x::source_location & local )
+    {
+        return std::format( "{}_{}:{}", local.file, local.line, local.column );
+    }
 }

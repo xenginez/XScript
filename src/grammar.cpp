@@ -369,11 +369,11 @@ x::namespace_decl_ast_ptr x::grammar::namespace_decl()
             break;
         case token_t::TK_VARIABLE:
             decl = variable_decl();
-            mod = modify_t( (int)mod | (int)modify_t::STATIC );
+            mod = mod | x::modify_flag::STATIC;
             break;
         case token_t::TK_FUNCTION:
             decl = function_decl();
-            mod = modify_t( (int)mod | (int)modify_t::STATIC );
+            mod = mod | x::modify_flag::STATIC;
             break;
         case token_t::TK_SEMICOLON:
             next();
@@ -1066,7 +1066,7 @@ x::closure_exp_ast_ptr x::grammar::closure_exp()
         ast->function->access = access_t::PUBLIC;
 
         if( ast->captures.empty() )
-            ast->function->modify = modify_t( (int)ast->function->modify | (int)modify_t::STATIC );
+            ast->function->modify = ast->function->modify | x::modify_flag::STATIC;
 
         validity( token_t::TK_LEFT_BRACKETS );
         {
@@ -1078,7 +1078,7 @@ x::closure_exp_ast_ptr x::grammar::closure_exp()
         validity( token_t::TK_RIGHT_BRACKETS );
 
         if ( verify( token_t::TK_ASYNC ) )
-            ast->function->modify = modify_t( (int)ast->function->modify | (int)modify_t::ASYNC );
+            ast->function->modify = ast->function->modify | x::modify_flag::ASYNC;
 
         if ( verify( token_t::TK_FUNCTION_RESULT ) )
             ast->function->result = type();
@@ -1266,22 +1266,22 @@ std::string x::grammar::location_to_name( const x::source_location & location, s
     return name;
 }
 
-x::modify_t x::grammar::modify()
+x::modify_flag x::grammar::modify()
 {
     int result = 0;
 
     while ( 1 )
     {
-        if ( verify( token_t::TK_ASYNC ) ) result |= (int)modify_t::ASYNC;
-        else if ( verify( token_t::TK_CONST ) ) result |= (int)modify_t::CONST;
-        else if ( verify( token_t::TK_STATIC ) ) result |= (int)modify_t::STATIC;
-        else if ( verify( token_t::TK_THREAD ) ) result |= (int)modify_t::THREAD;
-        else if ( verify( token_t::TK_NATIVE ) ) result |= (int)modify_t::NATIVE;
-        else if ( verify( token_t::TK_EXTERN ) ) result |= (int)modify_t::EXTERN;
+        if ( verify( token_t::TK_ASYNC ) ) result |= x::modify_flag::ASYNC;
+        else if ( verify( token_t::TK_CONST ) ) result |= x::modify_flag::CONST;
+        else if ( verify( token_t::TK_STATIC ) ) result |= x::modify_flag::STATIC;
+        else if ( verify( token_t::TK_THREAD ) ) result |= x::modify_flag::THREAD;
+        else if ( verify( token_t::TK_NATIVE ) ) result |= x::modify_flag::NATIVE;
+        else if ( verify( token_t::TK_EXTERN ) ) result |= x::modify_flag::EXTERN;
         else break;
     }
 
-    return (modify_t)result;
+    return (modify_flag)result;
 }
 
 x::access_t x::grammar::access()

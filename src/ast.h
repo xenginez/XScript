@@ -182,7 +182,7 @@ namespace x
 	public:
 		std::string name;
 		x::access_t access = x::access_t::PRIVATE;
-		x::modify_t modify = x::modify_t::NONE;
+		x::modify_flag modify = x::modify_flag::NONE;
 	};
 	class enum_decl_ast : public decl_ast
 	{
@@ -368,7 +368,7 @@ namespace x
 
 	public:
 		std::string name;
-		x::modify_t modify;
+		x::modify_flag modify;
 		x::type_ast_ptr type;
 		x::initializers_exp_ast_ptr init;
 	};

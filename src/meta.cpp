@@ -42,7 +42,7 @@ x::access_t x::meta_function::access() const
 	return _access;
 }
 
-x::modify_t x::meta_function::modify() const
+x::modify_flag x::meta_function::modify() const
 {
 	return _modify;
 }
@@ -67,7 +67,7 @@ x::access_t x::meta_variable::access() const
 	return _access;
 }
 
-x::modify_t x::meta_variable::modify() const
+x::modify_flag x::meta_variable::modify() const
 {
 	return _modify;
 }
@@ -112,9 +112,19 @@ std::span<std::pair<x::static_string_view, x::value>> x::meta_enum::elements() c
 	return _elements;
 }
 
+x::meta_extern_function::meta_extern_function()
+{
+	meta::_type = x::meta_t::EXTERN_FUNCTION;
+}
+
 void x::meta_extern_function::invoke() const
 {
 	runtime::exec_extern( _lib, _proc );
+}
+
+x::meta_script_function::meta_script_function()
+{
+	meta::_type = x::meta_t::SCRIPT_FUNCTION;
 }
 
 void x::meta_script_function::invoke() const
@@ -133,13 +143,18 @@ void x::meta_script_function::invoke() const
 	}
 }
 
+x::meta_script_variable::meta_script_variable()
+{
+	meta::_type = x::meta_t::SCRIPT_VARIABLE;
+}
+
 void x::meta_script_variable::get() const
 {
-	if ( (int)modify() & (int)modify_t::STATIC )
+	if ( (int)modify() & (int)modify_flag::STATIC )
 	{
 		runtime::push( runtime::global( _idx ) );
 	}
-	else if ( (int)modify() & (int)modify_t::THREAD )
+	else if ( (int)modify() & (int)modify_flag::THREAD )
 	{
 		runtime::push( runtime::thread( _idx ) );
 	}
@@ -151,6 +166,11 @@ void x::meta_script_variable::get() const
 
 void x::meta_script_variable::set() const
 {
+}
+
+x::meta_script_class::meta_script_class()
+{
+	meta::_type = x::meta_t::SCRIPT_CLASS;
 }
 
 void x::meta_script_class::construct( void * ptr ) const
@@ -171,4 +191,9 @@ void x::meta_script_class::construct( void * ptr ) const
 	}
 
 	runtime::pop();
+}
+
+x::meta_script_enum::meta_script_enum()
+{
+	meta::_type = x::meta_t::SCRIPT_ENUM;
 }

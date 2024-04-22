@@ -46,7 +46,7 @@ void x::context::load_stdlib()
 	x::load_stdlib( shared_from_this() );
 }
 
-bool x::context::load_file( const std::filesystem::path & file )
+bool x::context::load_script_file( const std::filesystem::path & file )
 {
 	bool result = false;
 
@@ -56,7 +56,7 @@ bool x::context::load_file( const std::filesystem::path & file )
 		if ( stream.is_open() )
 		{
 			_p->_paths.push_back( file.parent_path() );
-			result = load_stream( stream, file.string() );
+			result = load_script_stream( stream, file.string() );
 			_p->_paths.pop_back();
 		}
 	}
@@ -64,7 +64,7 @@ bool x::context::load_file( const std::filesystem::path & file )
 	return result;
 }
 
-bool x::context::load_stream( std::istream & stream, std::string_view name )
+bool x::context::load_script_stream( std::istream & stream, std::string_view name )
 {
 	if ( _p->_symbols == nullptr )
 		_p->_symbols = std::make_shared<x::symbols>();
@@ -91,6 +91,16 @@ bool x::context::load_stream( std::istream & stream, std::string_view name )
 		return true;
 	}
 
+	return false;
+}
+
+bool x::context::load_library_file( const std::filesystem::path & file )
+{
+	return false;
+}
+
+bool x::context::load_library_stream( std::istream & stream, std::string_view name )
+{
 	return false;
 }
 

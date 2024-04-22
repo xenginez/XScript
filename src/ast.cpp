@@ -2,6 +2,9 @@
 
 void x::ast_visitor::visit( x::unit_ast * val )
 {
+	for ( const auto & it : val->imports )
+		it->accept( this );
+
 	for ( const auto & it : val->namespaces )
 		it->accept( this );
 }

@@ -50,7 +50,7 @@ namespace x
 
 	public:
 		x::access_t access() const;
-		x::modify_t modify() const;
+		x::modify_flag modify() const;
 		x::type_desc result_type() const;
 		std::span<x::type_desc> parameter_types() const;
 
@@ -58,8 +58,8 @@ namespace x
 		virtual void invoke() const = 0;
 
 	protected:
-		x::access_t _access;
-		x::modify_t _modify;
+		x::access_t _access = x::access_t::PRIVATE;
+		x::modify_flag _modify = x::modify_flag::NONE;
 		x::type_desc _result_type;
 		mutable std::vector<x::type_desc> _parameter_types;
 	};
@@ -73,7 +73,7 @@ namespace x
 
 	public:
 		x::access_t access() const;
-		x::modify_t modify() const;
+		x::modify_flag modify() const;
 		x::type_desc value_type() const;
 
 	public:
@@ -81,8 +81,8 @@ namespace x
 		virtual void set() const = 0;
 
 	protected:
-		x::access_t _access;
-		x::modify_t _modify;
+		x::access_t _access = x::access_t::PRIVATE;
+		x::modify_flag _modify = x::modify_flag::NONE;
 		x::type_desc _value_type;
 	};
 
@@ -103,7 +103,7 @@ namespace x
 		virtual void construct( void * ptr ) const = 0;
 
 	protected:
-		uint64_t _size;
+		uint64_t _size = 0;
 		x::static_string_view _base;
 		mutable std::vector<x::meta_variable_ptr> _variables;
 		mutable std::vector<x::meta_function_ptr> _functions;
@@ -133,6 +133,12 @@ namespace x
 		using result_type = R;
 		using parameter_type = std::tuple<std::remove_reference_t<As>...>;
 		using function_type = result_type( class_type:: * )( As... ) const;
+
+	public:
+		meta_native_const_function()
+		{
+			meta::_type = x::meta_t::NATIVE_FUNCTION;
+		}
 
 	public:
 		void invoke() const override
@@ -166,6 +172,12 @@ namespace x
 		using function_type = result_type( class_type::* )( As... );
 
 	public:
+		meta_native_function()
+		{
+			meta::_type = x::meta_t::NATIVE_FUNCTION;
+		}
+
+	public:
 		void invoke() const override
 		{
 			class_type * obj = x::runtime::pop().get<class_type *>();
@@ -196,6 +208,12 @@ namespace x
 		using function_type = result_type( * )( As... );
 
 	public:
+		meta_native_static_function()
+		{
+			meta::_type = x::meta_t::NATIVE_FUNCTION;
+		}
+
+	public:
 		void invoke() const override
 		{
 			parameter_type parameters = std::make_tuple( x::runtime::pop().get<As>()... );
@@ -222,6 +240,12 @@ namespace x
 		using class_type = C;
 		using value_type = T;
 		using variable_type = value_type class_type:: *;
+
+	public:
+		meta_native_variable()
+		{
+			meta::_type = x::meta_t::NATIVE_VARIABLE;
+		}
 
 	public:
 		void get() const override
@@ -254,6 +278,12 @@ namespace x
 		using variable_type = value_type *;
 
 	public:
+		meta_native_static_variable()
+		{
+			meta::_type = x::meta_t::NATIVE_VARIABLE;
+		}
+
+	public:
 		void get() const override
 		{
 			x::runtime::push( *_var );
@@ -277,6 +307,12 @@ namespace x
 		using this_type = meta_native_class<T>;
 
 	public:
+		meta_native_class()
+		{
+			meta::_type = x::meta_t::NATIVE_CLASS;
+		}
+
+	public:
 		void construct( void * ptr ) const override
 		{
 			new ( ptr ) class_type();
@@ -290,12 +326,21 @@ namespace x
 	public:
 		using enum_type = T;
 		using this_type = meta_native_enum<T>;
+
+	public:
+		meta_native_enum()
+		{
+			meta::_type = x::meta_t::NATIVE_ENUM;
+		}
 	};
 
 
 	class meta_extern_function : public meta_function
 	{
 		friend class context;
+
+	public:
+		meta_extern_function();
 
 	public:
 		void invoke() const override;
@@ -311,10 +356,13 @@ namespace x
 		friend class context;
 
 	public:
+		meta_script_function();
+
+	public:
 		void invoke() const override;
 
 	private:
-		code _code;
+		code _code = {};
 	};
 
 	class meta_script_variable : public meta_variable
@@ -322,12 +370,15 @@ namespace x
 		friend class context;
 
 	public:
+		meta_script_variable();
+
+	public:
 		void get() const override;
 
 		void set() const override;
 
 	private:
-		uint64_t _idx;
+		uint64_t _idx = 0;
 	};
 
 	class meta_script_class : public meta_class
@@ -335,9 +386,20 @@ namespace x
 		friend class context;
 
 	public:
+		meta_script_class();
+
+	public:
 		void construct( void * ptr ) const override;
 
 	private:
-		code _code;
+		code _code = {};
+	};
+
+	class meta_script_enum : public meta_enum
+	{
+		friend class context;
+
+	public:
+		meta_script_enum();
 	};
 }

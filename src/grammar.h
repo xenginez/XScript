@@ -75,7 +75,7 @@ namespace x
 		x::string_const_exp_ast_ptr string_const_exp();
 
 	private:
-		x::modify_t modify();
+		x::modify_flag modify();
 		x::access_t access();
 		std::string type_name();
 		x::type_ast_ptr type( std::string_view name );
