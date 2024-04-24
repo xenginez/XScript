@@ -11,6 +11,25 @@ namespace x
 	public:
 		using ast_visitor::visit;
 
+	protected:
+		context * context() const;
+		symbols * symbols() const;
+
+	private:
+		void set_ctx( x::context * ctx );
+
+	private:
+		x::context * _ctx;
+	};
+
+	class scanner_pass : public pass
+	{
+	public:
+		using pass::visit;
+
+	public:
+		scanner_pass() = default;
+
 	public:
 		void visit( x::unit_ast * val ) override;
 		void visit( x::enum_decl_ast * val ) override;
@@ -18,22 +37,12 @@ namespace x
 		void visit( x::namespace_decl_ast * val ) override;
 		void visit( x::compound_stat_ast * val ) override;
 		void visit( x::closure_exp_ast * val ) override;
-
-	private:
-		void set_ctx( x::context * ctx );
-
-	protected:
-		context * context() const;
-		symbols * symbols() const;
-
-	private:
-		x::context * _ctx;
 	};
 
-	class type_scanner_pass : public pass
+	class type_scanner_pass : public scanner_pass
 	{
 	public:
-		using pass::visit;
+		using scanner_pass::visit;
 
 	public:
 		type_scanner_pass() = default;
@@ -46,19 +55,19 @@ namespace x
 		void visit( x::namespace_decl_ast * val ) override;
 	};
 
-	class function_scanner_pass : public pass
+	class function_scanner_pass : public scanner_pass
 	{
 	public:
-		using pass::visit;
+		using scanner_pass::visit;
 
 	public:
 		void visit( x::function_decl_ast * val ) override;
 	};
 
-	class variable_scanner_pass : public pass
+	class variable_scanner_pass : public scanner_pass
 	{
 	public:
-		using pass::visit;
+		using scanner_pass::visit;
 
 	public:
 		void visit( x::enum_element_ast * val ) override;
@@ -67,10 +76,10 @@ namespace x
 		void visit( x::local_stat_ast * val ) override;
 	};
 
-	class scope_scanner_pass : public pass
+	class scope_scanner_pass : public scanner_pass
 	{
 	public:
-		using pass::visit;
+		using scanner_pass::visit;
 
 	public:
 		void visit( x::compound_stat_ast * val ) override;
