@@ -398,8 +398,4 @@ namespace x
     {
         return (x::modify_flag)( (int)left | (int)right );
     }
-    inline std::string to_string( const x::source_location & local )
-    {
-        return std::format( "{}_{}:{}", local.file, local.line, local.column );
-    }
 }

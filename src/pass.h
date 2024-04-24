@@ -1,7 +1,5 @@
 #pragma once
 
-#include <deque>
-
 #include "ast.h"
 
 namespace x
@@ -13,6 +11,14 @@ namespace x
 	public:
 		using ast_visitor::visit;
 
+	public:
+		void visit( x::unit_ast * val ) override;
+		void visit( x::enum_decl_ast * val ) override;
+		void visit( x::class_decl_ast * val ) override;
+		void visit( x::namespace_decl_ast * val ) override;
+		void visit( x::compound_stat_ast * val ) override;
+		void visit( x::closure_exp_ast * val ) override;
+
 	private:
 		void set_ctx( x::context * ctx );
 
@@ -20,14 +26,8 @@ namespace x
 		context * context() const;
 		symbols * symbols() const;
 
-	protected:
-		void push( std::string_view scope_name );
-		void pop();
-		std::string_view current_scope_name() const;
-
 	private:
 		x::context * _ctx;
-		std::deque<std::string> _scopes;
 	};
 
 	class type_scanner_pass : public pass
@@ -36,7 +36,14 @@ namespace x
 		using pass::visit;
 
 	public:
+		type_scanner_pass() = default;
 
+	public:
+		void visit( x::enum_decl_ast * val ) override;
+		void visit( x::class_decl_ast * val ) override;
+		void visit( x::using_decl_ast * val ) override;
+		void visit( x::template_decl_ast * val ) override;
+		void visit( x::namespace_decl_ast * val ) override;
 	};
 
 	class function_scanner_pass : public pass
@@ -45,7 +52,7 @@ namespace x
 		using pass::visit;
 
 	public:
-
+		void visit( x::function_decl_ast * val ) override;
 	};
 
 	class variable_scanner_pass : public pass
@@ -54,7 +61,10 @@ namespace x
 		using pass::visit;
 
 	public:
-
+		void visit( x::enum_element_ast * val ) override;
+		void visit( x::variable_decl_ast * val ) override;
+		void visit( x::parameter_decl_ast * val ) override;
+		void visit( x::local_stat_ast * val ) override;
 	};
 
 	class scope_scanner_pass : public pass
@@ -63,7 +73,7 @@ namespace x
 		using pass::visit;
 
 	public:
-
+		void visit( x::compound_stat_ast * val ) override;
 	};
 
 	class reference_solver_pass : public pass
@@ -92,5 +102,4 @@ namespace x
 	public:
 
 	};
-
 }

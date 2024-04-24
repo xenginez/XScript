@@ -273,7 +273,13 @@ void x::ast_visitor::visit( x::closure_exp_ast * val )
 {
 	for ( const auto & it : val->captures )
 		it->accept( this );
-	val->function->accept( this );
+
+	val->result->accept( this );
+
+	for ( const auto & it : val->parameters )
+		it->accept( this );
+
+	if ( val->stat ) val->stat->accept( this );
 }
 
 void x::ast_visitor::visit( x::arguments_exp_ast * val )

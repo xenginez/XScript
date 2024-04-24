@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <span>
 #include <deque>
 
 #include "type.h"
@@ -28,19 +29,19 @@ namespace x
 			~symbol() = default;
 
 		public:
-			virtual symbol_t type() const = 0;
-			virtual bool is_scope() const = 0;
-			virtual symbol_ptr find_child_symbol( std::string_view name ) const = 0;
+			virtual bool is_scope() const { return false; }
+			virtual symbol_ptr find_child_symbol( std::string_view name ) const { return nullptr; }
 
 		public:
-			std::string symbol_name;
-			std::string location_name;
+			x::symbol_t type;
+			std::string name;
+			x::source_location location;
 			std::weak_ptr<symbol> parent;
 		};
 		class type_symbol : public symbol
 		{
 		public:
-
+			x::modify_flag modify = x::modify_flag::NONE;
 		};
 		class enum_symbol : public type_symbol
 		{
@@ -55,7 +56,7 @@ namespace x
 		class alias_symbol : public type_symbol
 		{
 		public:
-			std::string_view originalname() const;
+			x::type_desc desc;
 		};
 		class class_symbol : public type_symbol
 		{
@@ -74,7 +75,7 @@ namespace x
 		class variable_symbol : public symbol
 		{
 		public:
-			type_symbol_ptr type() const;
+			type_symbol_ptr valuetype() const;
 		};
 		class template_symbol : public symbol
 		{
@@ -91,23 +92,23 @@ namespace x
 		symbols();
 		~symbols();
 
-	protected:
-		void push_unit( std::string_view location_name );
+	public:
+		void push_unit( const x::source_location & location );
 		void pop_unit();
 
-		void push_scope( std::string_view location_name );
-		void pop_scope();
-
+		void push_scope( const x::source_location & location );
 		void add_symbol( const symbol_ptr & val );
 		bool has_symbol( std::string_view symbol_name ) const;
+		void pop_scope();
 
 	public:
 		namespace_symbol_ptr global_namespace() const;
+		symbol_ptr find_symbol_from_name( std::string_view symbol_name ) const;
 		symbol_ptr find_symbol_from_fullname( std::string_view symbol_fullname ) const;
 
 	public:
-		void add_reference( std::string_view location_name, const symbol_ptr & val );
-		symbol_ptr find_reference( std::string_view location_name ) const;
+		void add_reference( const x::source_location & location, const symbol_ptr & val );
+		symbol_ptr find_reference( const x::source_location & location ) const;
 
 	private:
 		namespace_symbol_ptr _global;

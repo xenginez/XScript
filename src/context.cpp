@@ -73,20 +73,29 @@ bool x::context::load_script_stream( std::istream & stream, std::string_view nam
 
 	if ( recursion_import( stream, name, units ) )
 	{
-		x::symbol_scanner_pass pass1;
-		x::reference_solver_pass pass2;
-		x::type_checker_pass pass3;
-		x::semantic_validator_pass pass4;
+		x::type_scanner_pass pass1;
+		x::function_scanner_pass pass2;
+		x::variable_scanner_pass pass3;
+		x::scope_scanner_pass pass4;
+		x::reference_solver_pass pass5;
+		x::type_checker_pass pass6;
+		x::semantic_validator_pass pass7;
 
 		pass1.set_ctx( this );
 		pass2.set_ctx( this );
 		pass3.set_ctx( this );
 		pass4.set_ctx( this );
+		pass5.set_ctx( this );
+		pass6.set_ctx( this );
+		pass7.set_ctx( this );
 
 		for ( const auto & it : units ) pass1.visit( it.get() );
 		for ( const auto & it : units ) pass2.visit( it.get() );
 		for ( const auto & it : units ) pass3.visit( it.get() );
 		for ( const auto & it : units ) pass4.visit( it.get() );
+		for ( const auto & it : units ) pass5.visit( it.get() );
+		for ( const auto & it : units ) pass6.visit( it.get() );
+		for ( const auto & it : units ) pass7.visit( it.get() );
 
 		return true;
 	}

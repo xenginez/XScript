@@ -493,8 +493,12 @@ namespace x
 
 	public:
 		std::string name;
-		x::function_decl_ast_ptr function;
+		x::access_t access = x::access_t::PRIVATE;
+		x::modify_flag modify = x::modify_flag::NONE;
+		x::stat_ast_ptr stat;
+		x::type_ast_ptr result;
 		std::vector<x::identifier_exp_ast_ptr> captures;
+		std::vector<x::parameter_decl_ast_ptr> parameters;
 	};
 	class arguments_exp_ast : public exp_stat_ast
 	{

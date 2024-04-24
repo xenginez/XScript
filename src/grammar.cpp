@@ -1059,35 +1059,30 @@ x::closure_exp_ast_ptr x::grammar::closure_exp()
         verify( token_t::TK_RIGHT_INDEX );
     }
 
-    ast->function = std::make_shared<function_decl_ast>();
+    ast->location = _location;
+    ast->access = access_t::PUBLIC;
+
+    if ( ast->captures.empty() )
+        ast->modify = ast->modify | x::modify_flag::STATIC;
+
+    validity( token_t::TK_LEFT_BRACKETS );
     {
-        ast->function->name = "invoke";
-        ast->function->location = _location;
-        ast->function->access = access_t::PUBLIC;
-
-        if( ast->captures.empty() )
-            ast->function->modify = ast->function->modify | x::modify_flag::STATIC;
-
-        validity( token_t::TK_LEFT_BRACKETS );
+        do
         {
-            do
-            {
-                ast->function->parameters.emplace_back( parameter_decl() );
-            } while ( verify( token_t::TK_COMMA ) );
-        }
-        validity( token_t::TK_RIGHT_BRACKETS );
-
-        if ( verify( token_t::TK_ASYNC ) )
-            ast->function->modify = ast->function->modify | x::modify_flag::ASYNC;
-
-        if ( verify( token_t::TK_FUNCTION_RESULT ) )
-            ast->function->result = type();
-        else
-            ast->function->result = type( "void" );
-
-        ast->function->stat = stat();
+            ast->parameters.emplace_back( parameter_decl() );
+        } while ( verify( token_t::TK_COMMA ) );
     }
+    validity( token_t::TK_RIGHT_BRACKETS );
 
+    if ( verify( token_t::TK_ASYNC ) )
+        ast->modify = ast->modify | x::modify_flag::ASYNC;
+
+    if ( verify( token_t::TK_FUNCTION_RESULT ) )
+        ast->result = type();
+    else
+        ast->result = type( "void" );
+
+    ast->stat = stat();
 
     return ast;
 }
