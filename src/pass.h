@@ -91,7 +91,7 @@ namespace x
 		using pass::visit;
 
 	public:
-
+		void visit( x::identifier_exp_ast * val ) override;
 	};
 
 	class type_checker_pass : public pass

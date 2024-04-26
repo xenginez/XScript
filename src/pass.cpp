@@ -190,3 +190,12 @@ void x::scope_scanner_pass::visit( x::compound_stat_ast * val )
 
 	scanner_pass::visit( val );
 }
+
+void x::reference_solver_pass::visit( x::identifier_exp_ast * val )
+{
+	auto sym = symbols()->find_symbol_from_name( val->ident );
+
+	ASSERT( sym, "" );
+
+	symbols()->add_reference( val->location, sym );
+}

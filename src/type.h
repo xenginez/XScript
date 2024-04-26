@@ -326,6 +326,18 @@ namespace x
         PROTECTED,
     };
 
+    enum class section_t
+    {
+        TYPE,
+        DEPEND,
+        GLOBAL,
+        FUNCTION,
+        VARIABLE,
+        CODEDATA,
+        STRINGDATA,
+        CUSTOMDATA,
+    };
+
     enum modify_flag
     {
         NONE = 0,
@@ -346,6 +358,7 @@ namespace x
 
     class grammar; using grammar_ptr = std::shared_ptr<grammar>;
     class symbols; using symbols_ptr = std::shared_ptr<symbols>;
+    class section; using section_ptr = std::shared_ptr<section>;
     class context; using context_ptr = std::shared_ptr<context>;
     class runtime; using runtime_ptr = std::shared_ptr<runtime>;
     class compiler; using compiler_ptr = std::shared_ptr<compiler>;

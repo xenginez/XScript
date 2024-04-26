@@ -5,6 +5,7 @@
 namespace x
 {
 #define PTR( T ) class T; using T##_ptr = std::shared_ptr< T >;
+	PTR( ast );
 	PTR( unit_ast );
 	PTR( type_ast );
 	PTR( import_ast );

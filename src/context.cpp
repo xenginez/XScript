@@ -3,6 +3,7 @@
 #include "pass.h"
 #include "grammar.h"
 #include "symbols.h"
+#include "section.h"
 #include "xstdlib.h"
 
 struct x::context::private_p
@@ -11,7 +12,6 @@ struct x::context::private_p
 	std::string _strpool;
 	x::symbols_ptr _symbols;
 	std::map<uint64_t, meta_ptr> _metas;
-
 	std::vector<std::filesystem::path> _paths;
 };
 

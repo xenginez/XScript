@@ -10,11 +10,6 @@ namespace x
 		virtual ~compiler() = default;
 	};
 
-	class ir_compiler : public compiler
-	{
-
-	};
-
 	class jit_compiler : public compiler
 	{
 
