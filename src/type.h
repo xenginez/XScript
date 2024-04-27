@@ -91,27 +91,19 @@ namespace x
         NAMESPACE   = 1 << 4,
 
         EXTERN      = 1 << 5,
-        NATIVE      = 1 << 6,
-        SCRIPT      = 1 << 7,
+        SCRIPT      = 1 << 6,
         
-        EXTERN_FUNCTION    = FUNCTION | EXTERN,
-
-        NATIVE_ENUM        = ENUM | NATIVE,
-        NATIVE_CLASS       = CLASS | NATIVE,
-        NATIVE_VARIABLE    = VARIABLE | NATIVE,
-        NATIVE_FUNCTION    = FUNCTION | NATIVE,
-
         SCRIPT_ENUM        = ENUM | SCRIPT,
         SCRIPT_CLASS       = CLASS | SCRIPT,
         SCRIPT_VARIABLE    = VARIABLE | SCRIPT,
         SCRIPT_FUNCTION    = FUNCTION | SCRIPT,
+        EXTERN_FUNCTION    = FUNCTION | EXTERN,
     };
 
     enum class code_t
     {
         IR,
         JIT,
-        AOT,
     };
 
     enum class token_t
@@ -119,8 +111,8 @@ namespace x
         TK_EOF = 0,
         TK_IDENTIFIER,           // identifier
         TK_LITERAL_INT,          // 1 233 0x123456 0b1101001
-        TK_LITERAL_REAL,         // 0.234
-        TK_LITERAL_STRING,       // "" "helloworld" R"println("hello");"
+        TK_LITERAL_FLOAT,        // 0.234
+        TK_LITERAL_STRING,       // "" "helloworld" R"(println("hello");)"
         TK_SEMICOLON,            // ;
         TK_COMMA,                // ,
         TK_INC,                  // ++
@@ -171,8 +163,17 @@ namespace x
         TK_BYTE,                 // byte
         TK_BOOL,                 // bool
         TK_ANY,                  // any
-        TK_INTEGER,              // int
-        TK_FLOATING,             // float
+        TK_INT8,                 // int8
+        TK_INT16,                // int16
+        TK_INT32,                // int32
+        TK_INT64,                // int64
+        TK_UINT8,                // uint8
+        TK_UINT16,               // uint16
+        TK_UINT32,               // uint32
+        TK_UINT64,               // uint64
+        TK_FLOAT16,              // float16
+        TK_FLOAT32,              // float32
+        TK_FLOAT64,              // float64
         TK_STRING,               // string
         TK_IMPORT,               // import
         TK_TEMPLATE,             // template
@@ -351,9 +352,67 @@ namespace x
 
     class value;
     class object;
-    
+
     class ast; using ast_ptr = std::shared_ptr<ast>;
     class unit_ast; using unit_ast_ptr = std::shared_ptr<unit_ast>;
+    class type_ast; using type_ast_ptr = std::shared_ptr< type_ast >;
+    class import_ast; using import_ast_ptr = std::shared_ptr< import_ast >;
+    class decl_ast; using decl_ast_ptr = std::shared_ptr< decl_ast >;
+    class enum_decl_ast; using enum_decl_ast_ptr = std::shared_ptr< enum_decl_ast >;
+    class class_decl_ast; using class_decl_ast_ptr = std::shared_ptr< class_decl_ast >;
+    class using_decl_ast; using using_decl_ast_ptr = std::shared_ptr< using_decl_ast >;
+    class enum_element_ast; using enum_element_ast_ptr = std::shared_ptr< enum_element_ast >;
+    class template_decl_ast; using template_decl_ast_ptr = std::shared_ptr< template_decl_ast >;
+    class variable_decl_ast; using variable_decl_ast_ptr = std::shared_ptr< variable_decl_ast >;
+    class function_decl_ast; using function_decl_ast_ptr = std::shared_ptr< function_decl_ast >;
+    class parameter_decl_ast; using parameter_decl_ast_ptr = std::shared_ptr< parameter_decl_ast >;
+    class namespace_decl_ast; using namespace_decl_ast_ptr = std::shared_ptr< namespace_decl_ast >;
+    class stat_ast; using stat_ast_ptr = std::shared_ptr< stat_ast >;
+    class empty_stat_ast; using empty_stat_ast_ptr = std::shared_ptr< empty_stat_ast >;
+    class compound_stat_ast; using compound_stat_ast_ptr = std::shared_ptr< compound_stat_ast >;
+    class await_stat_ast; using await_stat_ast_ptr = std::shared_ptr< await_stat_ast >;
+    class yield_stat_ast; using yield_stat_ast_ptr = std::shared_ptr< yield_stat_ast >;
+    class try_stat_ast; using try_stat_ast_ptr = std::shared_ptr< try_stat_ast >;
+    class catch_stat_ast; using catch_stat_ast_ptr = std::shared_ptr< catch_stat_ast >;
+    class throw_stat_ast; using throw_stat_ast_ptr = std::shared_ptr< throw_stat_ast >;
+    class if_stat_ast; using if_stat_ast_ptr = std::shared_ptr< if_stat_ast >;
+    class while_stat_ast; using while_stat_ast_ptr = std::shared_ptr< while_stat_ast >;
+    class for_stat_ast; using for_stat_ast_ptr = std::shared_ptr< for_stat_ast >;
+    class foreach_stat_ast; using foreach_stat_ast_ptr = std::shared_ptr< foreach_stat_ast >;
+    class break_stat_ast; using break_stat_ast_ptr = std::shared_ptr< break_stat_ast >;
+    class return_stat_ast; using return_stat_ast_ptr = std::shared_ptr< return_stat_ast >;
+    class continue_stat_ast; using continue_stat_ast_ptr = std::shared_ptr< continue_stat_ast >;
+    class local_stat_ast; using local_stat_ast_ptr = std::shared_ptr< local_stat_ast >;
+    class exp_stat_ast; using exp_stat_ast_ptr = std::shared_ptr< exp_stat_ast >;
+    class binary_exp_ast; using binary_exp_ast_ptr = std::shared_ptr< binary_exp_ast >;
+    class assignment_exp_ast; using assignment_exp_ast_ptr = std::shared_ptr< assignment_exp_ast >;
+    class conditional_exp_ast; using conditional_exp_ast_ptr = std::shared_ptr< conditional_exp_ast >;
+    class logical_or_exp_ast; using logical_or_exp_ast_ptr = std::shared_ptr< logical_or_exp_ast >;
+    class logical_and_exp_ast; using logical_and_exp_ast_ptr = std::shared_ptr< logical_and_exp_ast >;
+    class or_exp_ast; using or_exp_ast_ptr = std::shared_ptr< or_exp_ast >;
+    class xor_exp_ast; using xor_exp_ast_ptr = std::shared_ptr< xor_exp_ast >;
+    class and_exp_ast; using and_exp_ast_ptr = std::shared_ptr< and_exp_ast >;
+    class compare_exp_ast; using compare_exp_ast_ptr = std::shared_ptr< compare_exp_ast >;
+    class shift_exp_ast; using shift_exp_ast_ptr = std::shared_ptr< shift_exp_ast >;
+    class add_exp_ast; using add_exp_ast_ptr = std::shared_ptr< add_exp_ast >;
+    class mul_exp_ast; using mul_exp_ast_ptr = std::shared_ptr< mul_exp_ast >;
+    class as_exp_ast; using as_exp_ast_ptr = std::shared_ptr< as_exp_ast >;
+    class is_exp_ast; using is_exp_ast_ptr = std::shared_ptr< is_exp_ast >;
+    class unary_exp_ast; using unary_exp_ast_ptr = std::shared_ptr< unary_exp_ast >;
+    class postfix_exp_ast; using postfix_exp_ast_ptr = std::shared_ptr< postfix_exp_ast >;
+    class index_exp_ast; using index_exp_ast_ptr = std::shared_ptr< index_exp_ast >;
+    class invoke_exp_ast; using invoke_exp_ast_ptr = std::shared_ptr< invoke_exp_ast >;
+    class member_exp_ast; using member_exp_ast_ptr = std::shared_ptr< member_exp_ast >;
+    class identifier_exp_ast; using identifier_exp_ast_ptr = std::shared_ptr< identifier_exp_ast >;
+    class closure_exp_ast; using closure_exp_ast_ptr = std::shared_ptr< closure_exp_ast >;
+    class arguments_exp_ast; using arguments_exp_ast_ptr = std::shared_ptr< arguments_exp_ast >;
+    class initializers_exp_ast; using initializers_exp_ast_ptr = std::shared_ptr< initializers_exp_ast >;
+    class const_exp_ast; using const_exp_ast_ptr = std::shared_ptr< const_exp_ast >;
+    class null_const_exp_ast; using null_const_exp_ast_ptr = std::shared_ptr< null_const_exp_ast >;
+    class bool_const_exp_ast; using bool_const_exp_ast_ptr = std::shared_ptr< bool_const_exp_ast >;
+    class int_const_exp_ast; using int_const_exp_ast_ptr = std::shared_ptr< int_const_exp_ast >;
+    class float_const_exp_ast; using float_const_exp_ast_ptr = std::shared_ptr< float_const_exp_ast >;
+    class string_const_exp_ast; using string_const_exp_ast_ptr = std::shared_ptr< string_const_exp_ast >;
     class ast_visitor; using ast_visitor_ptr = std::shared_ptr<ast_visitor>;
 
     class grammar; using grammar_ptr = std::shared_ptr<grammar>;
@@ -391,7 +450,7 @@ namespace x
         bool is_ref = false;
         bool is_const = false;
         bool is_array = false;
-        uint64_t hashcode = 0;
+        std::uint64_t hashcode = 0;
     };
 
     struct token
@@ -404,7 +463,8 @@ namespace x
     struct code
     {
         code_t type;
-        uint64_t idx;
+        std::uint32_t idx;
+        std::uint32_t size;
     };
 
     inline x::modify_flag operator|( x::modify_flag left, x::modify_flag right )

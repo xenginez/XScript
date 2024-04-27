@@ -158,4 +158,16 @@ namespace x
 	public:
 		std::string customdatas;
 	};
+
+	class sections
+	{
+		type_section type;
+		depend_section depend;
+		global_section global;
+		function_section function;
+		variable_section variable;
+		codedata_section codedata;
+		stringdata_section stringdata;
+		customdata_section customdata;
+	};
 }

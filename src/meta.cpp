@@ -1,13 +1,11 @@
 #include "meta.h"
 
-#include "runtime.h"
-
 x::meta_t x::meta::type() const
 {
 	return _type;
 }
 
-uint64_t x::meta::hashcode() const
+std::uint64_t x::meta::hashcode() const
 {
 	return _hashcode;
 }
@@ -22,39 +20,39 @@ x::static_string_view x::meta::fullname() const
 	return _fullname;
 }
 
-x::meta_namespace::meta_namespace()
+x::meta_enum::meta_enum()
 {
-	meta::_type = meta_t::NAMESPACE;
+	meta::_type = meta_t::ENUM;
 }
 
-std::span<x::meta_ptr> x::meta_namespace::members() const
+std::span<const std::pair<x::static_string_view, std::int64_t>> x::meta_enum::elements() const
 {
-	return _members;
+	return _elements;
 }
 
-x::meta_function::meta_function()
+x::meta_class::meta_class()
 {
-	meta::_type = meta_t::FUNCTION;
+	meta::_type = meta_t::CLASS;
 }
 
-x::access_t x::meta_function::access() const
+std::uint64_t x::meta_class::class_size() const
 {
-	return _access;
+	return _size;
 }
 
-x::modify_flag x::meta_function::modify() const
+x::static_string_view x::meta_class::class_base() const
 {
-	return _modify;
+	return _base;
 }
 
-x::type_desc x::meta_function::result_type() const
+std::span<const x::meta_variable_ptr> x::meta_class::variables() const
 {
-	return _result_type;
+	return _variables;
 }
 
-std::span<x::type_desc> x::meta_function::parameter_types() const
+std::span<const x::meta_function_ptr> x::meta_class::functions() const
 {
-	return _parameter_types;
+	return _functions;
 }
 
 x::meta_variable::meta_variable()
@@ -77,95 +75,44 @@ x::type_desc x::meta_variable::value_type() const
 	return _value_type;
 }
 
-x::meta_class::meta_class()
+x::meta_function::meta_function()
 {
-	meta::_type = meta_t::CLASS;
+	meta::_type = meta_t::FUNCTION;
 }
 
-uint64_t x::meta_class::class_size() const
+x::access_t x::meta_function::access() const
 {
-	return _size;
+	return _access;
 }
 
-x::static_string_view x::meta_class::class_base() const
+x::modify_flag x::meta_function::modify() const
 {
-	return _base;
+	return _modify;
 }
 
-std::span<x::meta_variable_ptr> x::meta_class::variables() const
+x::type_desc x::meta_function::result_type() const
 {
-	return _variables;
+	return _result_type;
 }
 
-std::span<x::meta_function_ptr> x::meta_class::functions() const
+std::span<const x::type_desc> x::meta_function::parameter_types() const
 {
-	return _functions;
+	return _parameter_types;
 }
 
-x::meta_enum::meta_enum()
+x::meta_namespace::meta_namespace()
 {
-	meta::_type = meta_t::ENUM;
+	meta::_type = meta_t::NAMESPACE;
 }
 
-std::span<std::pair<x::static_string_view, x::value>> x::meta_enum::elements() const
+std::span<const x::meta_ptr> x::meta_namespace::members() const
 {
-	return _elements;
+	return _members;
 }
 
-x::meta_extern_function::meta_extern_function()
+x::meta_script_enum::meta_script_enum()
 {
-	meta::_type = x::meta_t::EXTERN_FUNCTION;
-}
-
-void x::meta_extern_function::invoke() const
-{
-	runtime::exec_extern( _lib, _proc );
-}
-
-x::meta_script_function::meta_script_function()
-{
-	meta::_type = x::meta_t::SCRIPT_FUNCTION;
-}
-
-void x::meta_script_function::invoke() const
-{
-	switch ( _code.type )
-	{
-	case x::code_t::IR:
-		runtime::exec_ir( _code.idx );
-		break;
-	case x::code_t::JIT:
-		runtime::exec_jit( _code.idx );
-		break;
-	case x::code_t::AOT:
-		runtime::exec_aot( _code.idx );
-		break;
-	}
-}
-
-x::meta_script_variable::meta_script_variable()
-{
-	meta::_type = x::meta_t::SCRIPT_VARIABLE;
-}
-
-void x::meta_script_variable::get() const
-{
-	if ( (int)modify() & (int)modify_flag::STATIC )
-	{
-		runtime::push( runtime::global( _idx ) );
-	}
-	else if ( (int)modify() & (int)modify_flag::THREAD )
-	{
-		runtime::push( runtime::thread( _idx ) );
-	}
-	else
-	{
-
-	}
-}
-
-void x::meta_script_variable::set() const
-{
+	meta::_type = x::meta_t::SCRIPT_ENUM;
 }
 
 x::meta_script_class::meta_script_class()
@@ -175,25 +122,39 @@ x::meta_script_class::meta_script_class()
 
 void x::meta_script_class::construct( void * ptr ) const
 {
-	runtime::push( new x::script_object( hashcode(), ptr ) );
 
-	switch ( _code.type )
-	{
-	case x::code_t::IR:
-		runtime::exec_ir( _code.idx );
-		break;
-	case x::code_t::JIT:
-		runtime::exec_jit( _code.idx );
-		break;
-	case x::code_t::AOT:
-		runtime::exec_aot( _code.idx );
-		break;
-	}
-
-	runtime::pop();
 }
 
-x::meta_script_enum::meta_script_enum()
+x::meta_script_function::meta_script_function()
 {
-	meta::_type = x::meta_t::SCRIPT_ENUM;
+	meta::_type = x::meta_t::SCRIPT_FUNCTION;
+}
+
+void x::meta_script_function::invoke() const
+{
+
+}
+
+x::meta_script_variable::meta_script_variable()
+{
+	meta::_type = x::meta_t::SCRIPT_VARIABLE;
+}
+
+void x::meta_script_variable::get() const
+{
+
+}
+
+void x::meta_script_variable::set() const
+{
+}
+
+x::meta_extern_function::meta_extern_function()
+{
+	meta::_type = x::meta_t::EXTERN_FUNCTION;
+}
+
+void x::meta_extern_function::invoke() const
+{
+
 }

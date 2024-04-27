@@ -134,7 +134,7 @@ namespace x
     template<typename T> struct is_span<const T> : public is_span<T>
     {
     };
-    template<typename T, size_t N> struct is_span< std::span<T, N> > : public std::true_type
+    template<typename T, std::size_t N> struct is_span< std::span<T, N> > : public std::true_type
     {
     };
     template<typename T> static constexpr bool is_span_v = is_span<T>::value;
@@ -148,7 +148,7 @@ namespace x
     template<typename T> struct is_array<const T> : public is_array<T>
     {
     };
-    template<typename T, size_t N> struct is_array< std::array<T, N> > : public std::true_type
+    template<typename T, std::size_t N> struct is_array< std::array<T, N> > : public std::true_type
     {
     };
     template<typename T> static constexpr bool is_array_v = is_array<T>::value || is_vector_v<T> || is_span_v<T>;

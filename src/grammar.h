@@ -78,7 +78,7 @@ namespace x
 		x::modify_flag modify();
 		x::access_t access();
 		std::string type_name();
-		x::type_ast_ptr type( std::string_view name );
+		x::type_ast_ptr type( std::string_view name, bool is_ref = false, bool is_const = false, bool is_array = false );
 		std::string location_to_name( const x::source_location & location, std::string_view suffix = "" );
 
 	private:

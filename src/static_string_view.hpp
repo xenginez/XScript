@@ -30,7 +30,7 @@ namespace x
         using iterator = const_iterator;
         using const_reverse_iterator = std::reverse_iterator<const_iterator>;
         using reverse_iterator = const_reverse_iterator;
-        using size_type = size_t;
+        using size_type = std::size_t;
         using difference_type = ptrdiff_t;
 
     public:
@@ -144,7 +144,7 @@ namespace x
 
         constexpr size_type max_size() const noexcept
         {
-            return ( _STD min )( static_cast<size_t>( PTRDIFF_MAX ), static_cast<size_t>( -1 ) / sizeof( _Elem ) );
+            return ( _STD min )( static_cast<std::size_t>( PTRDIFF_MAX ), static_cast<std::size_t>( -1 ) / sizeof( _Elem ) );
         }
 
         constexpr const_reference operator[]( const size_type _Off ) const noexcept
