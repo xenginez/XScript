@@ -68,29 +68,17 @@ bool x::context::load_script_stream( std::istream & stream, std::string_view nam
 
 	if ( recursion_import( stream, name, units ) )
 	{
-		x::type_scanner_pass pass1;
-		x::function_scanner_pass pass2;
-		x::variable_scanner_pass pass3;
-		x::scope_scanner_pass pass4;
-		x::reference_solver_pass pass5;
-		x::type_checker_pass pass6;
-		x::semantic_validator_pass pass7;
+		x::symbol_scanner_pass pass1;
+		x::reference_solver_pass pass2;
+		x::type_checker_pass pass3;
 
 		pass1.set_ctx( this );
 		pass2.set_ctx( this );
 		pass3.set_ctx( this );
-		pass4.set_ctx( this );
-		pass5.set_ctx( this );
-		pass6.set_ctx( this );
-		pass7.set_ctx( this );
 
 		for ( const auto & it : units ) pass1.visit( it.get() );
 		for ( const auto & it : units ) pass2.visit( it.get() );
 		for ( const auto & it : units ) pass3.visit( it.get() );
-		for ( const auto & it : units ) pass4.visit( it.get() );
-		for ( const auto & it : units ) pass5.visit( it.get() );
-		for ( const auto & it : units ) pass6.visit( it.get() );
-		for ( const auto & it : units ) pass7.visit( it.get() );
 
 		return true;
 	}
@@ -132,9 +120,7 @@ std::filesystem::path x::context::search_path( const std::filesystem::path & pat
 
 void x::context::register_meta( const meta_ptr & val )
 {
-	static std::hash<std::string_view> h;
-	val->_hashcode = h( { val->fullname().data(), val->fullname().size() } );
-	_p->_metas.insert( { val->_hashcode, val } );
+	_p->_metas.insert( { val->hashcode(), val } );
 }
 
 x::static_string_view x::context::trans_string_view( std::string_view str )

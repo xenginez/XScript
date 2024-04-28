@@ -24,7 +24,7 @@ add_executable (XScript
 "src/context.h"
 "src/context.cpp"
 "src/compiler.h"
-"src/compiler.cpp")
+"src/compiler.cpp" "src/symbol.h" "src/symbol.cpp")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET XScript PROPERTY CXX_STANDARD 20)

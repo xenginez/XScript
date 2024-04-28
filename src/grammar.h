@@ -16,8 +16,9 @@ namespace x
 		x::unit_ast_ptr unit();
 		x::type_ast_ptr type();
 		x::import_ast_ptr import();
-		
+
 		x::enum_decl_ast_ptr enum_decl();
+		x::flag_decl_ast_ptr flag_decl();
 		x::class_decl_ast_ptr class_decl();
 		x::using_decl_ast_ptr using_decl();
 		x::template_decl_ast_ptr template_decl();
@@ -27,6 +28,7 @@ namespace x
 		x::namespace_decl_ast_ptr namespace_decl();
 
 		x::stat_ast_ptr stat();
+		x::extern_stat_ast_ptr extern_stat();
 		x::compound_stat_ast_ptr compound_stat();
 		x::await_stat_ast_ptr await_stat();
 		x::yield_stat_ast_ptr yield_stat();
@@ -78,7 +80,7 @@ namespace x
 		x::modify_flag modify();
 		x::access_t access();
 		std::string type_name();
-		x::type_ast_ptr type( std::string_view name, bool is_ref = false, bool is_const = false, bool is_array = false );
+		x::type_ast_ptr type( std::string_view name, bool is_ref = false, bool is_const = false, std::uint8_t array = 0 );
 		std::string location_to_name( const x::source_location & location, std::string_view suffix = "" );
 
 	private:

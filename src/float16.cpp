@@ -1,9 +1,28 @@
 #include "float16.h"
 
 #include <bit>
+#include <limits>
 
 namespace
 {
+	struct endian
+	{
+		endian()
+			: i( 1 )
+		{
+		}
+
+		union
+		{
+
+			int i;
+			struct
+			{
+				char little;
+				char big;
+			};
+		};
+	};
 	union big_float32
 	{
 		struct
@@ -171,7 +190,7 @@ std::strong_ordering x::float16::operator<=>( float16 right ) const
 
 float x::float16::to_float() const
 {
-	if constexpr ( std::endian::native == std::endian::big )
+	if ( endian().big )
 	{
 		big_float32 f{};
 		f.sign = this->sign;
@@ -191,7 +210,7 @@ float x::float16::to_float() const
 
 void x::float16::from_float( float val )
 {
-	if constexpr ( std::endian::native == std::endian::big )
+	if ( endian().big )
 	{
 		big_float32 f{};
 		f.encode = val;

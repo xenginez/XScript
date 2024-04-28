@@ -1,46 +1,103 @@
 #include "meta.h"
 
-x::meta_t x::meta::type() const
+x::meta_enum::meta_enum()
 {
-	return _type;
 }
 
-std::uint64_t x::meta::hashcode() const
+x::meta_t x::meta_enum::type() const
 {
-	return _hashcode;
+	return x::meta_t::ENUM;
 }
 
-x::static_string_view x::meta::name() const
+std::size_t x::meta_enum::hashcode() const
+{
+	return x::hash( fullname() );
+}
+
+x::static_string_view x::meta_enum::name() const
 {
 	return _name;
 }
 
-x::static_string_view x::meta::fullname() const
+x::static_string_view x::meta_enum::fullname() const
 {
 	return _fullname;
 }
 
-x::meta_enum::meta_enum()
+std::uint64_t x::meta_enum::size() const
 {
-	meta::_type = meta_t::ENUM;
+	return sizeof( x::int64 );
 }
 
-std::span<const std::pair<x::static_string_view, std::int64_t>> x::meta_enum::elements() const
+std::span<const std::pair<x::static_string_view, x::int64>> x::meta_enum::elements() const
+{
+	return _elements;
+}
+
+x::meta_flag::meta_flag()
+{
+}
+
+x::meta_t x::meta_flag::type() const
+{
+	return x::meta_t::FLAG;
+}
+
+std::size_t x::meta_flag::hashcode() const
+{
+	return x::hash( fullname() );
+}
+
+x::static_string_view x::meta_flag::name() const
+{
+	return _name;
+}
+
+x::static_string_view x::meta_flag::fullname() const
+{
+	return _fullname;
+}
+
+std::uint64_t x::meta_flag::size() const
+{
+	return sizeof( x::uint64 );
+}
+
+std::span<const std::pair<x::static_string_view, x::uint64>> x::meta_flag::elements() const
 {
 	return _elements;
 }
 
 x::meta_class::meta_class()
 {
-	meta::_type = meta_t::CLASS;
 }
 
-std::uint64_t x::meta_class::class_size() const
+x::meta_t x::meta_class::type() const
+{
+	return x::meta_t::CLASS;
+}
+
+std::size_t x::meta_class::hashcode() const
+{
+	return x::hash( fullname() );
+}
+
+x::static_string_view x::meta_class::name() const
+{
+	return _name;
+}
+
+x::static_string_view x::meta_class::fullname() const
+{
+	return _fullname;
+}
+
+std::uint64_t x::meta_class::size() const
 {
 	return _size;
 }
 
-x::static_string_view x::meta_class::class_base() const
+x::static_string_view x::meta_class::base() const
 {
 	return _base;
 }
@@ -55,29 +112,32 @@ std::span<const x::meta_function_ptr> x::meta_class::functions() const
 	return _functions;
 }
 
-x::meta_variable::meta_variable()
+void x::meta_class::construct( void * ptr ) const
 {
-	meta::_type = meta_t::VARIABLE;
-}
-
-x::access_t x::meta_variable::access() const
-{
-	return _access;
-}
-
-x::modify_flag x::meta_variable::modify() const
-{
-	return _modify;
-}
-
-x::type_desc x::meta_variable::value_type() const
-{
-	return _value_type;
 }
 
 x::meta_function::meta_function()
 {
-	meta::_type = meta_t::FUNCTION;
+}
+
+x::meta_t x::meta_function::type() const
+{
+	return x::meta_t::FUNCTION;
+}
+
+std::size_t x::meta_function::hashcode() const
+{
+	return x::hash( fullname() );
+}
+
+x::static_string_view x::meta_function::name() const
+{
+	return _name;
+}
+
+x::static_string_view x::meta_function::fullname() const
+{
+	return _fullname;
 }
 
 x::access_t x::meta_function::access() const
@@ -100,61 +160,82 @@ std::span<const x::type_desc> x::meta_function::parameter_types() const
 	return _parameter_types;
 }
 
+void x::meta_function::invoke() const
+{
+}
+
+x::meta_variable::meta_variable()
+{
+}
+
+x::meta_t x::meta_variable::type() const
+{
+	return x::meta_t::VARIABLE;
+}
+
+std::size_t x::meta_variable::hashcode() const
+{
+	return x::hash( fullname() );
+}
+
+x::static_string_view x::meta_variable::name() const
+{
+	return _name;
+}
+
+x::static_string_view x::meta_variable::fullname() const
+{
+	return _fullname;
+}
+
+x::access_t x::meta_variable::access() const
+{
+	return _access;
+}
+
+x::modify_flag x::meta_variable::modify() const
+{
+	return _modify;
+}
+
+x::type_desc x::meta_variable::value_type() const
+{
+	return _value_type;
+}
+
+void x::meta_variable::get( const x::value & obj ) const
+{
+}
+
+void x::meta_variable::set( const x::value & obj ) const
+{
+}
+
 x::meta_namespace::meta_namespace()
 {
-	meta::_type = meta_t::NAMESPACE;
 }
 
-std::span<const x::meta_ptr> x::meta_namespace::members() const
+x::meta_t x::meta_namespace::type() const
+{
+	return x::meta_t::NAMESPACE;
+}
+
+std::size_t x::meta_namespace::hashcode() const
+{
+	return x::hash( fullname() );
+}
+
+x::static_string_view x::meta_namespace::name() const
+{
+	return _name;
+}
+
+x::static_string_view x::meta_namespace::fullname() const
+{
+	return _fullname;
+}
+
+std::span<const x::meta_type_ptr> x::meta_namespace::members() const
 {
 	return _members;
-}
-
-x::meta_script_enum::meta_script_enum()
-{
-	meta::_type = x::meta_t::SCRIPT_ENUM;
-}
-
-x::meta_script_class::meta_script_class()
-{
-	meta::_type = x::meta_t::SCRIPT_CLASS;
-}
-
-void x::meta_script_class::construct( void * ptr ) const
-{
-
-}
-
-x::meta_script_function::meta_script_function()
-{
-	meta::_type = x::meta_t::SCRIPT_FUNCTION;
-}
-
-void x::meta_script_function::invoke() const
-{
-
-}
-
-x::meta_script_variable::meta_script_variable()
-{
-	meta::_type = x::meta_t::SCRIPT_VARIABLE;
-}
-
-void x::meta_script_variable::get() const
-{
-
-}
-
-void x::meta_script_variable::set() const
-{
-}
-
-x::meta_extern_function::meta_extern_function()
-{
-	meta::_type = x::meta_t::EXTERN_FUNCTION;
-}
-
-void x::meta_extern_function::invoke() const
-{
-
 }

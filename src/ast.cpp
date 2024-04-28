@@ -40,6 +40,16 @@ void x::enum_decl_ast::accept( ast_visitor * visitor )
 	visitor->visit( this );
 }
 
+x::ast_t x::flag_decl_ast::type() const
+{
+	return x::ast_t::FLAG_DECL;
+}
+
+void x::flag_decl_ast::accept( ast_visitor * visitor )
+{
+	visitor->visit( this );
+}
+
 x::ast_t x::class_decl_ast::type() const
 {
 	return x::ast_t::CLASS_DECL;
@@ -66,6 +76,16 @@ x::ast_t x::enum_element_ast::type() const
 }
 
 void x::enum_element_ast::accept( ast_visitor * visitor )
+{
+	visitor->visit( this );
+}
+
+x::ast_t x::flag_element_ast::type() const
+{
+	return x::ast_t::FLAG_ELEMENT;
+}
+
+void x::flag_element_ast::accept( ast_visitor * visitor )
 {
 	visitor->visit( this );
 }
@@ -126,6 +146,16 @@ x::ast_t x::empty_stat_ast::type() const
 }
 
 void x::empty_stat_ast::accept( ast_visitor * visitor )
+{
+	visitor->visit( this );
+}
+
+x::ast_t x::extern_stat_ast::type() const
+{
+	return x::ast_t::EXTERN_STAT;
+}
+
+void x::extern_stat_ast::accept( ast_visitor * visitor )
 {
 	visitor->visit( this );
 }
@@ -510,24 +540,103 @@ void x::bool_const_exp_ast::accept( ast_visitor * visitor )
 	visitor->visit( this );
 }
 
-x::ast_t x::int_const_exp_ast::type() const
+x::ast_t x::int8_const_exp_ast::type() const
 {
-	return x::ast_t::INT_CONST_EXP;
+	return x::ast_t::INT8_CONST_EXP;
 }
 
-void x::int_const_exp_ast::accept( ast_visitor * visitor )
+void x::int8_const_exp_ast::accept( ast_visitor * visitor )
 {
-	visitor->visit( this );
 }
 
-x::ast_t x::float_const_exp_ast::type() const
+x::ast_t x::int16_const_exp_ast::type() const
 {
-	return x::ast_t::FLOAT_CONST_EXP;
+	return x::ast_t::INT16_CONST_EXP;
 }
 
-void x::float_const_exp_ast::accept( ast_visitor * visitor )
+void x::int16_const_exp_ast::accept( ast_visitor * visitor )
 {
-	visitor->visit( this );
+}
+
+x::ast_t x::int32_const_exp_ast::type() const
+{
+	return x::ast_t::INT32_CONST_EXP;
+}
+
+void x::int32_const_exp_ast::accept( ast_visitor * visitor )
+{
+}
+
+x::ast_t x::int64_const_exp_ast::type() const
+{
+	return x::ast_t::INT64_CONST_EXP;
+}
+
+void x::int64_const_exp_ast::accept( ast_visitor * visitor )
+{
+}
+
+x::ast_t x::uint8_const_exp_ast::type() const
+{
+	return x::ast_t::UINT8_CONST_EXP;
+}
+
+void x::uint8_const_exp_ast::accept( ast_visitor * visitor )
+{
+}
+
+x::ast_t x::uint16_const_exp_ast::type() const
+{
+	return x::ast_t::UINT16_CONST_EXP;
+}
+
+void x::uint16_const_exp_ast::accept( ast_visitor * visitor )
+{
+}
+
+x::ast_t x::uint32_const_exp_ast::type() const
+{
+	return x::ast_t::UINT32_CONST_EXP;
+}
+
+void x::uint32_const_exp_ast::accept( ast_visitor * visitor )
+{
+}
+
+x::ast_t x::uint64_const_exp_ast::type() const
+{
+	return x::ast_t::UINT64_CONST_EXP;
+}
+
+void x::uint64_const_exp_ast::accept( ast_visitor * visitor )
+{
+}
+
+x::ast_t x::float16_const_exp_ast::type() const
+{
+	return x::ast_t::FLOAT16_CONST_EXP;
+}
+
+void x::float16_const_exp_ast::accept( ast_visitor * visitor )
+{
+}
+
+x::ast_t x::float32_const_exp_ast::type() const
+{
+	return x::ast_t::FLOAT32_CONST_EXP;
+}
+
+void x::float32_const_exp_ast::accept( ast_visitor * visitor )
+{
+}
+
+x::ast_t x::float64_const_exp_ast::type() const
+{
+	return x::ast_t::FLOAT64_CONST_EXP;
+}
+
+void x::float64_const_exp_ast::accept( ast_visitor * visitor )
+{
 }
 
 x::ast_t x::string_const_exp_ast::type() const
@@ -563,6 +672,12 @@ void x::ast_visitor::visit( x::enum_decl_ast * val )
 		it->accept( this );
 }
 
+void x::ast_visitor::visit( x::flag_decl_ast * val )
+{
+	for ( const auto & it : val->elements )
+		it->accept( this );
+}
+
 void x::ast_visitor::visit( x::class_decl_ast * val )
 {
 	if ( val->base ) val->base->accept( this );
@@ -578,6 +693,10 @@ void x::ast_visitor::visit( x::using_decl_ast * val )
 }
 
 void x::ast_visitor::visit( x::enum_element_ast * val )
+{
+}
+
+void x::ast_visitor::visit( x::flag_element_ast * val )
 {
 }
 
@@ -613,6 +732,10 @@ void x::ast_visitor::visit( x::namespace_decl_ast * val )
 }
 
 void x::ast_visitor::visit( x::empty_stat_ast * val )
+{
+}
+
+void x::ast_visitor::visit( x::extern_stat_ast * val )
 {
 }
 

@@ -1,5 +1,6 @@
 #include "grammar.h"
 
+#include <bit>
 #include <map>
 #include <regex>
 
@@ -74,6 +75,7 @@ namespace
         { (const char *)u8"namespace", x::token_t::TK_NAMESPACE },
         { (const char *)u8"using", x::token_t::TK_USING },
         { (const char *)u8"enum", x::token_t::TK_ENUM },
+        { (const char *)u8"flag", x::token_t::TK_FLAG },
         { (const char *)u8"class", x::token_t::TK_CLASS },
         { (const char *)u8"var", x::token_t::TK_VARIABLE },
         { (const char *)u8"func", x::token_t::TK_FUNCTION },
@@ -150,7 +152,15 @@ x::type_ast_ptr x::grammar::type()
     ast->is_ref = verify( token_t::TK_REF );
     ast->is_const = verify( token_t::TK_CONST );
     ast->name = type_name();
-    ast->is_array = ( verify( token_t::TK_LEFT_INDEX ) && verify( token_t::TK_RIGHT_INDEX ) );
+    if ( verify( token_t::TK_LEFT_INDEX ) )
+    {
+        ast->array++;
+        while ( !verify( token_t::TK_RIGHT_INDEX ) )
+        {
+            validity( token_t::TK_COMMA );
+            ast->array++;
+        }
+    }
 
     return ast;
 }
@@ -184,20 +194,41 @@ x::enum_decl_ast_ptr x::grammar::enum_decl()
 
         element->name = validity( token_t::TK_IDENTIFIER ).str;
 
-        if ( verify( token_t::TK_ASSIGN ) )
-        {
-            element->value = int_const_exp();
-        }
+        if ( ast->elements.empty() )
+            element->value = 0;
         else
-        {
-            element->value = std::make_shared<int_const_exp_ast>();
-            element->value->location = _location;
+            element->value = ast->elements.back()->value + 1;
 
-            if ( ast->elements.empty() )
-                element->value->value = 0;
-            else
-                element->value->value = ast->elements.back()->value->value + 1;
-        }
+        ast->elements.emplace_back( element );
+
+        verify( token_t::TK_COMMA );
+
+    } while ( !verify( token_t::TK_RIGHT_CURLY_BRACES ) );
+
+    return ast;
+}
+
+x::flag_decl_ast_ptr x::grammar::flag_decl()
+{
+    validity( token_t::TK_ENUM );
+
+    auto ast = std::make_shared<flag_decl_ast>();
+    ast->location = _location;
+
+    ast->name = validity( token_t::TK_IDENTIFIER ).str;
+
+    validity( token_t::TK_LEFT_CURLY_BRACES );
+    do
+    {
+        auto element = std::make_shared<flag_element_ast>();
+        element->location = _location;
+
+        element->name = validity( token_t::TK_IDENTIFIER ).str;
+
+        if ( ast->elements.empty() )
+            element->value = 1;
+        else
+            element->value = ast->elements.back()->value << 1;
 
         ast->elements.emplace_back( element );
 
@@ -329,7 +360,9 @@ x::function_decl_ast_ptr x::grammar::function_decl()
     else
         ast->result = type( "void" );
 
-    if ( !verify( token_t::TK_SEMICOLON ) )
+    if ( lookup().type == token_t::TK_EXTERN )
+        ast->stat = extern_stat();
+    else
         ast->stat = compound_stat();
 
     return ast;
@@ -366,6 +399,9 @@ x::namespace_decl_ast_ptr x::grammar::namespace_decl()
         {
         case token_t::TK_ENUM:
             decl = enum_decl();
+            break;
+        case token_t::TK_FLAG:
+            decl = flag_decl();
             break;
         case token_t::TK_CLASS:
             decl = class_decl();
@@ -439,6 +475,26 @@ x::stat_ast_ptr x::grammar::stat()
     default:
         return exp_stat();
     }
+}
+
+x::extern_stat_ast_ptr x::grammar::extern_stat()
+{
+    validity( token_t::TK_EXTERN );
+
+    auto ast = std::make_shared<extern_stat_ast>();
+    ast->location = _location;
+
+    validity( token_t::TK_LEFT_BRACKETS );
+    {
+        ast->libname = validity( token_t::TK_LITERAL_STRING ).str;
+        validity( token_t::TK_COMMA );
+        ast->funcname = validity( token_t::TK_LITERAL_STRING ).str;
+    }
+    validity( token_t::TK_RIGHT_BRACKETS );
+
+    validity( token_t::TK_SEMICOLON );
+
+    return ast;
 }
 
 x::compound_stat_ast_ptr x::grammar::compound_stat()
@@ -1207,20 +1263,121 @@ x::bool_const_exp_ast_ptr x::grammar::false_const_exp()
 
 x::int_const_exp_ast_ptr x::grammar::int_const_exp()
 {
-    auto ast = std::make_shared<int_const_exp_ast>();
-    ast->location = _location;
+    x::int_const_exp_ast_ptr ast;
 
-    ast->value = std::stoll( validity( token_t::TK_LITERAL_INT ).str );
+    auto str = validity( token_t::TK_LITERAL_INT ).str;
+
+    int base = 10;
+    x::uint64 u64 = 0;
+    
+    if ( str.find( "0x" ) <= 1 )
+        base = 16;
+    else if ( str.find( "0b" ) <= 1 )
+        base = 2;
+    else
+        base = 10;
+
+    if ( str[0] == '-' )
+    {
+        x::int64 i64 = 0;
+        std::from_chars( str.c_str(), str.c_str() + str.size(), i64, base );
+
+        if ( std::abs( i64 ) > std::numeric_limits<x::int32>::max() )
+        {
+            auto i_ast = std::make_shared<x::int64_const_exp_ast>();
+            i_ast->location = _location;
+            i_ast->value = i64;
+            ast = i_ast;
+        }
+        else if ( std::abs( i64 ) > std::numeric_limits<x::int16>::max() )
+        {
+            auto i_ast = std::make_shared<x::int32_const_exp_ast>();
+            i_ast->location = _location;
+            i_ast->value = static_cast<x::int32>( i64 );
+            ast = i_ast;
+        }
+        else if ( std::abs( i64 ) > std::numeric_limits<x::int8>::max() )
+        {
+            auto i_ast = std::make_shared<x::int16_const_exp_ast>();
+            i_ast->location = _location;
+            i_ast->value = static_cast<x::int16>( i64 );
+            ast = i_ast;
+        }
+        else
+        {
+            auto i_ast = std::make_shared<x::int8_const_exp_ast>();
+            i_ast->location = _location;
+            i_ast->value = static_cast<x::int8>( i64 );
+            ast = i_ast;
+        }
+    }
+    else
+    {
+        x::uint64 u64 = 0;
+        std::from_chars( str.c_str(), str.c_str() + str.size(), u64, base );
+
+        if ( u64 > std::numeric_limits<x::uint32>::max() )
+        {
+            auto i_ast = std::make_shared<x::uint64_const_exp_ast>();
+            i_ast->location = _location;
+            i_ast->value = u64;
+            ast = i_ast;
+        }
+        else if ( u64 > std::numeric_limits<x::uint16>::max() )
+        {
+            auto i_ast = std::make_shared<x::uint32_const_exp_ast>();
+            i_ast->location = _location;
+            i_ast->value = static_cast<x::uint32>( u64 );
+            ast = i_ast;
+        }
+        else if ( u64 > std::numeric_limits<x::uint8>::max() )
+        {
+            auto i_ast = std::make_shared<x::uint16_const_exp_ast>();
+            i_ast->location = _location;
+            i_ast->value = static_cast<x::uint16>( u64 );
+            ast = i_ast;
+        }
+        else
+        {
+            auto i_ast = std::make_shared<x::uint8_const_exp_ast>();
+            i_ast->location = _location;
+            i_ast->value = static_cast<x::uint8>( u64 );
+            ast = i_ast;
+        }
+    }
 
     return ast;
 }
 
 x::float_const_exp_ast_ptr x::grammar::float_const_exp()
 {
-    auto ast = std::make_shared<float_const_exp_ast>();
-    ast->location = _location;
+    x::float_const_exp_ast_ptr ast;
 
-    ast->value = std::stod( validity( token_t::TK_LITERAL_FLOAT ).str );
+    auto str = validity( token_t::TK_LITERAL_INT ).str;
+
+    auto beg = str.c_str(); if ( *beg == '-' ) ++beg;
+    auto dom = str.c_str() + str.find( '.' );
+    auto end = str.c_str() + str.size();
+
+    x::uint64 mantissa = 0, exponent = 0;
+    std::from_chars( beg, beg + std::distance( beg, dom ), mantissa );
+    std::from_chars( dom + 1, dom + std::distance( dom, end ), exponent );
+
+    int man_cnt = std::numeric_limits<x::uint64>::digits - std::countl_zero( mantissa );
+    if ( man_cnt >= std::numeric_limits<x::float32>::digits || exponent >= std::numeric_limits<x::float32>::max_exponent )
+    {
+        auto f_ast = std::make_shared<x::float64_const_exp_ast>();
+        f_ast->location = _location;
+        std::from_chars( str.c_str(), str.c_str() + str.size(), f_ast->value );
+        ast = f_ast;
+    }
+    else
+    {
+        auto f_ast = std::make_shared<x::float32_const_exp_ast>();
+        f_ast->location = _location;
+        std::from_chars( str.c_str(), str.c_str() + str.size(), f_ast->value );
+        ast = f_ast;
+    }
 
     return ast;
 }
@@ -1249,14 +1406,14 @@ std::string x::grammar::type_name()
     return name;
 }
 
-x::type_ast_ptr x::grammar::type( std::string_view name, bool is_ref, bool is_const, bool is_array )
+x::type_ast_ptr x::grammar::type( std::string_view name, bool is_ref, bool is_const, std::uint8_t array )
 {
     auto ast = std::make_shared<x::type_ast>();
     ast->location = _location;
     ast->name = name;
+    ast->array = array;
     ast->is_ref = is_ref;
     ast->is_const = is_const;
-    ast->is_array = is_array;
     return ast;
 }
 
@@ -1283,8 +1440,6 @@ x::modify_flag x::grammar::modify()
         else if ( verify( token_t::TK_CONST ) ) result |= x::modify_flag::CONST;
         else if ( verify( token_t::TK_STATIC ) ) result |= x::modify_flag::STATIC;
         else if ( verify( token_t::TK_THREAD ) ) result |= x::modify_flag::THREAD;
-        else if ( verify( token_t::TK_NATIVE ) ) result |= x::modify_flag::NATIVE;
-        else if ( verify( token_t::TK_EXTERN ) ) result |= x::modify_flag::EXTERN;
         else break;
     }
 
@@ -1325,12 +1480,29 @@ x::token x::grammar::next()
         {
             continue;
         }
+        else if ( c == '-' && std::isdigit( peek() ) )
+        {
+            push( tk.str, c );
+
+            c = peek();
+            while ( std::isdigit( c ) || c == '.' )
+            {
+                ASSERT( tk.str.find( '.' ) != std::string::npos && c == '.', "" );
+
+                push( tk.str, get() );
+
+                c = peek();
+            }
+        }
         else if ( std::isdigit( c ) ) // number 1 233 0x123456 0b1101001
         {
             if ( c == '0' && std::tolower( peek() ) == 'x' )
             {
-                push( tk.str, c );
-                push( tk.str, get() );
+                // ignore 0x
+                get();
+
+                push( tk.str, '0' );
+                push( tk.str, 'x' );
 
                 c = peek();
                 while ( std::isdigit( c ) || ( std::tolower( c ) >= 'a' && std::tolower( c ) <= 'f' ) )
@@ -1346,6 +1518,9 @@ x::token x::grammar::next()
             {
                 // ignore 0b
                 get();
+
+                push( tk.str, '0' );
+                push( tk.str, 'b' );
 
                 c = peek();
                 while ( c == '0' || c == '1' )
@@ -1537,7 +1712,7 @@ int x::grammar::get()
 
     if ( ( c & 0b10000000 ) != 0 )
     {
-        if ( ( c & 0b11111100 ) == 0b11111100 )
+             if ( ( c & 0b11111100 ) == 0b11111100 )
         {
             int shift = 5 * 6;
             c = ( c & 0b00000001 ) << shift; shift -= 2;
