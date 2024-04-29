@@ -65,13 +65,7 @@ namespace x
 		using pass::visit;
 
 	public:
-		void visit( x::if_stat_ast * val ) override;
-		void visit( x::while_stat_ast * val ) override;
-		void visit( x::for_stat_ast * val ) override;
-		void visit( x::foreach_stat_ast * val ) override;
-
 		void visit( x::assignment_exp_ast * val ) override;
-		void visit( x::conditional_exp_ast * val ) override;
 		void visit( x::logical_or_exp_ast * val ) override;
 		void visit( x::logical_and_exp_ast * val ) override;
 		void visit( x::or_exp_ast * val ) override;
@@ -94,7 +88,22 @@ namespace x
 		void visit( x::initializers_exp_ast * val ) override;
 
 	public:
-		x::symbol_ptr expr_type( const x::ast_ptr & ast ) const;
-		bool check_type( const x::symbol_ptr & left, const x::symbol_ptr & right ) const;
+		x::type_symbol_ptr expr_type( const x::ast_ptr & ast ) const;
+		x::type_symbol_ptr calc_type( x::token_t oper, const x::ast_ptr & left, const x::ast_ptr & right = nullptr ) const;
+	};
+
+	class semantic_checker_pass : public pass
+	{
+	public:
+		using pass::visit;
+
+	public:
+		void visit( x::if_stat_ast * val ) override;
+		void visit( x::while_stat_ast * val ) override;
+		void visit( x::for_stat_ast * val ) override;
+		void visit( x::foreach_stat_ast * val ) override;
+
+	private:
+		x::type_symbol_ptr expr_type( const x::ast_ptr & ast ) const;
 	};
 }

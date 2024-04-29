@@ -21,6 +21,7 @@ namespace x
     static constexpr const int magic_num = 'xsl\0';
     static constexpr const int version_num = '0001';
 
+    using byte = std::byte;
     using int8 = std::int8_t;
     using int16 = std::int16_t;
     using int32 = std::int32_t;
@@ -37,6 +38,7 @@ namespace x
         UNIT,
         TYPE,
         IMPORT,
+        ATTRIBUTE,
 
         ENUM_DECL,
         FLAG_DECL,
@@ -68,7 +70,6 @@ namespace x
         LOCAL_STAT,
 
         ASSIGNMENT_EXP,
-        CONDITIONAL_EXP,
         LOGICAL_OR_EXP,
         LOGICAL_AND_EXP,
         OR_EXP,
@@ -188,6 +189,7 @@ namespace x
         TK_IMPORT,               // import
         TK_TEMPLATE,             // template
         TK_NAMESPACE,            // namespace
+        TK_ATTRIBUTE,            // attribute
         TK_USING,                // using
         TK_ENUM,                 // enum
         TK_FLAG,                 // flag
@@ -227,27 +229,34 @@ namespace x
         TK_SIZEOF,               // sizeof
     };
 
-    enum class value_t
+    enum class value_t : x::int32
     {
-        INVALID,
+        INVALID             = -1,
 
-        NIL,
-        BYTE,
-        BOOL,
-        INT8,
-        INT16,
-        INT32,
-        INT64,
-        UINT8,
-        UINT16,
-        UINT32,
-        UINT64,
-        FLOAT16,
-        FLOAT32,
-        FLOAT64,
-        STRING,
-        OBJECT,
-        CLOSURE,
+        NIL                 = 0,
+        BYTE                = 1 << 0,
+        BOOL                = 1 << 1,
+        INT8                = 1 << 2,
+        INT16               = 1 << 3,
+        INT32               = 1 << 4,
+        INT64               = 1 << 5,
+        UINT8               = 1 << 6,
+        UINT16              = 1 << 7,
+        UINT32              = 1 << 8,
+        UINT64              = 1 << 9,
+        FLOAT16             = 1 << 10,
+        FLOAT32             = 1 << 11,
+        FLOAT64             = 1 << 12,
+        STRING              = 1 << 13,
+        OBJECT              = 1 << 14,
+        CLOSURE             = 1 << 15,
+
+        SIGNED_MASK         = 0x3C,
+        UNSIGNED_MASK       = 0x3C0,
+        FLOATING_MASK       = 0x1C00,
+
+        REF_MASK            = 1 << 29,
+        ASYN_MASK           = 1 << 30,
     };
 
     enum class symbol_t
@@ -276,6 +285,8 @@ namespace x
     enum class section_t
     {
         TYPE,
+        DESC,
+        TEMP,
         DEPEND,
         GLOBAL,
         FUNCTION,
@@ -350,19 +361,11 @@ namespace x
         BC_IDSTRUCT,      // idstruct(dr_0)     REGID(1BYTE)/DIFF(4BYTE) OFFSET(2BYTE)   4-7 byte
     };
 
-    enum modify_flag
-    {
-        NONE = 0,
-        ASYNC = 1 << 0,
-        CONST = 1 << 1,
-        STATIC = 1 << 2,
-        THREAD = 1 << 3,
-    };
-
     class ast; using ast_ptr = std::shared_ptr<ast>;
     class unit_ast; using unit_ast_ptr = std::shared_ptr<unit_ast>;
     class type_ast; using type_ast_ptr = std::shared_ptr< type_ast >;
     class import_ast; using import_ast_ptr = std::shared_ptr< import_ast >;
+    class attribute_ast; using attribute_ast_ptr = std::shared_ptr< attribute_ast >;
     class decl_ast; using decl_ast_ptr = std::shared_ptr< decl_ast >;
     class enum_decl_ast; using enum_decl_ast_ptr = std::shared_ptr< enum_decl_ast >;
     class flag_decl_ast; using flag_decl_ast_ptr = std::shared_ptr< flag_decl_ast >;
@@ -395,7 +398,6 @@ namespace x
     class exp_stat_ast; using exp_stat_ast_ptr = std::shared_ptr< exp_stat_ast >;
     class binary_exp_ast; using binary_exp_ast_ptr = std::shared_ptr< binary_exp_ast >;
     class assignment_exp_ast; using assignment_exp_ast_ptr = std::shared_ptr< assignment_exp_ast >;
-    class conditional_exp_ast; using conditional_exp_ast_ptr = std::shared_ptr< conditional_exp_ast >;
     class logical_or_exp_ast; using logical_or_exp_ast_ptr = std::shared_ptr< logical_or_exp_ast >;
     class logical_and_exp_ast; using logical_and_exp_ast_ptr = std::shared_ptr< logical_and_exp_ast >;
     class or_exp_ast; using or_exp_ast_ptr = std::shared_ptr< or_exp_ast >;
@@ -452,7 +454,6 @@ namespace x
     class symbols; using symbols_ptr = std::shared_ptr<symbols>;
     class section; using section_ptr = std::shared_ptr<section>;
     class context; using context_ptr = std::shared_ptr<context>;
-    class runtime; using runtime_ptr = std::shared_ptr<runtime>;
     class compiler; using compiler_ptr = std::shared_ptr<compiler>;
 
     class meta; using meta_ptr = std::shared_ptr<meta>;
@@ -463,14 +464,16 @@ namespace x
     class meta_variable; using meta_variable_ptr = std::shared_ptr<meta_variable>;
     class meta_function; using meta_function_ptr = std::shared_ptr<meta_function>;
     class meta_namespace; using meta_namespace_ptr = std::shared_ptr<meta_namespace>;
+    class meta_attribute; using meta_attribute_ptr = std::shared_ptr<meta_attribute>;
 
     class value;
     class object;
+    class runtime;
 
     struct source_location
     {
-        uint32_t line = 1;
-        uint32_t column = 1;
+        x::uint32 line = 1;
+        x::uint32 column = 1;
         std::string_view file;
     };
 
@@ -485,10 +488,10 @@ namespace x
 
     struct type_desc
     {
+        int array = 0;
         bool is_ref = false;
         bool is_const = false;
-        bool is_array = false;
-        std::uint64_t hashcode = 0;
+        x::uint64 hashcode = 0;
     };
 
     struct token
@@ -498,33 +501,37 @@ namespace x
         source_location location;
     };
 
-    inline x::modify_flag operator|( x::modify_flag left, x::modify_flag right )
-    {
-        return (x::modify_flag)( (int)left | (int)right );
-    }
-
-    inline constexpr std::size_t hash( const char * str, std::size_t size = std::numeric_limits<size_t>::max(), std::size_t value = 14695981039346656037ULL )
+    inline constexpr x::uint64 hash( const char * str, x::uint64 size = std::numeric_limits<x::uint64>::max(), x::uint64 value = 14695981039346656037ULL )
     {
         while ( *str++ != '\0' && size-- != 0 )
         {
-            value ^= static_cast<std::size_t>( *str );
+            value ^= static_cast<x::uint64>( *str );
             value *= 1099511628211ULL;
         }
 
         return value;
     }
-    inline constexpr std::size_t hash( x::static_string_view str )
+    inline constexpr x::uint64 hash( x::static_string_view str )
     {
         return hash( str.data(), str.size() );
     }
-    inline constexpr std::size_t hash( const std::string & str )
+    inline constexpr x::uint64 hash( const std::string & str )
     {
         return hash( str.data(), str.size() );
     }
-    inline constexpr std::size_t hash( std::string_view str )
+    inline constexpr x::uint64 hash( std::string_view str )
     {
         return hash( str.data(), str.size() );
     }
 
     template<typename ... Ts> struct overload : Ts ... { using Ts::operator() ...; }; template<class... Ts> overload( Ts... ) -> overload<Ts...>;
+    template<typename T> struct flag
+    {
+        static_assert(std::is_enum_v<T>, "" );
+
+    public:
+        
+    };
+
+    using value_flags = flag<x::value_t>;
 }

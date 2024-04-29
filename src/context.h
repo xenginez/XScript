@@ -20,7 +20,7 @@ namespace x
 		const x::symbols_ptr & symbols() const;
 
 	public:
-		x::meta_ptr find_meta( std::uint64_t hashcode ) const;
+		x::meta_ptr find_meta( x::uint64 hashcode ) const;
 
 	public:
 		bool load_script_file( const std::filesystem::path & file );

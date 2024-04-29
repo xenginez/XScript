@@ -1,5 +1,7 @@
 #pragma once
 
+#include <map>
+
 #include "type.h"
 
 namespace x
@@ -34,9 +36,9 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
+		int array = 0;
 		bool is_ref = false;
 		bool is_const = false;
-		std::uint8_t array = 0;
 		std::string name;
 	};
 	class import_ast : public ast
@@ -48,13 +50,22 @@ namespace x
 	public:
 		std::string path;
 	};
+	class attribute_ast : public ast
+	{
+	public:
+		x::ast_t type() const override;
+		void accept( ast_visitor * visitor ) override;
+
+	public:
+		std::map<std::string, std::string> _attributes;
+	};
 
 	class decl_ast : public ast
 	{
 	public:
 		std::string name;
 		x::access_t access = x::access_t::PRIVATE;
-		x::modify_flag modify = x::modify_flag::NONE;
+		x::attribute_ast_ptr attribute;
 	};
 	class enum_decl_ast : public decl_ast
 	{
@@ -134,6 +145,8 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
+		bool is_static = false;
+		bool is_thread = false;
 		x::type_ast_ptr value_type;
 		x::initializers_exp_ast_ptr init;
 	};
@@ -144,6 +157,9 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
+		bool is_const = false;
+		bool is_async = false;
+		bool is_static = false;
 		x::stat_ast_ptr stat;
 		x::type_ast_ptr result;
 		std::vector<x::parameter_decl_ast_ptr> parameters;
@@ -252,7 +268,7 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
-		x::exp_stat_ast_ptr exp;
+		x::exp_stat_ast_ptr cond;
 		x::stat_ast_ptr then_stat;
 		x::stat_ast_ptr else_stat;
 	};
@@ -285,9 +301,9 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
-		x::stat_ast_ptr init;
+		x::stat_ast_ptr item;
+		x::exp_stat_ast_ptr collection;
 		x::stat_ast_ptr stat;
-		x::exp_stat_ast_ptr cond;
 	};
 	class break_stat_ast : public stat_ast
 	{
@@ -320,7 +336,8 @@ namespace x
 
 	public:
 		std::string name;
-		x::modify_flag modify;
+		bool is_static = false;
+		bool is_thread = false;
 		x::type_ast_ptr value_type;
 		x::initializers_exp_ast_ptr init;
 	};
@@ -340,16 +357,6 @@ namespace x
 		x::ast_t type() const override;
 		void accept( ast_visitor * visitor ) override;
 
-	};
-	class conditional_exp_ast : public exp_stat_ast
-	{
-	public:
-		x::ast_t type() const override;
-		void accept( ast_visitor * visitor ) override;
-
-	public:
-		x::token_t tk_type;
-		x::exp_stat_ast_ptr cond, then_exp, else_exp;
 	};
 	class logical_or_exp_ast : public binary_exp_ast
 	{
@@ -495,9 +502,10 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
+		bool is_async = false;
+		bool is_static = false;
 		std::string name;
 		x::access_t access = x::access_t::PRIVATE;
-		x::modify_flag modify = x::modify_flag::NONE;
 		x::stat_ast_ptr stat;
 		x::type_ast_ptr result;
 		std::vector<x::identifier_exp_ast_ptr> captures;
@@ -664,6 +672,7 @@ namespace x
 		virtual void visit( x::unit_ast * val );
 		virtual void visit( x::type_ast * val );
 		virtual void visit( x::import_ast * val );
+		virtual void visit( x::attribute_ast * val );
 
 		virtual void visit( x::enum_decl_ast * val );
 		virtual void visit( x::flag_decl_ast * val );
@@ -695,7 +704,6 @@ namespace x
 		virtual void visit( x::local_stat_ast * val );
 
 		virtual void visit( x::assignment_exp_ast * val );
-		virtual void visit( x::conditional_exp_ast * val );
 		virtual void visit( x::logical_or_exp_ast * val );
 		virtual void visit( x::logical_and_exp_ast * val );
 		virtual void visit( x::or_exp_ast * val );

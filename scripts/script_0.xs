@@ -16,6 +16,6 @@ namespace sample
             var_1[0] = add( var_1[1], arg );
         }
 
-        public static func add( left: int32, right: int32 ) -> void extren("dllname", "funcname");
+        public static func add( left: int32, right: int32 ) -> void = extren( "dllname", "funcname" );
     }
 }

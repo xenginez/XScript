@@ -73,6 +73,7 @@ namespace
         { (const char *)u8"import", x::token_t::TK_IMPORT },
         { (const char *)u8"template", x::token_t::TK_TEMPLATE },
         { (const char *)u8"namespace", x::token_t::TK_NAMESPACE },
+        { (const char *)u8"attribute", x::token_t::TK_ATTRIBUTE },
         { (const char *)u8"using", x::token_t::TK_USING },
         { (const char *)u8"enum", x::token_t::TK_ENUM },
         { (const char *)u8"flag", x::token_t::TK_FLAG },
@@ -177,6 +178,28 @@ x::import_ast_ptr x::grammar::import()
     return ast;
 }
 
+x::attribute_ast_ptr x::grammar::attribute()
+{
+    validity( token_t::TK_ATTRIBUTE );
+
+    auto ast = std::make_shared<attribute_ast>();
+    ast->location = _location;
+
+    validity( token_t::TK_LEFT_BRACKETS );
+    while ( 1 )
+    {
+        auto key = validity( token_t::TK_IDENTIFIER ).str;
+        validity( token_t::TK_ASSIGN );
+        auto val = validity( token_t::TK_LITERAL_STRING ).str;
+        ast->_attributes.insert( { key, val } );
+
+        if ( !verify( token_t::TK_COMMA ) ) break;
+    }
+    validity( token_t::TK_RIGHT_BRACKETS );
+
+    return ast;
+}
+
 x::enum_decl_ast_ptr x::grammar::enum_decl()
 {
     validity( token_t::TK_ENUM );
@@ -255,7 +278,14 @@ x::class_decl_ast_ptr x::grammar::class_decl()
     do
     {
         auto acc = access();
-        auto mod = modify();
+
+        bool is_const = verify( token_t::TK_CONST );
+        bool is_async = verify( token_t::TK_ASYNC );
+        bool is_static = verify( token_t::TK_STATIC );
+        bool is_thread = verify( token_t::TK_THREAD );
+
+        ASSERT( is_const && is_static, "" );
+        ASSERT( is_static && is_thread, "" );
 
         switch ( lookup().type )
         {
@@ -263,7 +293,6 @@ x::class_decl_ast_ptr x::grammar::class_decl()
         {
             auto usi = using_decl();
             usi->access = acc;
-            usi->modify = mod;
             ast->usings.emplace_back( usi );
         }
         break;
@@ -271,7 +300,8 @@ x::class_decl_ast_ptr x::grammar::class_decl()
         {
             auto var = variable_decl();
             var->access = acc;
-            var->modify = mod;
+            var->is_static = is_static;
+            var->is_thread = is_thread;
             ast->variables.emplace_back( var );
         }
         break;
@@ -279,7 +309,9 @@ x::class_decl_ast_ptr x::grammar::class_decl()
         {
             auto fun = function_decl();
             fun->access = acc;
-            fun->modify = mod;
+            fun->is_async = is_async;
+            fun->is_const = is_const;
+            fun->is_static = is_static;
             ast->functions.emplace_back( fun );
         }
         break;
@@ -360,7 +392,7 @@ x::function_decl_ast_ptr x::grammar::function_decl()
     else
         ast->result = type( "void" );
 
-    if ( lookup().type == token_t::TK_EXTERN )
+    if ( verify( token_t::TK_ASSIGN ) )
         ast->stat = extern_stat();
     else
         ast->stat = compound_stat();
@@ -392,8 +424,8 @@ x::namespace_decl_ast_ptr x::grammar::namespace_decl()
     {
         decl_ast_ptr decl = nullptr;
 
+        auto att = attribute();
         auto acc = access();
-        auto mod = modify();
 
         switch ( lookup().type )
         {
@@ -412,14 +444,6 @@ x::namespace_decl_ast_ptr x::grammar::namespace_decl()
         case token_t::TK_TEMPLATE:
             decl = template_decl();
             break;
-        case token_t::TK_VARIABLE:
-            decl = variable_decl();
-            mod = mod | x::modify_flag::STATIC;
-            break;
-        case token_t::TK_FUNCTION:
-            decl = function_decl();
-            mod = mod | x::modify_flag::STATIC;
-            break;
         case token_t::TK_SEMICOLON:
             next();
             break;
@@ -431,7 +455,7 @@ x::namespace_decl_ast_ptr x::grammar::namespace_decl()
         if ( decl )
         {
             decl->access = acc;
-            decl->modify = mod;
+            decl->attribute = att;
             ast->members.emplace_back( decl );
         }
 
@@ -592,7 +616,7 @@ x::if_stat_ast_ptr x::grammar::if_stat()
     ast->location = _location;
 
     validity( token_t::TK_LEFT_BRACKETS );
-    ast->exp = exp_stat();
+    ast->cond = exp_stat();
     validity( token_t::TK_RIGHT_BRACKETS );
 
     ast->then_stat = stat();
@@ -647,9 +671,9 @@ x::foreach_stat_ast_ptr x::grammar::foreach_stat()
     ast->location = _location;
 
     validity( token_t::TK_LEFT_BRACKETS );
-    ast->init = stat();
+    ast->item = stat();
     validity( token_t::TK_TYPECAST );
-    ast->cond = exp_stat();
+    ast->collection = exp_stat();
     validity( token_t::TK_RIGHT_BRACKETS );
 
     ast->stat = stat();
@@ -736,28 +760,7 @@ x::exp_stat_ast_ptr x::grammar::assignment_exp()
         }
     }
 
-    return conditional_exp();
-}
-
-x::exp_stat_ast_ptr x::grammar::conditional_exp()
-{
-    x::exp_stat_ast_ptr ast = logical_or_exp();
-
-    while ( verify( token_t::TK_QUESTION ) )
-    {
-        auto exp = std::make_shared<conditional_exp_ast>();
-        exp->location = _location;
-
-        exp->tk_type = token_t::TK_QUESTION;
-        exp->cond = ast;
-        exp->then_exp = exp_stat();
-        validity( token_t::TK_TYPECAST );
-        exp->else_exp = conditional_exp();
-
-        ast = exp;
-    }
-
-    return ast;
+    return logical_or_exp();
 }
 
 x::exp_stat_ast_ptr x::grammar::logical_or_exp()
@@ -1111,7 +1114,7 @@ x::closure_exp_ast_ptr x::grammar::closure_exp()
 
     auto ast = std::make_shared<closure_exp_ast>();
     ast->location = _location;
-
+    ast->access = access_t::PUBLIC;
     ast->name = location_to_name( ast->location, "closure_" );
 
     if ( verify( token_t::TK_LEFT_INDEX ) )
@@ -1124,11 +1127,7 @@ x::closure_exp_ast_ptr x::grammar::closure_exp()
         verify( token_t::TK_RIGHT_INDEX );
     }
 
-    ast->location = _location;
-    ast->access = access_t::PUBLIC;
-
-    if ( ast->captures.empty() )
-        ast->modify = ast->modify | x::modify_flag::STATIC;
+    if ( ast->captures.empty() ) ast->is_static = true;
 
     validity( token_t::TK_LEFT_BRACKETS );
     {
@@ -1139,8 +1138,7 @@ x::closure_exp_ast_ptr x::grammar::closure_exp()
     }
     validity( token_t::TK_RIGHT_BRACKETS );
 
-    if ( verify( token_t::TK_ASYNC ) )
-        ast->modify = ast->modify | x::modify_flag::ASYNC;
+    if ( verify( token_t::TK_ASYNC ) ) ast->is_async = true;
 
     if ( verify( token_t::TK_FUNCTION_RESULT ) )
         ast->result = type();
@@ -1406,7 +1404,7 @@ std::string x::grammar::type_name()
     return name;
 }
 
-x::type_ast_ptr x::grammar::type( std::string_view name, bool is_ref, bool is_const, std::uint8_t array )
+x::type_ast_ptr x::grammar::type( std::string_view name, bool is_ref, bool is_const, int array )
 {
     auto ast = std::make_shared<x::type_ast>();
     ast->location = _location;
@@ -1428,22 +1426,6 @@ std::string x::grammar::location_to_name( const x::source_location & location, s
     name += std::to_string( location.line ) + "_" + std::to_string( location.column );
 
     return name;
-}
-
-x::modify_flag x::grammar::modify()
-{
-    int result = 0;
-
-    while ( 1 )
-    {
-        if ( verify( token_t::TK_ASYNC ) ) result |= x::modify_flag::ASYNC;
-        else if ( verify( token_t::TK_CONST ) ) result |= x::modify_flag::CONST;
-        else if ( verify( token_t::TK_STATIC ) ) result |= x::modify_flag::STATIC;
-        else if ( verify( token_t::TK_THREAD ) ) result |= x::modify_flag::THREAD;
-        else break;
-    }
-
-    return (modify_flag)result;
 }
 
 x::access_t x::grammar::access()

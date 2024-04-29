@@ -10,9 +10,9 @@ struct x::context::private_p
 	int _version = x::version_num;
 	std::string _strpool;
 	x::symbols_ptr _symbols;
-	std::map<std::uint64_t, meta_ptr> _metas;
+	std::map<x::uint64, meta_ptr> _metas;
 	std::vector<std::filesystem::path> _paths;
-	std::map<std::string, sections> _sections;
+	std::map<std::string, section_module> _sections;
 };
 
 x::context::context()
@@ -35,7 +35,7 @@ const x::symbols_ptr & x::context::symbols() const
 	return _p->_symbols;
 }
 
-x::meta_ptr x::context::find_meta( std::uint64_t hashcode ) const
+x::meta_ptr x::context::find_meta( x::uint64 hashcode ) const
 {
 	auto it = _p->_metas.find( hashcode );
 	return it == _p->_metas.end() ? nullptr : it->second;

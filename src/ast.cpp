@@ -30,6 +30,16 @@ void x::import_ast::accept( ast_visitor * visitor )
 	visitor->visit( this );
 }
 
+x::ast_t x::attribute_ast::type() const
+{
+	return x::ast_t::ATTRIBUTE;
+}
+
+void x::attribute_ast::accept( ast_visitor * visitor )
+{
+	visitor->visit( this );
+}
+
 x::ast_t x::enum_decl_ast::type() const
 {
 	return x::ast_t::ENUM_DECL;
@@ -306,16 +316,6 @@ x::ast_t x::assignment_exp_ast::type() const
 }
 
 void x::assignment_exp_ast::accept( ast_visitor * visitor )
-{
-	visitor->visit( this );
-}
-
-x::ast_t x::conditional_exp_ast::type() const
-{
-	return x::ast_t::CONDITIONAL_EXP;
-}
-
-void x::conditional_exp_ast::accept( ast_visitor * visitor )
 {
 	visitor->visit( this );
 }
@@ -666,6 +666,10 @@ void x::ast_visitor::visit( x::import_ast * val )
 {
 }
 
+void x::ast_visitor::visit( x::attribute_ast * val )
+{
+}
+
 void x::ast_visitor::visit( x::enum_decl_ast * val )
 {
 	for ( const auto & it : val->elements )
@@ -775,7 +779,7 @@ void x::ast_visitor::visit( x::throw_stat_ast * val )
 
 void x::ast_visitor::visit( x::if_stat_ast * val )
 {
-	val->exp->accept( this );
+	val->cond->accept( this );
 	val->then_stat->accept( this );
 	if ( val->else_stat ) val->else_stat->accept( this );
 }
@@ -796,8 +800,8 @@ void x::ast_visitor::visit( x::for_stat_ast * val )
 
 void x::ast_visitor::visit( x::foreach_stat_ast * val )
 {
-	val->init->accept( this );
-	val->cond->accept( this );
+	val->item->accept( this );
+	val->collection->accept( this );
 	val->stat->accept( this );
 }
 
@@ -825,13 +829,6 @@ void x::ast_visitor::visit( x::assignment_exp_ast * val )
 {
 	val->left->accept( this );
 	val->right->accept( this );
-}
-
-void x::ast_visitor::visit( x::conditional_exp_ast * val )
-{
-	val->cond->accept( this );
-	val->then_exp->accept( this );
-	val->else_exp->accept( this );
 }
 
 void x::ast_visitor::visit( x::logical_or_exp_ast * val )

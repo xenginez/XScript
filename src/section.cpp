@@ -39,6 +39,32 @@ void x::global_section::save( std::ostream & out ) const
 {
 }
 
+x::section_t x::desc_section::type() const
+{
+	return x::section_t::DESC;
+}
+
+void x::desc_section::load( std::istream & in )
+{
+}
+
+void x::desc_section::save( std::ostream & out ) const
+{
+}
+
+x::section_t x::temp_section::type() const
+{
+	return x::section_t::TEMP;
+}
+
+void x::temp_section::load( std::istream & in )
+{
+}
+
+void x::temp_section::save( std::ostream & out ) const
+{
+}
+
 x::section_t x::function_section::type() const
 {
 	return x::section_t::FUNCTION;

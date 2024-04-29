@@ -17,7 +17,7 @@ namespace x
 
 	public:
 		virtual x::meta_t type() const = 0;
-		virtual std::size_t hashcode() const = 0;
+		virtual x::uint64 hashcode() const = 0;
 		virtual x::static_string_view name() const = 0;
 		virtual x::static_string_view fullname() const = 0;
 	};
@@ -27,7 +27,13 @@ namespace x
 		friend class context;
 
 	public:
-		virtual std::uint64_t size() const = 0;
+		virtual x::uint64 size() const = 0;
+
+	public:
+		x::static_string_view attribute( std::string_view key ) const;
+
+	private:
+		x::meta_attribute_ptr _attribute;
 	};
 
 	class meta_enum : public meta_type
@@ -39,12 +45,10 @@ namespace x
 
 	public:
 		x::meta_t type() const override;
-		std::size_t hashcode() const override;
+		x::uint64 size() const override;
+		x::uint64 hashcode() const override;
 		x::static_string_view name() const override;
 		x::static_string_view fullname() const override;
-
-	public:
-		std::uint64_t size() const override;
 
 	public:
 		std::span<const std::pair<x::static_string_view, x::int64>> elements() const;
@@ -64,12 +68,10 @@ namespace x
 
 	public:
 		x::meta_t type() const override;
-		std::size_t hashcode() const override;
+		x::uint64 size() const override;
+		x::uint64 hashcode() const override;
 		x::static_string_view name() const override;
 		x::static_string_view fullname() const override;
-
-	public:
-		std::uint64_t size() const override;
 
 	public:
 		std::span<const std::pair<x::static_string_view, x::uint64>> elements() const;
@@ -89,12 +91,10 @@ namespace x
 
 	public:
 		x::meta_t type() const override;
-		std::size_t hashcode() const override;
+		x::uint64 size() const override;
+		x::uint64 hashcode() const override;
 		x::static_string_view name() const override;
 		x::static_string_view fullname() const override;
-
-	public:
-		std::uint64_t size() const override;
 
 	public:
 		x::static_string_view base() const;
@@ -105,12 +105,12 @@ namespace x
 		void construct( void * ptr ) const;
 
 	private:
-		std::uint64_t _size = 0;
+		x::uint64 _size = 0;
 		x::static_string_view _base;
 		x::static_string_view _name;
 		x::static_string_view _fullname;
-		std::uint32_t _construct_code_idx = 0;
-		std::uint32_t _construct_code_size = 0;
+		x::uint32 _construct_code_idx = 0;
+		x::uint32 _construct_code_size = 0;
 		std::vector<x::meta_variable_ptr> _variables;
 		std::vector<x::meta_function_ptr> _functions;
 	};
@@ -124,28 +124,32 @@ namespace x
 
 	public:
 		x::meta_t type() const override;
-		std::size_t hashcode() const override;
+		x::uint64 hashcode() const override;
 		x::static_string_view name() const override;
 		x::static_string_view fullname() const override;
 
 	public:
+		bool is_const() const;
+		bool is_async() const;
+		bool is_static() const;
 		x::access_t access() const;
-		x::modify_flag modify() const;
 		x::type_desc result_type() const;
-		std::span<const x::type_desc> parameter_types() const;
+		std::span<const std::pair<x::static_string_view, x::type_desc>> parameter_types() const;
 
 	public:
 		void invoke() const;
 
 	private:
+		bool _is_const = false;
+		bool _is_async = false;
+		bool _is_static = false;
 		x::access_t _access = x::access_t::PRIVATE;
-		x::modify_flag _modify = x::modify_flag::NONE;
-		std::uint32_t _code_idx = 0;
-		std::uint32_t _code_size = 0;
+		x::uint32 _code_idx = 0;
+		x::uint32 _code_size = 0;
 		x::type_desc _result_type;
 		x::static_string_view _name;
 		x::static_string_view _fullname;
-		std::vector<x::type_desc> _parameter_types;
+		std::vector<std::pair<x::static_string_view, x::type_desc>> _parameter_types;
 	};
 
 	class meta_variable : public meta
@@ -157,13 +161,14 @@ namespace x
 
 	public:
 		x::meta_t type() const override;
-		std::size_t hashcode() const override;
+		x::uint64 hashcode() const override;
 		x::static_string_view name() const override;
 		x::static_string_view fullname() const override;
 
 	public:
+		bool is_static() const;
+		bool is_thread() const;
 		x::access_t access() const;
-		x::modify_flag modify() const;
 		x::type_desc value_type() const;
 
 	public:
@@ -171,9 +176,10 @@ namespace x
 		void set( const x::value & obj ) const;
 
 	private:
-		std::uint64_t _idx = 0;
+		bool _is_static = false;
+		bool _is_thread = false;
+		x::uint64 _idx = 0;
 		x::access_t _access = x::access_t::PRIVATE;
-		x::modify_flag _modify = x::modify_flag::NONE;
 		x::type_desc _value_type;
 		x::static_string_view _name;
 		x::static_string_view _fullname;
@@ -188,7 +194,7 @@ namespace x
 
 	public:
 		x::meta_t type() const override;
-		std::size_t hashcode() const override;
+		x::uint64 hashcode() const override;
 		x::static_string_view name() const override;
 		x::static_string_view fullname() const override;
 
@@ -199,5 +205,14 @@ namespace x
 		x::static_string_view _name;
 		x::static_string_view _fullname;
 		std::vector<x::meta_type_ptr> _members;
+	};
+
+	class meta_attribute : public std::enable_shared_from_this<meta_attribute>
+	{
+	public:
+		x::static_string_view find( std::string_view key ) const;
+
+	private:
+		std::map<std::string_view, x::static_string_view> _map;
 	};
 }

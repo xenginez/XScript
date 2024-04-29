@@ -21,14 +21,15 @@ namespace x
 		enum flag_t
 		{
 			ENUM,
+			FLAG,
 			CLASS,
-			NAMESPACE,
 		};
 
+	public:
 		struct item
 		{
 			flag_t flag;
-			std::size_t initialize;
+			x::uint64 size;
 			x::static_string_view name;
 		};
 
@@ -41,22 +42,15 @@ namespace x
 		std::vector<item> items;
 	};
 
-	class depend_section : public section
+	class desc_section : public section
 	{
 	public:
-		enum flag_t
-		{
-			ENUM,
-			CLASS,
-			FUNCTION,
-			VARIABLE,
-			NAMESPACE,
-		};
-
 		struct item
 		{
-			flag_t flag;
-			x::static_string_view name;
+			x::uint64 type; // type section index
+			int array = 0;
+			bool is_ref = false;
+			bool is_const = false;
 		};
 
 	public:
@@ -66,6 +60,28 @@ namespace x
 
 	public:
 		std::vector<item> items;
+	};
+
+	class temp_section : public section
+	{
+	public:
+		x::section_t type() const override;
+		void load( std::istream & in ) override;
+		void save( std::ostream & out ) const override;
+
+	public:
+		std::vector<std::string> items;
+	};
+
+	class depend_section : public section
+	{
+	public:
+		x::section_t type() const override;
+		void load( std::istream & in ) override;
+		void save( std::ostream & out ) const override;
+
+	public:
+		std::vector<x::static_string_view> items;
 	};
 
 	class global_section : public section
@@ -73,8 +89,25 @@ namespace x
 	public:
 		struct item
 		{
-			std::size_t initialize;
+			x::uint64 type; // desc section index
+			bool is_thread = false;
 			x::static_string_view name;
+			union
+			{
+				struct
+				{
+					x::int64 enum_init;
+				};
+				struct
+				{
+					x::uint64 flag_init;
+				};
+				struct
+				{
+					x::uint32 class_init_idx;
+					x::uint32 class_init_size;
+				};
+			};
 		};
 
 	public:
@@ -91,11 +124,15 @@ namespace x
 	public:
 		struct item
 		{
-			std::size_t owner; // type section index
-			std::size_t codedata; // codedata section index
+			bool is_const = false;
+			bool is_async = false;
+			bool is_static = false;
+			x::uint64 owner; // type section index
+			x::uint32 code_data; // codedata section index
+			x::uint32 code_size;
+			x::uint64 result; // desc section index
+			std::vector<x::uint64> parameters; // desc section index
 			x::static_string_view name;
-			std::size_t result; // type section index
-			std::vector<std::size_t> parameters; // type section index
 		};
 
 	public:
@@ -112,8 +149,8 @@ namespace x
 	public:
 		struct item
 		{
-			std::size_t owner; // type section index
-			std::size_t value; // type section index
+			x::uint64 owner; // type section index
+			x::uint64 value; // desc section index
 			x::static_string_view name;
 		};
 
@@ -134,7 +171,7 @@ namespace x
 		void save( std::ostream & out ) const override;
 
 	public:
-		std::vector<std::uint8_t> codedatas;
+		std::vector<x::byte> codedatas;
 	};
 
 	class stringdata_section : public section
@@ -159,9 +196,11 @@ namespace x
 		std::string customdatas;
 	};
 
-	class sections
+	class section_module
 	{
 		type_section type;
+		desc_section desc;
+		temp_section temp;
 		depend_section depend;
 		global_section global;
 		function_section function;

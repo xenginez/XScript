@@ -30,7 +30,9 @@ namespace x
 	class type_symbol : public symbol
 	{
 	public:
-		x::modify_flag modify = x::modify_flag::NONE;
+		int array = 0;
+		bool is_ref = false;
+		bool is_const = false;
 	};
 	class enum_symbol : public type_symbol
 	{
