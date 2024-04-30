@@ -104,8 +104,7 @@ namespace x
 				};
 				struct
 				{
-					x::uint32 class_init_idx;
-					x::uint32 class_init_size;
+					x::range class_init; // codedata section index
 				};
 			};
 		};
@@ -127,9 +126,8 @@ namespace x
 			bool is_const = false;
 			bool is_async = false;
 			bool is_static = false;
+			x::range code; // codedata section index
 			x::uint64 owner; // type section index
-			x::uint32 code_data; // codedata section index
-			x::uint32 code_size;
 			x::uint64 result; // desc section index
 			std::vector<x::uint64> parameters; // desc section index
 			x::static_string_view name;

@@ -1,7 +1,6 @@
 #include "float16.h"
 
 #include <bit>
-#include <limits>
 
 namespace
 {

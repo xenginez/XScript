@@ -430,6 +430,26 @@ void x::is_exp_ast::accept( ast_visitor * visitor )
 	visitor->visit( this );
 }
 
+x::ast_t x::sizeof_exp_ast::type() const
+{
+	return x::ast_t::SIZEOF_EXP;
+}
+
+void x::sizeof_exp_ast::accept( ast_visitor * visitor )
+{
+	visitor->visit( this );
+}
+
+x::ast_t x::typeof_exp_ast::type() const
+{
+	return x::ast_t::TYPEOF_EXP;
+}
+
+void x::typeof_exp_ast::accept( ast_visitor * visitor )
+{
+	visitor->visit( this );
+}
+
 x::ast_t x::unary_exp_ast::type() const
 {
 	return x::ast_t::UNARY_EXP;
@@ -894,6 +914,16 @@ void x::ast_visitor::visit( x::as_exp_ast * val )
 void x::ast_visitor::visit( x::is_exp_ast * val )
 {
 	val->cast_type->accept( this );
+	val->value->accept( this );
+}
+
+void x::ast_visitor::visit( x::sizeof_exp_ast * val )
+{
+	val->value->accept( this );
+}
+
+void x::ast_visitor::visit( x::typeof_exp_ast * val )
+{
 	val->value->accept( this );
 }
 

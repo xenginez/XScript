@@ -1,6 +1,6 @@
 #include "meta.h"
 
-x::static_string_view x::meta_type::attribute( std::string_view key ) const
+x::static_string_view x::meta::attribute( std::string_view key ) const
 {
 	if ( _attribute )
 		return _attribute->find( key );
@@ -36,7 +36,7 @@ x::static_string_view x::meta_enum::fullname() const
 	return _fullname;
 }
 
-std::span<const std::pair<x::static_string_view, x::int64>> x::meta_enum::elements() const
+std::span<const x::meta_enum_element_ptr> x::meta_enum::elements() const
 {
 	return _elements;
 }
@@ -70,7 +70,7 @@ x::static_string_view x::meta_flag::fullname() const
 	return _fullname;
 }
 
-std::span<const std::pair<x::static_string_view, x::uint64>> x::meta_flag::elements() const
+std::span<const x::meta_flag_element_ptr> x::meta_flag::elements() const
 {
 	return _elements;
 }
@@ -167,12 +167,12 @@ x::access_t x::meta_function::access() const
 	return _access;
 }
 
-x::type_desc x::meta_function::result_type() const
+x::type_desc x::meta_function::result() const
 {
-	return _result_type;
+	return _result;
 }
 
-std::span<const std::pair<x::static_string_view, x::type_desc>> x::meta_function::parameter_types() const
+std::span<const x::meta_param_element_ptr> x::meta_function::parameters() const
 {
 	return _parameter_types;
 }
@@ -220,9 +220,9 @@ x::access_t x::meta_variable::access() const
 	return _access;
 }
 
-x::type_desc x::meta_variable::value_type() const
+x::type_desc x::meta_variable::value() const
 {
-	return _value_type;
+	return _value;
 }
 
 void x::meta_variable::get( const x::value & obj ) const
@@ -268,4 +268,91 @@ x::static_string_view x::meta_attribute::find( std::string_view key ) const
 	if ( it != _map.end() )
 		return it->second;
 	return {};
+}
+
+x::meta_enum_element::meta_enum_element()
+{
+}
+
+x::meta_t x::meta_enum_element::type() const
+{
+	return x::meta_t::ENUM_ELEMENT;
+}
+
+x::uint64 x::meta_enum_element::hashcode() const
+{
+	return x::hash( fullname() );
+}
+
+x::static_string_view x::meta_enum_element::name() const
+{
+	return _name;
+}
+
+x::static_string_view x::meta_enum_element::fullname() const
+{
+	return _fullname;
+}
+
+x::int64 x::meta_enum_element::value() const
+{
+	return _value;
+}
+
+x::meta_flag_element::meta_flag_element()
+{
+}
+
+x::meta_t x::meta_flag_element::type() const
+{
+	return x::meta_t::ENUM_ELEMENT;
+}
+
+x::uint64 x::meta_flag_element::hashcode() const
+{
+	return x::hash( fullname() );
+}
+
+x::static_string_view x::meta_flag_element::name() const
+{
+	return _name;
+}
+
+x::static_string_view x::meta_flag_element::fullname() const
+{
+	return _fullname;
+}
+
+x::uint64 x::meta_flag_element::value() const
+{
+	return _value;
+}
+
+x::meta_param_element::meta_param_element()
+{
+}
+
+x::meta_t x::meta_param_element::type() const
+{
+	return x::meta_t::PARAM_ELEMENT;
+}
+
+x::uint64 x::meta_param_element::hashcode() const
+{
+	return x::hash( fullname() );
+}
+
+x::static_string_view x::meta_param_element::name() const
+{
+	return _name;
+}
+
+x::static_string_view x::meta_param_element::fullname() const
+{
+	return _fullname;
+}
+
+const x::type_desc & x::meta_param_element::desc() const
+{
+	return _type;
 }

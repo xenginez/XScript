@@ -20,6 +20,12 @@ namespace x
 		virtual x::uint64 hashcode() const = 0;
 		virtual x::static_string_view name() const = 0;
 		virtual x::static_string_view fullname() const = 0;
+
+	public:
+		x::static_string_view attribute( std::string_view key ) const;
+
+	private:
+		x::meta_attribute_ptr _attribute;
 	};
 
 	class meta_type : public meta
@@ -28,12 +34,6 @@ namespace x
 
 	public:
 		virtual x::uint64 size() const = 0;
-
-	public:
-		x::static_string_view attribute( std::string_view key ) const;
-
-	private:
-		x::meta_attribute_ptr _attribute;
 	};
 
 	class meta_enum : public meta_type
@@ -51,12 +51,12 @@ namespace x
 		x::static_string_view fullname() const override;
 
 	public:
-		std::span<const std::pair<x::static_string_view, x::int64>> elements() const;
+		std::span<const x::meta_enum_element_ptr> elements() const;
 
 	private:
 		x::static_string_view _name;
 		x::static_string_view _fullname;
-		std::vector<std::pair<x::static_string_view, x::int64>> _elements;
+		std::vector<x::meta_enum_element_ptr> _elements;
 	};
 
 	class meta_flag : public meta_type
@@ -74,12 +74,12 @@ namespace x
 		x::static_string_view fullname() const override;
 
 	public:
-		std::span<const std::pair<x::static_string_view, x::uint64>> elements() const;
+		std::span<const x::meta_flag_element_ptr> elements() const;
 
 	private:
 		x::static_string_view _name;
 		x::static_string_view _fullname;
-		std::vector<std::pair<x::static_string_view, x::uint64>> _elements;
+		std::vector<x::meta_flag_element_ptr> _elements;
 	};
 
 	class meta_class : public meta_type
@@ -106,11 +106,10 @@ namespace x
 
 	private:
 		x::uint64 _size = 0;
+		x::range _construct;
 		x::static_string_view _base;
 		x::static_string_view _name;
 		x::static_string_view _fullname;
-		x::uint32 _construct_code_idx = 0;
-		x::uint32 _construct_code_size = 0;
 		std::vector<x::meta_variable_ptr> _variables;
 		std::vector<x::meta_function_ptr> _functions;
 	};
@@ -133,8 +132,8 @@ namespace x
 		bool is_async() const;
 		bool is_static() const;
 		x::access_t access() const;
-		x::type_desc result_type() const;
-		std::span<const std::pair<x::static_string_view, x::type_desc>> parameter_types() const;
+		x::type_desc result() const;
+		std::span<const x::meta_param_element_ptr> parameters() const;
 
 	public:
 		void invoke() const;
@@ -144,12 +143,11 @@ namespace x
 		bool _is_async = false;
 		bool _is_static = false;
 		x::access_t _access = x::access_t::PRIVATE;
-		x::uint32 _code_idx = 0;
-		x::uint32 _code_size = 0;
-		x::type_desc _result_type;
+		x::range _code;
+		x::type_desc _result;
 		x::static_string_view _name;
 		x::static_string_view _fullname;
-		std::vector<std::pair<x::static_string_view, x::type_desc>> _parameter_types;
+		std::vector<x::meta_param_element_ptr> _parameter_types;
 	};
 
 	class meta_variable : public meta
@@ -169,7 +167,7 @@ namespace x
 		bool is_static() const;
 		bool is_thread() const;
 		x::access_t access() const;
-		x::type_desc value_type() const;
+		x::type_desc value() const;
 
 	public:
 		void get( const x::value & obj ) const;
@@ -180,7 +178,7 @@ namespace x
 		bool _is_thread = false;
 		x::uint64 _idx = 0;
 		x::access_t _access = x::access_t::PRIVATE;
-		x::type_desc _value_type;
+		x::type_desc _value;
 		x::static_string_view _name;
 		x::static_string_view _fullname;
 	};
@@ -214,5 +212,71 @@ namespace x
 
 	private:
 		std::map<std::string_view, x::static_string_view> _map;
+	};
+
+	class meta_enum_element : public meta
+	{
+		friend class context;
+
+	public:
+		meta_enum_element();
+
+	public:
+		x::meta_t type() const override;
+		x::uint64 hashcode() const override;
+		x::static_string_view name() const override;
+		x::static_string_view fullname() const override;
+
+	public:
+		x::int64 value() const;
+
+	private:
+		x::int64 _value = 0;
+		x::static_string_view _name;
+		x::static_string_view _fullname;
+	};
+
+	class meta_flag_element : public meta
+	{
+		friend class context;
+
+	public:
+		meta_flag_element();
+
+	public:
+		x::meta_t type() const override;
+		x::uint64 hashcode() const override;
+		x::static_string_view name() const override;
+		x::static_string_view fullname() const override;
+
+	public:
+		x::uint64 value() const;
+
+	private:
+		x::uint64 _value = 0;
+		x::static_string_view _name;
+		x::static_string_view _fullname;
+	};
+
+	class meta_param_element : public meta
+	{
+		friend class context;
+
+	public:
+		meta_param_element();
+
+	public:
+		x::meta_t type() const override;
+		x::uint64 hashcode() const override;
+		x::static_string_view name() const override;
+		x::static_string_view fullname() const override;
+
+	public:
+		const x::type_desc & desc() const;
+
+	private:
+		x::type_desc _type;
+		x::static_string_view _name;
+		x::static_string_view _fullname;
 	};
 }

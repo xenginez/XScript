@@ -65,7 +65,7 @@ namespace x
 	public:
 		std::string name;
 		x::access_t access = x::access_t::PRIVATE;
-		x::attribute_ast_ptr attribute;
+		x::attribute_ast_ptr attr;
 	};
 	class enum_decl_ast : public decl_ast
 	{
@@ -115,6 +115,7 @@ namespace x
 	public:
 		std::string name;
 		x::int64 value;
+		x::attribute_ast_ptr attr;
 	};
 	class flag_element_ast : public ast
 	{
@@ -125,6 +126,7 @@ namespace x
 	public:
 		std::string name;
 		x::uint64 value;
+		x::attribute_ast_ptr attr;
 	};
 	class template_decl_ast : public decl_ast
 	{
@@ -133,10 +135,7 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
-		x::type_ast_ptr base;
-		std::vector<template_type> templates;
-		std::vector<x::variable_decl_ast_ptr> variables;
-		std::vector<x::function_decl_ast_ptr> functions;
+
 	};
 	class variable_decl_ast : public decl_ast
 	{
@@ -441,6 +440,24 @@ namespace x
 		x::exp_stat_ast_ptr value;
 		x::type_ast_ptr cast_type;
 	};
+	class sizeof_exp_ast : public exp_stat_ast
+	{
+	public:
+		x::ast_t type() const override;
+		void accept( ast_visitor * visitor ) override;
+
+	public:
+		x::exp_stat_ast_ptr value;
+	};
+	class typeof_exp_ast : public exp_stat_ast
+	{
+	public:
+		x::ast_t type() const override;
+		void accept( ast_visitor * visitor ) override;
+
+	public:
+		x::exp_stat_ast_ptr value;
+	};
 	class unary_exp_ast : public exp_stat_ast
 	{
 	public:
@@ -715,6 +732,8 @@ namespace x
 		virtual void visit( x::mul_exp_ast * val );
 		virtual void visit( x::as_exp_ast * val );
 		virtual void visit( x::is_exp_ast * val );
+		virtual void visit( x::sizeof_exp_ast * val );
+		virtual void visit( x::typeof_exp_ast * val );
 		virtual void visit( x::unary_exp_ast * val );
 		virtual void visit( x::postfix_exp_ast * val );
 		virtual void visit( x::index_exp_ast * val );

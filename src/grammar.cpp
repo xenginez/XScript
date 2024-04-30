@@ -215,6 +215,7 @@ x::enum_decl_ast_ptr x::grammar::enum_decl()
         auto element = std::make_shared<enum_element_ast>();
         element->location = _location;
 
+        element->attr = attribute();
         element->name = validity( token_t::TK_IDENTIFIER ).str;
 
         if ( ast->elements.empty() )
@@ -246,6 +247,7 @@ x::flag_decl_ast_ptr x::grammar::flag_decl()
         auto element = std::make_shared<flag_element_ast>();
         element->location = _location;
 
+        element->attr = attribute();
         element->name = validity( token_t::TK_IDENTIFIER ).str;
 
         if ( ast->elements.empty() )
@@ -454,8 +456,8 @@ x::namespace_decl_ast_ptr x::grammar::namespace_decl()
 
         if ( decl )
         {
+            decl->attr = att;
             decl->access = acc;
-            decl->attribute = att;
             ast->members.emplace_back( decl );
         }
 
@@ -965,6 +967,44 @@ x::exp_stat_ast_ptr x::grammar::is_exp()
         exp->cast_type = type();
 
         ast = exp;
+    }
+
+    return ast;
+}
+
+x::exp_stat_ast_ptr x::grammar::sizeof_exp()
+{
+    x::exp_stat_ast_ptr ast = typeof_exp();
+
+    while ( verify( token_t::TK_LEFT_BRACKETS ) )
+    {
+        auto exp = std::make_shared<sizeof_exp_ast>();
+        exp->location = _location;
+
+        exp->value = ast;
+
+        ast = exp;
+
+        validity( token_t::TK_RIGHT_BRACKETS );
+    }
+
+    return ast;
+}
+
+x::exp_stat_ast_ptr x::grammar::typeof_exp()
+{
+    x::exp_stat_ast_ptr ast = unary_exp();
+
+    while ( verify( token_t::TK_LEFT_BRACKETS ) )
+    {
+        auto exp = std::make_shared<typeof_exp_ast>();
+        exp->location = _location;
+
+        exp->value = ast;
+
+        ast = exp;
+
+        validity( token_t::TK_RIGHT_BRACKETS );
     }
 
     return ast;

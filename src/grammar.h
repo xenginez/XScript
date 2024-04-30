@@ -58,6 +58,8 @@ namespace x
 		x::exp_stat_ast_ptr mul_exp();
 		x::exp_stat_ast_ptr as_exp();
 		x::exp_stat_ast_ptr is_exp();
+		x::exp_stat_ast_ptr sizeof_exp();
+		x::exp_stat_ast_ptr typeof_exp();
 		x::exp_stat_ast_ptr unary_exp();
 		x::exp_stat_ast_ptr postfix_exp();
 		x::exp_stat_ast_ptr index_exp();

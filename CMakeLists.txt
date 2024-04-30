@@ -5,6 +5,8 @@ project ("XScript")
 add_executable (XScript 
 "main.cpp"
 "src/type.h"
+"src/simd.hpp"
+"src/flags.hpp"
 "src/ast.h"
 "src/ast.cpp"
 "src/meta.h"
@@ -21,12 +23,16 @@ add_executable (XScript
 "src/section.cpp"
 "src/symbols.h"
 "src/symbols.cpp"
-"src/library.h"
-"src/library.cpp"
 "src/context.h"
 "src/context.cpp"
 "src/compiler.h"
-"src/compiler.cpp")
+"src/compiler.cpp"
+"src/exception.h"
+"src/exception.cpp"
+"src/value.h"
+"src/value.cpp"
+"src/object.h"
+"src/object.cpp")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET XScript PROPERTY CXX_STANDARD 20)
