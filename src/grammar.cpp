@@ -87,7 +87,6 @@ namespace
         { (const char *)u8"const", x::token_t::TK_CONST },
         { (const char *)u8"static", x::token_t::TK_STATIC },
         { (const char *)u8"extern", x::token_t::TK_EXTERN },
-        { (const char *)u8"native", x::token_t::TK_NATIVE },
         { (const char *)u8"thread_local", x::token_t::TK_THREAD },
         { (const char *)u8"while", x::token_t::TK_WHILE },
         { (const char *)u8"if", x::token_t::TK_IF },
@@ -106,10 +105,13 @@ namespace
         { (const char *)u8"continue", x::token_t::TK_CONTINUE },
         { (const char *)u8"null", x::token_t::TK_NULL },
         { (const char *)u8"true", x::token_t::TK_TRUE },
-        { (const char *)u8"flase", x::token_t::TK_FALSE },
+        { (const char *)u8"false", x::token_t::TK_FALSE },
         { (const char *)u8"as", x::token_t::TK_AS },
         { (const char *)u8"is", x::token_t::TK_IS },
         { (const char *)u8"sizeof", x::token_t::TK_SIZEOF },
+        { (const char *)u8"typeof", x::token_t::TK_TYPEOF },
+        { (const char *)u8"this", x::token_t::TK_THIS },
+        { (const char *)u8"base", x::token_t::TK_BASE },
     };
 }
 
@@ -1213,8 +1215,17 @@ x::identifier_exp_ast_ptr x::grammar::identifier_exp()
     auto ast = std::make_shared<identifier_exp_ast>();
     ast->location = _location;
 
-    ast->ident = validity( token_t::TK_IDENTIFIER ).str;
-
+    switch( lookup().type )
+	{
+	case token_t::TK_THIS:
+	case token_t::TK_BASE:
+	case token_t::TK_IDENTIFIER:
+        ast->ident = next().str;
+    default:
+        ASSERT( false, "" );
+        break;
+    }
+    
     return ast;
 }
 

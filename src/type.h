@@ -7,7 +7,6 @@
 #include <cassert>
 #include <exception>
 
-#include "simd.hpp"
 #include "flags.hpp"
 #include "static_string_view.hpp"
 
@@ -145,7 +144,7 @@ namespace x
         TK_OR,                   // |
         TK_XOR,                  // ^
         TK_LEFT_SHIFT,           // <<
-        TK_RIGHT_SHIFT,          //>> 
+        TK_RIGHT_SHIFT,          // >> 
         TK_LAND,                 // &&
         TK_LOR,                  // ||
         TK_LNOT,                 // !
@@ -160,13 +159,13 @@ namespace x
         TK_OR_ASSIGN,            // |= 
         TK_XOR_ASSIGN,           // ^= 
         TK_LSHIFT_EQUAL,         // <<=
-        TK_RSHIFT_EQUAL,         //>>=
+        TK_RSHIFT_EQUAL,         // >>=
         TK_EQUAL,                // ==
         TK_NOT_EQUAL,            // !=
         TK_LESS,                 // <
-        TK_LARG,                 //>
+        TK_LARG,                 // >
         TK_LESS_OR_EQUAL,        // <=
-        TK_LARG_OR_EQUAL,        //>=
+        TK_LARG_OR_EQUAL,        // >=
         TK_TYPECAST,             // :
         TK_MEMBER_POINT,         // .
         TK_QUESTION,             // ?
@@ -211,7 +210,6 @@ namespace x
         TK_CONST,                // const
         TK_STATIC,               // static
         TK_EXTERN,               // extern
-        TK_NATIVE,               // native
         TK_THREAD,               // thread_local
         TK_WHILE,                // while
         TK_IF,                   // if
@@ -231,42 +229,44 @@ namespace x
         TK_CONTINUE,             // continue
         TK_NULL,                 // null
         TK_TRUE,                 // true
-        TK_FALSE,                // flase
+        TK_FALSE,                // false
         TK_AS,                   // as
         TK_IS,                   // is
         TK_SIZEOF,               // sizeof
         TK_TYPEOF,               // typeof
+        TK_THIS,                 // this
+        TK_BASE,                 // base
     };
 
     enum class value_t : x::int32
     {
         INVALID             = 0,
 
-        NIL                 = 1 <<0,
-        BOOL                = 1 <<1,
-        INT8                = 1 <<2,
-        INT16               = 1 <<3,
-        INT32               = 1 <<4,
-        INT64               = 1 <<5,
-        UINT8               = 1 <<6,
-        UINT16              = 1 <<7,
-        UINT32              = 1 <<8,
-        UINT64              = 1 <<9,
-        FLOAT16             = 1 <<10,
-        FLOAT32             = 1 <<11,
-        FLOAT64             = 1 <<12,
-        STRING              = 1 <<13,
-        OBJECT              = 1 <<14,
+        NIL                 = 1 << 0,
+        BOOL                = 1 << 1,
+        INT8                = 1 << 2,
+        INT16               = 1 << 3,
+        INT32               = 1 << 4,
+        INT64               = 1 << 5,
+        UINT8               = 1 << 6,
+        UINT16              = 1 << 7,
+        UINT32              = 1 << 8,
+        UINT64              = 1 << 9,
+        FLOAT16             = 1 << 10,
+        FLOAT32             = 1 << 11,
+        FLOAT64             = 1 << 12,
+        STRING              = 1 << 13,
+        OBJECT              = 1 << 14,
 
         SIGNED_MASK         = 0x3C,
         UNSIGNED_MASK       = 0x3C0,
         FLOATING_MASK       = 0x1C00,
         TYPE_MASK           = 0xFFFF,
 
-        ENUM_MASK           = 1 <<27,
-        FLAG_MASK           = 1 <<28,
-        REF_MASK            = 1 <<29,
-        ASYN_MASK           = 1 <<30,
+        ENUM_MASK           = 1 << 27,
+        FLAG_MASK           = 1 << 28,
+        REF_MASK            = 1 << 29,
+        ASYN_MASK           = 1 << 30,
     };
 
     enum class symbol_t

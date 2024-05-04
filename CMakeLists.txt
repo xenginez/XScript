@@ -5,7 +5,7 @@ project ("XScript")
 add_executable (XScript 
 "main.cpp"
 "src/type.h"
-"src/simd.hpp"
+
 "src/flags.hpp"
 "src/ast.h"
 "src/ast.cpp"
