@@ -1,15 +1,13 @@
 #pragma once
 
-#include <fstream>
-#include <filesystem>
-
 #include "meta.h"
 
 namespace x
 {
 	class context : public std::enable_shared_from_this<context>
 	{
-		struct private_p;
+	public:
+		friend class compiler;
 
 	public:
 		context();
@@ -17,27 +15,16 @@ namespace x
 
 	public:
 		int version() const;
-		const x::symbols_ptr & symbols() const;
-
-	public:
 		x::meta_ptr find_meta( x::uint64 hashcode ) const;
+		x::meta_ptr find_meta( std::string_view fullname ) const;
 
 	public:
-		bool load_script_file( const std::filesystem::path & file );
-		bool load_script_stream( std::istream & stream, std::string_view name );
-		bool load_library_file( const std::filesystem::path & file );
-		bool load_library_stream( std::istream & stream, std::string_view name );
-
-	public:
-		void add_search_path( const std::filesystem::path & path );
-		std::filesystem::path search_path( const std::filesystem::path & path ) const;
+		void load( std::istream & in );
+		void save( std::ostream & out ) const;
 
 	private:
-		void register_meta( const meta_ptr & val );
-		x::static_string_view trans_string_view( std::string_view str );
-		bool recursion_import( std::istream & stream, std::filesystem::path path, std::vector<x::unit_ast_ptr> & units );
-
-	private:
-		private_p * _p = nullptr;
+		int _version = 0;
+		std::string _strpool;
+		std::map<x::uint64, meta_ptr> _metas;
 	};
 }

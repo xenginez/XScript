@@ -6,7 +6,7 @@
 
 namespace
 {
-    static std::map<std::string, x::token_t> token_map =
+    static std::map<std::string, x::token_t> g_token_map =
     {
         { (const char *)u8";", x::token_t::TK_SEMICOLON },
         { (const char *)u8",", x::token_t::TK_COMMA },
@@ -84,9 +84,12 @@ namespace
         { (const char *)u8"private", x::token_t::TK_PRIVATE },
         { (const char *)u8"public", x::token_t::TK_PUBLIC },
         { (const char *)u8"protected", x::token_t::TK_PROTECTED },
+        { (const char *)u8"local", x::token_t::TK_LOCAL },
         { (const char *)u8"const", x::token_t::TK_CONST },
         { (const char *)u8"static", x::token_t::TK_STATIC },
         { (const char *)u8"extern", x::token_t::TK_EXTERN },
+        { (const char *)u8"virtual", x::token_t::TK_VIRTUAL },
+        { (const char *)u8"override", x::token_t::TK_OVERRIDE },
         { (const char *)u8"thread_local", x::token_t::TK_THREAD },
         { (const char *)u8"while", x::token_t::TK_WHILE },
         { (const char *)u8"if", x::token_t::TK_IF },
@@ -115,9 +118,14 @@ namespace
     };
 }
 
-x::grammar::grammar( std::istream & stream, std::string_view name )
+x::grammar::grammar( std::istream & stream, std::string_view name, const std::map<std::string, x::token_t> tokens )
     : _stream( stream.rdbuf() )
 {
+    if ( !tokens.empty() )
+        _tokenmap = tokens;
+    else
+        _tokenmap = g_token_map;
+
     _location.file = name;
 }
 
@@ -154,7 +162,10 @@ x::type_ast_ptr x::grammar::type()
 
     ast->is_ref = verify( token_t::TK_REF );
     ast->is_const = verify( token_t::TK_CONST );
+    if( !ast->is_ref ) ast->is_ref = verify( token_t::TK_REF );
+
     ast->name = type_name();
+
     if ( verify( token_t::TK_LEFT_INDEX ) )
     {
         ast->array++;
@@ -283,14 +294,6 @@ x::class_decl_ast_ptr x::grammar::class_decl()
     {
         auto acc = access();
 
-        bool is_const = verify( token_t::TK_CONST );
-        bool is_async = verify( token_t::TK_ASYNC );
-        bool is_static = verify( token_t::TK_STATIC );
-        bool is_thread = verify( token_t::TK_THREAD );
-
-        ASSERT( is_const && is_static, "" );
-        ASSERT( is_static && is_thread, "" );
-
         switch ( lookup().type )
         {
         case token_t::TK_USING:
@@ -304,8 +307,6 @@ x::class_decl_ast_ptr x::grammar::class_decl()
         {
             auto var = variable_decl();
             var->access = acc;
-            var->is_static = is_static;
-            var->is_thread = is_thread;
             ast->variables.emplace_back( var );
         }
         break;
@@ -313,9 +314,6 @@ x::class_decl_ast_ptr x::grammar::class_decl()
         {
             auto fun = function_decl();
             fun->access = acc;
-            fun->is_async = is_async;
-            fun->is_const = is_const;
-            fun->is_static = is_static;
             ast->functions.emplace_back( fun );
         }
         break;
@@ -361,6 +359,11 @@ x::variable_decl_ast_ptr x::grammar::variable_decl()
     auto ast = std::make_shared<variable_decl_ast>();
     ast->location = _location;
 
+    if ( verify( token_t::TK_STATIC ) )
+        ast->is_static = true;
+    else if ( verify( token_t::TK_THREAD ) )
+        ast->is_thread = true;
+
     ast->name = validity( token_t::TK_IDENTIFIER ).str;
 
     if ( verify( token_t::TK_TYPECAST ) )
@@ -379,6 +382,41 @@ x::function_decl_ast_ptr x::grammar::function_decl()
 
     auto ast = std::make_shared<function_decl_ast>();
     ast->location = _location;
+
+    token_t tk = token_t::TK_EOF;
+
+    do
+    {
+        tk = verify( { token_t::TK_CONST, token_t::TK_ASYNC } );
+        switch ( tk )
+        {
+        case token_t::TK_CONST:
+            ast->is_const = true;
+            break;
+        case token_t::TK_ASYNC:
+            ast->is_async = true;
+            break;
+        }
+    } while ( tk != token_t::TK_EOF );
+    if ( verify( token_t::TK_STATIC ) )
+        ast->is_static = true;
+    else if ( verify( token_t::TK_VIRTUAL ) )
+        ast->is_virtual = true;
+    else if ( verify( token_t::TK_OVERRIDE ) )
+        ast->is_virtual = true;
+    do
+    {
+        tk = verify( { token_t::TK_CONST, token_t::TK_ASYNC } );
+        switch ( tk )
+        {
+        case token_t::TK_CONST:
+            ast->is_const = true;
+            break;
+        case token_t::TK_ASYNC:
+            ast->is_async = true;
+            break;
+        }
+    } while ( tk != token_t::TK_EOF );
 
     ast->name = validity( token_t::TK_IDENTIFIER ).str;
 
@@ -723,6 +761,13 @@ x::local_stat_ast_ptr x::grammar::local_stat()
 
     auto ast = std::make_shared<local_stat_ast>();
     ast->location = _location;
+
+    if ( verify( token_t::TK_LOCAL ) )
+        ast->is_local = true;
+    else if ( verify( token_t::TK_STATIC ) )
+        ast->is_static = true;
+    else if ( verify( token_t::TK_THREAD ) )
+        ast->is_thread = true;
 
     ast->name = validity( token_t::TK_IDENTIFIER ).str;
 
@@ -1466,7 +1511,7 @@ x::type_ast_ptr x::grammar::type( std::string_view name, bool is_ref, bool is_co
     return ast;
 }
 
-std::string x::grammar::location_to_name( const x::source_location & location, std::string_view suffix )
+std::string x::grammar::location_to_name( const x::location & location, std::string_view suffix )
 {
     std::regex reg( ":|/|\\\\" );
 
@@ -1667,8 +1712,8 @@ x::token x::grammar::next()
 
             while ( std::isalnum( peek() ) || c > 127 ) push( tk.str, get() );
 
-            auto it = token_map.find( tk.str );
-            tk.type = it != token_map.end() ? it->second : token_t::TK_IDENTIFIER;
+            auto it = _tokenmap.find( tk.str );
+            tk.type = it != _tokenmap.end() ? it->second : token_t::TK_IDENTIFIER;
 
             break;
         }
@@ -1698,8 +1743,8 @@ x::token x::grammar::next()
             while ( std::ispunct( peek() ) )
                 push( tk.str, get() );
 
-            auto it = token_map.find( tk.str );
-            ASSERT( it == token_map.end(), "" );
+            auto it = _tokenmap.find( tk.str );
+            ASSERT( it == _tokenmap.end(), "" );
             tk.type = it->second;
 
             break;
@@ -1731,6 +1776,21 @@ bool x::grammar::verify( token_t k )
     }
 
     return false;
+}
+
+x::token_t x::grammar::verify( std::initializer_list<token_t> list )
+{
+    auto tk = lookup();
+
+    for ( auto k : list )
+    {
+        if ( tk.type == k )
+        {
+            next();
+            return k;
+        }
+    }
+    return token_t::TK_EOF;
 }
 
 x::token x::grammar::validity( token_t k )

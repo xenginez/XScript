@@ -6,10 +6,10 @@
 
 namespace x
 {
-	class grammar : public std::enable_shared_from_this<grammar>
+	class grammar
 	{
 	public:
-		grammar( std::istream & stream, std::string_view name );
+		grammar( std::istream & stream, std::string_view name, const std::map<std::string, x::token_t> tokens = {} );
 		~grammar();
 
 	public:
@@ -82,13 +82,14 @@ namespace x
 		x::access_t access();
 		std::string type_name();
 		x::type_ast_ptr type( std::string_view name, bool is_ref = false, bool is_const = false, int array = 0 );
-		std::string location_to_name( const x::source_location & location, std::string_view suffix = "" );
+		std::string location_to_name( const x::location & location, std::string_view suffix = "" );
 
 	private:
 		x::token next();
 		x::token lookup();
-		bool verify( token_t k );
-		x::token validity( token_t k );
+		bool verify( x::token_t k );
+		x::token_t verify( std::initializer_list<x::token_t> list );
+		x::token validity( x::token_t k );
 
 	private:
 		int get();
@@ -97,6 +98,7 @@ namespace x
 
 	private:
 		std::istream _stream;
-		x::source_location _location;
+		x::location _location;
+		std::map<std::string, x::token_t> _tokenmap;
 	};
 }

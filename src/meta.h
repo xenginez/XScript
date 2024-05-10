@@ -106,7 +106,7 @@ namespace x
 
 	private:
 		x::uint64 _size = 0;
-		x::range _construct;
+		x::uint64 _construct;
 		x::static_string_view _base;
 		x::static_string_view _name;
 		x::static_string_view _fullname;
@@ -132,7 +132,7 @@ namespace x
 		bool is_async() const;
 		bool is_static() const;
 		x::access_t access() const;
-		x::type_desc result() const;
+		x::typedesc result() const;
 		std::span<const x::meta_param_element_ptr> parameters() const;
 
 	public:
@@ -143,8 +143,8 @@ namespace x
 		bool _is_async = false;
 		bool _is_static = false;
 		x::access_t _access = x::access_t::PRIVATE;
-		x::range _code;
-		x::type_desc _result;
+		x::uint64 _code;
+		x::typedesc _result;
 		x::static_string_view _name;
 		x::static_string_view _fullname;
 		std::vector<x::meta_param_element_ptr> _parameter_types;
@@ -167,7 +167,7 @@ namespace x
 		bool is_static() const;
 		bool is_thread() const;
 		x::access_t access() const;
-		x::type_desc value() const;
+		x::typedesc value() const;
 
 	public:
 		void get( const x::value & obj ) const;
@@ -178,7 +178,7 @@ namespace x
 		bool _is_thread = false;
 		x::uint64 _idx = 0;
 		x::access_t _access = x::access_t::PRIVATE;
-		x::type_desc _value;
+		x::typedesc _value;
 		x::static_string_view _name;
 		x::static_string_view _fullname;
 	};
@@ -272,10 +272,10 @@ namespace x
 		x::static_string_view fullname() const override;
 
 	public:
-		const x::type_desc & desc() const;
+		const x::typedesc & desc() const;
 
 	private:
-		x::type_desc _type;
+		x::typedesc _type;
 		x::static_string_view _name;
 		x::static_string_view _fullname;
 	};

@@ -16,7 +16,7 @@ namespace x
 		virtual void accept( ast_visitor * visitor ) = 0;
 
 	public:
-		x::source_location location;
+		x::location location;
 	};
 
 	class unit_ast : public ast
@@ -159,6 +159,7 @@ namespace x
 		bool is_const = false;
 		bool is_async = false;
 		bool is_static = false;
+		bool is_virtual = false;
 		x::stat_ast_ptr stat;
 		x::type_ast_ptr result;
 		std::vector<x::parameter_decl_ast_ptr> parameters;
@@ -335,6 +336,7 @@ namespace x
 
 	public:
 		std::string name;
+		bool is_local = false;
 		bool is_static = false;
 		bool is_thread = false;
 		x::type_ast_ptr value_type;

@@ -1,10 +1,11 @@
 ﻿#include "src/context.h"
 
+#include "src/compiler.h"
+
 int main()
 {
-	auto ctx = std::make_shared < x::context >();
-	
-	ctx->load_script_file( std::filesystem::current_path() / "script_0.ts" );
+	x::compiler comp;
+	auto ctx = comp.compile( std::filesystem::current_path() / "script_0.ts" );
 
 	return 0;
 }

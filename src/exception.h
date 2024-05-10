@@ -9,7 +9,7 @@ namespace x
 	class lexical_exception : public std::exception
 	{
 	public:
-		lexical_exception( std::string_view message, const x::source_location & location );
+		lexical_exception( std::string_view message, const x::location & location );
 
 	public:
 		char const * what() const override;
@@ -20,7 +20,7 @@ namespace x
 	class grammatical_exception : public std::exception
 	{
 	public:
-		grammatical_exception( std::string_view message, const x::source_location & location );
+		grammatical_exception( std::string_view message, const x::location & location );
 
 	public:
 		char const * what() const override;
@@ -31,7 +31,7 @@ namespace x
 	class semantic_exception : public std::exception
 	{
 	public:
-		semantic_exception( std::string_view message, const x::source_location & location );
+		semantic_exception( std::string_view message, const x::location & location );
 
 	public:
 		char const * what() const override;

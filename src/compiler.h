@@ -1,22 +1,29 @@
 #pragma once
 
+#include <fstream>
+#include <filesystem>
+
 #include "type.h"
 
 namespace x
 {
-	class compiler : public std::enable_shared_from_this<compiler>
+	class compiler
 	{
+		struct private_p;
+
 	public:
-		virtual ~compiler() = default;
-	};
+		compiler();
+		~compiler();
 
-	class jit_compiler : public compiler
-	{
+	public:
+		void add_search_path( const std::filesystem::path & path );
+		x::context_ptr compile( const std::filesystem::path & file );
 
-	};
+	private:
+		bool load_source_file( std::filesystem::path file );
+		x::context_ptr generate() const;
 
-	class aot_compiler : public compiler
-	{
-
+	private:
+		private_p * _p = nullptr;
 	};
 }

@@ -3,21 +3,21 @@
 #include "context.h"
 #include "symbols.h"
 
-void x::pass::set_ctx( x::context * ctx )
+x::pass::pass( const x::symbols_ptr & val )
+	: _symbols( val )
 {
-	_ctx = ctx;
 }
 
-x::context * x::pass::context() const
+const x::symbols_ptr & x::pass::symbols() const
 {
-	return _ctx;
+	return _symbols;
 }
 
-x::symbols * x::pass::symbols() const
-{
-	return _ctx->symbols().get();
-}
 
+x::symbol_scanner_pass::symbol_scanner_pass( const x::symbols_ptr & val )
+	: pass( val )
+{
+}
 
 void x::symbol_scanner_pass::visit( x::unit_ast * val )
 {
@@ -193,6 +193,11 @@ void x::symbol_scanner_pass::visit( x::closure_exp_ast * val )
 }
 
 
+x::reference_solver_pass::reference_solver_pass( const x::symbols_ptr & val )
+	: pass( val )
+{
+}
+
 void x::reference_solver_pass::visit( x::enum_element_ast * val )
 {
 	symbols()->add_reference( val->location, symbols()->current_scope() );
@@ -212,6 +217,11 @@ void x::reference_solver_pass::visit( x::identifier_exp_ast * val )
 	symbols()->add_reference( val->location, sym );
 }
 
+
+x::type_checker_pass::type_checker_pass( const x::symbols_ptr & val )
+	: pass( val )
+{
+}
 
 void x::type_checker_pass::visit( x::assignment_exp_ast * val )
 {
@@ -424,6 +434,11 @@ x::type_symbol_ptr x::type_checker_pass::calc_type( x::token_t oper, const x::as
 	return x::type_symbol_ptr();
 }
 
+
+x::semantic_checker_pass::semantic_checker_pass( const x::symbols_ptr & val )
+	: pass( val )
+{
+}
 
 void x::semantic_checker_pass::visit( x::if_stat_ast * val )
 {

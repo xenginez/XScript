@@ -207,9 +207,12 @@ namespace x
         TK_PRIVATE,              // private
         TK_PUBLIC,               // public
         TK_PROTECTED,            // protected
+        TK_LOCAL,                // local
         TK_CONST,                // const
         TK_STATIC,               // static
         TK_EXTERN,               // extern
+        TK_VIRTUAL,              // virtual
+        TK_OVERRIDE,             // override
         TK_THREAD,               // thread_local
         TK_WHILE,                // while
         TK_IF,                   // if
@@ -269,6 +272,13 @@ namespace x
         ASYN_MASK           = 1 << 30,
     };
 
+    enum class access_t
+    {
+        PUBLIC,
+        PRIVATE,
+        PROTECTED,
+    };
+
     enum class symbol_t
     {
         ENUM,
@@ -285,11 +295,69 @@ namespace x
         NAMESPACE,
     };
 
-    enum class access_t
+    enum class opcode_t
     {
-        PUBLIC,
-        PRIVATE,
-        PROTECTED,
+        OP_NOP = 0,       // nop(TKPLS)                                                     1 byte
+        OP_MOV,           // mov(dr)            REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF         3-9 byte
+        OP_ADDI,          // add(dr)            REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF         3-9 byte
+        OP_SUBI,          // sub
+        OP_MULI,          // mul
+        OP_DIVI,          // div
+        OP_MODI,          // mod
+        OP_ADDR,          // add(dr)            REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF         3-9 byte
+        OP_SUBR,          // sub
+        OP_MULR,          // mul
+        OP_DIVR,          // div
+        OP_MODR,          // mod
+        OP_ADDH,          // add(dr)            REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF         3-9 byte
+        OP_SUBH,          // sub
+        OP_ADDS,          // add(dr)            REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF         3-9 byte
+        OP_PSH,           // psh(dr_0)          REGID(1BYTE)/DIFF(4BYTE)                    2-5 byte
+        OP_POP,           // pop(dr_STORED?)    REGID(1BYTE)/DIFF(4BYTE)/COUNT(2BYTE)       2-5 byte
+        OP_SIDARR,        // sidarr(dr)         REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF  REGID
+        OP_SIDSTRUCT,     // sidstruct(dr)      REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF  REGID
+        OP_LDS,           // lds(dr)            REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF   
+        OP_STS,           // sts(dr)            REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF  
+        OP_EQUB,          // equb(dr)           REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF         3-9 byte
+        OP_NEQUB,         // nequb
+        OP_LTI,           // lt
+        OP_GTI,           // gt
+        OP_ELTI,          // elt
+        OP_EGTI,          // egt
+        OP_LAND,          // land             
+        OP_LOR,           // lor
+        OP_SIDMAP,        // sidmap(dr)         REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF  REGID
+        OP_LTX,           // lt
+        OP_GTX,           // gt
+        OP_ELTX,          // elt
+        OP_EGTX,          // egt
+        OP_LTR,           // lt
+        OP_GTR,           // gt
+        OP_ELTR,          // elt
+        OP_EGTR,          // egt
+        OP_CALL,          // call(dr_0)         REGID(1BYTE)/DIFF(4BYTE) 
+        OP_CALLN,         // calln(0_ISNATIVE)  VM_IR_DIFF(4BYTE)/NATIVE_FUNC(8BYTE)
+        OP_RET,           // ret(dr_0)          POP_SIZE(2 BYTE if dr)
+        OP_JT,            // jt                 DIFF(4BYTE)
+        OP_JF,            // jf                 DIFF(4BYTE)
+        OP_JMP,           // jmp                DIFF(4BYTE)
+        OP_MOVCAST,       // movcast(dr)        REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF TYPE  4-10 byte
+        OP_MKCLOS,        // mkclos(00)         FUNC(8BYTE) CAPTURE_ARG_COUNT(2BYTE) 11 byte
+        OP_TYPEAS,        // typeas(dr_0)       REGID(1BYTE)/DIFF(4BYTE) TYPE             3-6 byte
+        OP_MKSTRUCT,      // mkstruct(dr_0)     REGID(1BYTE)/DIFF(4BYTE) SZ(2BYTE)               4-7 byte
+        OP_ABRT,          // abrt(0_1/0)        (0xcc 0xcd can use it to abort)     
+        OP_IDARR,         // idarr(dr)          REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF [Used for array]
+        OP_IDDICT,        // iddict(dr)         REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF [Used for dict]
+        OP_MKARR,         // mkarr(dr_0)        REGID(1BYTE)/DIFF(4BYTE) SZ(2BYTE)
+        OP_MKMAP,         // mkmap(dr_0)        REGID(1BYTE)/DIFF(4BYTE) SZ(2BYTE)
+        OP_IDSTR,         // idstr(dr)          REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF [Used for string]
+        OP_EQUR,          // equr(dr)           REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF  
+        OP_NEQUR,         // nequr
+        OP_EQUS,          // equs
+        OP_NEQUS,         // nequs
+        OP_SIDDICT,       // siddict(dr)        REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF  REGID 
+        OP_JNEQUB,        // jnequb(dr_0)       REGID(1BYTE)/DIFF(4BYTE) PLACE(4BYTE)            6-9 byte
+        OP_IDSTRUCT,      // idstruct(dr_0)     REGID(1BYTE)/DIFF(4BYTE) OFFSET(2BYTE)   4-7 byte
     };
 
     enum class section_t
@@ -306,72 +374,10 @@ namespace x
         CUSTOMDATA,
     };
 
-    enum class bytecode_t
-    {
-        BC_NOP = 0,       // nop(TKPLS)                                                     1 byte
-        BC_MOV,           // mov(dr)            REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF         3-9 byte
-        BC_ADDI,          // add(dr)            REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF         3-9 byte
-        BC_SUBI,          // sub
-        BC_MULI,          // mul
-        BC_DIVI,          // div
-        BC_MODI,          // mod
-        BC_ADDR,          // add(dr)            REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF         3-9 byte
-        BC_SUBR,          // sub
-        BC_MULR,          // mul
-        BC_DIVR,          // div
-        BC_MODR,          // mod
-        BC_ADDH,          // add(dr)            REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF         3-9 byte
-        BC_SUBH,          // sub
-        BC_ADDS,          // add(dr)            REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF         3-9 byte
-        BC_PSH,           // psh(dr_0)          REGID(1BYTE)/DIFF(4BYTE)                    2-5 byte
-        BC_POP,           // pop(dr_STORED?)    REGID(1BYTE)/DIFF(4BYTE)/COUNT(2BYTE)       2-5 byte
-        BC_SIDARR,        // sidarr(dr)         REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF  REGID
-        BC_SIDSTRUCT,     // sidstruct(dr)      REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF  REGID
-        BC_LDS,           // lds(dr)            REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF   
-        BC_STS,           // sts(dr)            REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF  
-        BC_EQUB,          // equb(dr)           REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF         3-9 byte
-        BC_NEQUB,         // nequb
-        BC_LTI,           // lt
-        BC_GTI,           // gt
-        BC_ELTI,          // elt
-        BC_EGTI,          // egt
-        BC_LAND,          // land             
-        BC_LOR,           // lor
-        BC_SIDMAP,        // sidmap(dr)         REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF  REGID
-        BC_LTX,           // lt
-        BC_GTX,           // gt
-        BC_ELTX,          // elt
-        BC_EGTX,          // egt
-        BC_LTR,           // lt
-        BC_GTR,           // gt
-        BC_ELTR,          // elt
-        BC_EGTR,          // egt
-        BC_CALL,          // call(dr_0)         REGID(1BYTE)/DIFF(4BYTE) 
-        BC_CALLN,         // calln(0_ISNATIVE)  VM_IR_DIFF(4BYTE)/NATIVE_FUNC(8BYTE)
-        BC_RET,           // ret(dr_0)          POP_SIZE(2 BYTE if dr)
-        BC_JT,            // jt                 DIFF(4BYTE)
-        BC_JF,            // jf                 DIFF(4BYTE)
-        BC_JMP,           // jmp                DIFF(4BYTE)
-        BC_MOVCAST,       // movcast(dr)        REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF TYPE  4-10 byte
-        BC_MKCLOS,        // mkclos(00)         FUNC(8BYTE) CAPTURE_ARG_COUNT(2BYTE) 11 byte
-        BC_TYPEAS,        // typeas(dr_0)       REGID(1BYTE)/DIFF(4BYTE) TYPE             3-6 byte
-        BC_MKSTRUCT,      // mkstruct(dr_0)     REGID(1BYTE)/DIFF(4BYTE) SZ(2BYTE)               4-7 byte
-        BC_ABRT,          // abrt(0_1/0)        (0xcc 0xcd can use it to abort)     
-        BC_IDARR,         // idarr(dr)          REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF [Used for array]
-        BC_IDDICT,        // iddict(dr)         REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF [Used for dict]
-        BC_MKARR,         // mkarr(dr_0)        REGID(1BYTE)/DIFF(4BYTE) SZ(2BYTE)
-        BC_MKMAP,         // mkmap(dr_0)        REGID(1BYTE)/DIFF(4BYTE) SZ(2BYTE)
-        BC_IDSTR,         // idstr(dr)          REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF [Used for string]
-        BC_EQUR,          // equr(dr)           REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF  
-        BC_NEQUR,         // nequr
-        BC_EQUS,          // equs
-        BC_NEQUS,         // nequs
-        BC_SIDDICT,       // siddict(dr)        REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF  REGID 
-        BC_JNEQUB,        // jnequb(dr_0)       REGID(1BYTE)/DIFF(4BYTE) PLACE(4BYTE)            6-9 byte
-        BC_IDSTRUCT,      // idstruct(dr_0)     REGID(1BYTE)/DIFF(4BYTE) OFFSET(2BYTE)   4-7 byte
-    };
-
     using value_flags = flags<x::value_t>;
+
+    class value;
+    class object;
 
     class ast; using ast_ptr = std::shared_ptr<ast>;
     class unit_ast; using unit_ast_ptr = std::shared_ptr<unit_ast>;
@@ -451,25 +457,6 @@ namespace x
     class string_const_exp_ast; using string_const_exp_ast_ptr = std::shared_ptr<string_const_exp_ast>;
     class ast_visitor; using ast_visitor_ptr = std::shared_ptr<ast_visitor>;
 
-    class symbol; using symbol_ptr = std::shared_ptr<symbol>;
-    class type_symbol; using type_symbol_ptr = std::shared_ptr<type_symbol>;
-    class enum_symbol; using enum_symbol_ptr = std::shared_ptr<enum_symbol>;
-    class block_symbol; using block_symbol_ptr = std::shared_ptr<block_symbol>;
-    class alias_symbol; using alias_symbol_ptr = std::shared_ptr<alias_symbol>;
-    class class_symbol; using class_symbol_ptr = std::shared_ptr<class_symbol>;
-    class function_symbol; using function_symbol_ptr = std::shared_ptr<function_symbol>;
-    class variable_symbol; using variable_symbol_ptr = std::shared_ptr<variable_symbol>;
-    class template_symbol; using template_symbol_ptr = std::shared_ptr<template_symbol>;
-    class namespace_symbol; using namespace_symbol_ptr = std::shared_ptr<namespace_symbol>;
-    class type_element_symbol; using type_element_symbol_ptr = std::shared_ptr<type_element_symbol>;
-    class enum_element_symbol; using enum_element_symbol_ptr = std::shared_ptr<enum_element_symbol>;
-
-    class grammar; using grammar_ptr = std::shared_ptr<grammar>;
-    class symbols; using symbols_ptr = std::shared_ptr<symbols>;
-    class section; using section_ptr = std::shared_ptr<section>;
-    class context; using context_ptr = std::shared_ptr<context>;
-    class compiler; using compiler_ptr = std::shared_ptr<compiler>;
-
     class meta; using meta_ptr = std::shared_ptr<meta>;
     class meta_type; using meta_type_ptr = std::shared_ptr<meta_type>;
     class meta_enum; using meta_enum_ptr = std::shared_ptr<meta_enum>;
@@ -483,18 +470,25 @@ namespace x
     class meta_flag_element; using meta_flag_element_ptr = std::shared_ptr<meta_flag_element>;
     class meta_param_element; using meta_param_element_ptr = std::shared_ptr<meta_param_element>;
 
-    class value;
-    class object;
-    class runtime;
+    class symbol; using symbol_ptr = std::shared_ptr<symbol>;
+    class type_symbol; using type_symbol_ptr = std::shared_ptr<type_symbol>;
+    class enum_symbol; using enum_symbol_ptr = std::shared_ptr<enum_symbol>;
+    class block_symbol; using block_symbol_ptr = std::shared_ptr<block_symbol>;
+    class alias_symbol; using alias_symbol_ptr = std::shared_ptr<alias_symbol>;
+    class class_symbol; using class_symbol_ptr = std::shared_ptr<class_symbol>;
+    class function_symbol; using function_symbol_ptr = std::shared_ptr<function_symbol>;
+    class variable_symbol; using variable_symbol_ptr = std::shared_ptr<variable_symbol>;
+    class template_symbol; using template_symbol_ptr = std::shared_ptr<template_symbol>;
+    class namespace_symbol; using namespace_symbol_ptr = std::shared_ptr<namespace_symbol>;
+    class type_element_symbol; using type_element_symbol_ptr = std::shared_ptr<type_element_symbol>;
+    class enum_element_symbol; using enum_element_symbol_ptr = std::shared_ptr<enum_element_symbol>;
 
-    struct source_location
-    {
-        x::uint32 line = 1;
-        x::uint32 column = 1;
-        std::string_view file;
-    };
+    class module; using module_ptr = std::shared_ptr<module>;
+    class symbols; using symbols_ptr = std::shared_ptr<symbols>;
+    class context; using context_ptr = std::shared_ptr<context>;
+    class runtime; using runtime_ptr = std::shared_ptr<runtime>;
 
-    struct type_desc
+    struct typedesc
     {
         int array = 0;
         bool is_ref = false;
@@ -502,17 +496,18 @@ namespace x
         x::uint64 hashcode = 0;
     };
 
+    struct location
+    {
+        x::uint32 line = 1;
+        x::uint32 column = 1;
+        std::string_view file;
+    };
+
     struct token
     {
         token_t type;
         std::string str;
-        source_location location;
-    };
-
-    struct range
-    {
-        x::uint32 beg;
-        x::uint32 end;
+        location location;
     };
 
     inline constexpr x::uint64 hash( const char * str, x::uint64 size = std::numeric_limits<x::uint64>::max(), x::uint64 value = 14695981039346656037ULL )

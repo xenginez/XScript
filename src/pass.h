@@ -6,20 +6,17 @@ namespace x
 {
 	class pass : public ast_visitor
 	{
-		friend class context;
-
 	public:
 		using ast_visitor::visit;
 
-	protected:
-		context * context() const;
-		symbols * symbols() const;
+	public:
+		pass( const x::symbols_ptr & val );
+
+	public:
+		const x::symbols_ptr & symbols() const;
 
 	private:
-		void set_ctx( x::context * ctx );
-
-	private:
-		x::context * _ctx;
+		x::symbols_ptr _symbols;
 	};
 
 	class symbol_scanner_pass : public pass
@@ -28,7 +25,7 @@ namespace x
 		using pass::visit;
 
 	public:
-		symbol_scanner_pass() = default;
+		symbol_scanner_pass( const x::symbols_ptr & val );
 
 	public:
 		void visit( x::unit_ast * val ) override;
@@ -54,6 +51,9 @@ namespace x
 		using pass::visit;
 
 	public:
+		reference_solver_pass( const x::symbols_ptr & val );
+
+	public:
 		void visit( x::enum_element_ast * val ) override;
 		void visit( x::flag_element_ast * val ) override;
 		void visit( x::identifier_exp_ast * val ) override;
@@ -63,6 +63,9 @@ namespace x
 	{
 	public:
 		using pass::visit;
+
+	public:
+		type_checker_pass( const x::symbols_ptr & val );
 
 	public:
 		void visit( x::assignment_exp_ast * val ) override;
@@ -96,6 +99,9 @@ namespace x
 	{
 	public:
 		using pass::visit;
+
+	public:
+		semantic_checker_pass( const x::symbols_ptr & val );
 
 	public:
 		void visit( x::if_stat_ast * val ) override;

@@ -167,7 +167,7 @@ x::access_t x::meta_function::access() const
 	return _access;
 }
 
-x::type_desc x::meta_function::result() const
+x::typedesc x::meta_function::result() const
 {
 	return _result;
 }
@@ -220,7 +220,7 @@ x::access_t x::meta_variable::access() const
 	return _access;
 }
 
-x::type_desc x::meta_variable::value() const
+x::typedesc x::meta_variable::value() const
 {
 	return _value;
 }
@@ -352,7 +352,7 @@ x::static_string_view x::meta_param_element::fullname() const
 	return _fullname;
 }
 
-const x::type_desc & x::meta_param_element::desc() const
+const x::typedesc & x::meta_param_element::desc() const
 {
 	return _type;
 }
