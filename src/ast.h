@@ -36,10 +36,8 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
-		int array = 0;
-		bool is_ref = false;
-		bool is_const = false;
-		std::string name;
+		x::typedesc desc;
+		std::vector<x::type_ast_ptr> types;
 	};
 	class import_ast : public ast
 	{
@@ -135,7 +133,12 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
-
+		x::type_ast_ptr base;
+		x::exp_stat_ast_ptr where;
+		std::vector<std::string> elements;
+		std::vector<x::using_decl_ast_ptr> usings;
+		std::vector<x::variable_decl_ast_ptr> variables;
+		std::vector<x::function_decl_ast_ptr> functions;
 	};
 	class variable_decl_ast : public decl_ast
 	{

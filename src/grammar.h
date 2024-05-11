@@ -9,7 +9,7 @@ namespace x
 	class grammar
 	{
 	public:
-		grammar( std::istream & stream, std::string_view name, const std::map<std::string, x::token_t> tokens = {} );
+		grammar( std::istream & stream, std::string_view name, const std::map<std::string, x::token_t> tokens = x::token_map );
 		~grammar();
 
 	public:

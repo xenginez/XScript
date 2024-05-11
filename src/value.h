@@ -1,7 +1,7 @@
 #pragma once
 
 #include "type.h"
-
+#include <variant>
 namespace x
 {
 	class value
@@ -42,6 +42,7 @@ namespace x
 		bool is_floating() const;
 		bool is_string() const;
 		bool is_object() const;
+		bool is_intptr() const;
 
 	public:
 		bool to_bool() const;
@@ -57,7 +58,8 @@ namespace x
 		x::float32 to_float32() const;
 		x::float64 to_float64() const;
 		x::object * to_object() const;
-		std::string_view to_string() const;
+		x::intptr to_intptr() const;
+		const char * to_string() const;
 
 	private:
 		x::value_flags _flags;
@@ -77,7 +79,8 @@ namespace x
 			x::float32 f32;
 			x::float64 f64;
 			x::object * obj;
-			std::string_view str;
+			x::intptr ptr;
+			const char * str;
 		};
 	};
 }

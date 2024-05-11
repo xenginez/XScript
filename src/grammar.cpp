@@ -4,128 +4,9 @@
 #include <map>
 #include <regex>
 
-namespace
-{
-    static std::map<std::string, x::token_t> g_token_map =
-    {
-        { (const char *)u8";", x::token_t::TK_SEMICOLON },
-        { (const char *)u8",", x::token_t::TK_COMMA },
-        { (const char *)u8"++", x::token_t::TK_INC },
-        { (const char *)u8"--", x::token_t::TK_DEC },
-        { (const char *)u8"+", x::token_t::TK_ADD },
-        { (const char *)u8"-", x::token_t::TK_SUB },
-        { (const char *)u8"*", x::token_t::TK_MUL },
-        { (const char *)u8"/", x::token_t::TK_DIV },
-        { (const char *)u8"%", x::token_t::TK_MOD },
-        { (const char *)u8"&", x::token_t::TK_AND },
-        { (const char *)u8"|", x::token_t::TK_OR },
-        { (const char *)u8"^", x::token_t::TK_XOR },
-        { (const char *)u8"<<", x::token_t::TK_LEFT_SHIFT },
-        { (const char *)u8">>", x::token_t::TK_RIGHT_SHIFT },
-        { (const char *)u8"&&", x::token_t::TK_LAND },
-        { (const char *)u8"||", x::token_t::TK_LOR },
-        { (const char *)u8"!", x::token_t::TK_LNOT },
-        { (const char *)u8"~", x::token_t::TK_NOT },
-        { (const char *)u8"=", x::token_t::TK_ASSIGN },
-        { (const char *)u8"+=", x::token_t::TK_ADD_ASSIGN },
-        { (const char *)u8"-=", x::token_t::TK_SUB_ASSIGN },
-        { (const char *)u8"*=", x::token_t::TK_MUL_ASSIGN },
-        { (const char *)u8"/=", x::token_t::TK_DIV_ASSIGN },
-        { (const char *)u8"%=", x::token_t::TK_MOD_ASSIGN },
-        { (const char *)u8"&=", x::token_t::TK_AND_ASSIGN },
-        { (const char *)u8"|=", x::token_t::TK_OR_ASSIGN },
-        { (const char *)u8"^=", x::token_t::TK_XOR_ASSIGN },
-        { (const char *)u8"<<=", x::token_t::TK_LSHIFT_EQUAL },
-        { (const char *)u8">>=", x::token_t::TK_RSHIFT_EQUAL },
-        { (const char *)u8"==", x::token_t::TK_EQUAL },
-        { (const char *)u8"!=", x::token_t::TK_NOT_EQUAL },
-        { (const char *)u8"<", x::token_t::TK_LESS },
-        { (const char *)u8">", x::token_t::TK_LARG },
-        { (const char *)u8"<=", x::token_t::TK_LESS_OR_EQUAL },
-        { (const char *)u8">=", x::token_t::TK_LARG_OR_EQUAL },
-        { (const char *)u8":", x::token_t::TK_TYPECAST },
-        { (const char *)u8".", x::token_t::TK_MEMBER_POINT },
-        { (const char *)u8"?", x::token_t::TK_QUESTION },
-        { (const char *)u8"...", x::token_t::TK_VARIADIC_SIGN },
-        { (const char *)u8"[", x::token_t::TK_LEFT_INDEX },
-        { (const char *)u8"]", x::token_t::TK_RIGHT_INDEX },
-        { (const char *)u8"->", x::token_t::TK_FUNCTION_RESULT },
-        { (const char *)u8"(", x::token_t::TK_LEFT_BRACKETS },
-        { (const char *)u8")", x::token_t::TK_RIGHT_BRACKETS },
-        { (const char *)u8"{", x::token_t::TK_LEFT_CURLY_BRACES },
-        { (const char *)u8"}", x::token_t::TK_RIGHT_CURLY_BRACES },
-        { (const char *)u8"void", x::token_t::TK_VOID },
-        { (const char *)u8"byte", x::token_t::TK_BYTE },
-        { (const char *)u8"bool", x::token_t::TK_BOOL },
-        { (const char *)u8"any", x::token_t::TK_ANY },
-        { (const char *)u8"int8", x::token_t::TK_INT8 },
-        { (const char *)u8"int16", x::token_t::TK_INT16 },
-        { (const char *)u8"int32", x::token_t::TK_INT32 },
-        { (const char *)u8"int64", x::token_t::TK_INT64 },
-        { (const char *)u8"uint8", x::token_t::TK_UINT8 },
-        { (const char *)u8"uint16", x::token_t::TK_UINT16 },
-        { (const char *)u8"uint32", x::token_t::TK_UINT32 },
-        { (const char *)u8"uint64", x::token_t::TK_UINT64 },
-        { (const char *)u8"float16", x::token_t::TK_FLOAT16 },
-        { (const char *)u8"float32", x::token_t::TK_FLOAT32 },
-        { (const char *)u8"float64", x::token_t::TK_FLOAT64 },
-        { (const char *)u8"string", x::token_t::TK_STRING },
-        { (const char *)u8"import", x::token_t::TK_IMPORT },
-        { (const char *)u8"template", x::token_t::TK_TEMPLATE },
-        { (const char *)u8"namespace", x::token_t::TK_NAMESPACE },
-        { (const char *)u8"attribute", x::token_t::TK_ATTRIBUTE },
-        { (const char *)u8"using", x::token_t::TK_USING },
-        { (const char *)u8"enum", x::token_t::TK_ENUM },
-        { (const char *)u8"flag", x::token_t::TK_FLAG },
-        { (const char *)u8"class", x::token_t::TK_CLASS },
-        { (const char *)u8"var", x::token_t::TK_VARIABLE },
-        { (const char *)u8"func", x::token_t::TK_FUNCTION },
-        { (const char *)u8"ref", x::token_t::TK_REF },
-        { (const char *)u8"private", x::token_t::TK_PRIVATE },
-        { (const char *)u8"public", x::token_t::TK_PUBLIC },
-        { (const char *)u8"protected", x::token_t::TK_PROTECTED },
-        { (const char *)u8"local", x::token_t::TK_LOCAL },
-        { (const char *)u8"const", x::token_t::TK_CONST },
-        { (const char *)u8"static", x::token_t::TK_STATIC },
-        { (const char *)u8"extern", x::token_t::TK_EXTERN },
-        { (const char *)u8"virtual", x::token_t::TK_VIRTUAL },
-        { (const char *)u8"override", x::token_t::TK_OVERRIDE },
-        { (const char *)u8"thread_local", x::token_t::TK_THREAD },
-        { (const char *)u8"while", x::token_t::TK_WHILE },
-        { (const char *)u8"if", x::token_t::TK_IF },
-        { (const char *)u8"else", x::token_t::TK_ELSE },
-        { (const char *)u8"for", x::token_t::TK_FOR },
-        { (const char *)u8"foreach", x::token_t::TK_FOREACH },
-        { (const char *)u8"case", x::token_t::TK_CASE },
-        { (const char *)u8"default", x::token_t::TK_DEFAULT },
-        { (const char *)u8"try", x::token_t::TK_TRY },
-        { (const char *)u8"catch", x::token_t::TK_CATCH },
-        { (const char *)u8"throw", x::token_t::TK_THROW },
-        { (const char *)u8"await", x::token_t::TK_AWAIT },
-        { (const char *)u8"yield", x::token_t::TK_YIELD },
-        { (const char *)u8"break", x::token_t::TK_BREAK },
-        { (const char *)u8"return", x::token_t::TK_RETURN },
-        { (const char *)u8"continue", x::token_t::TK_CONTINUE },
-        { (const char *)u8"null", x::token_t::TK_NULL },
-        { (const char *)u8"true", x::token_t::TK_TRUE },
-        { (const char *)u8"false", x::token_t::TK_FALSE },
-        { (const char *)u8"as", x::token_t::TK_AS },
-        { (const char *)u8"is", x::token_t::TK_IS },
-        { (const char *)u8"sizeof", x::token_t::TK_SIZEOF },
-        { (const char *)u8"typeof", x::token_t::TK_TYPEOF },
-        { (const char *)u8"this", x::token_t::TK_THIS },
-        { (const char *)u8"base", x::token_t::TK_BASE },
-    };
-}
-
 x::grammar::grammar( std::istream & stream, std::string_view name, const std::map<std::string, x::token_t> tokens )
-    : _stream( stream.rdbuf() )
+    : _stream( stream.rdbuf() ), _tokenmap( tokens )
 {
-    if ( !tokens.empty() )
-        _tokenmap = tokens;
-    else
-        _tokenmap = g_token_map;
-
     _location.file = name;
 }
 
@@ -160,19 +41,31 @@ x::type_ast_ptr x::grammar::type()
     auto ast = std::make_shared<x::type_ast>();
     ast->location = _location;
 
-    ast->is_ref = verify( token_t::TK_REF );
-    ast->is_const = verify( token_t::TK_CONST );
-    if( !ast->is_ref ) ast->is_ref = verify( token_t::TK_REF );
+    ast->desc.is_ref = verify( token_t::TK_REF );
+    ast->desc.is_const = verify( token_t::TK_CONST );
+    if( !ast->desc.is_ref ) ast->desc.is_ref = verify( token_t::TK_REF );
 
-    ast->name = type_name();
+    ast->desc.name = type_name();
+
+    if ( verify( token_t::TK_LESS ) )
+    {
+        while ( !verify( token_t::TK_LARG ) )
+        {
+            ast->types.push_back( type() );
+
+            if ( !verify( token_t::TK_COMMA ) )
+                break;
+        }
+        validity( token_t::TK_LARG );
+    }
 
     if ( verify( token_t::TK_LEFT_INDEX ) )
     {
-        ast->array++;
+        ast->desc.array++;
         while ( !verify( token_t::TK_RIGHT_INDEX ) )
         {
             validity( token_t::TK_COMMA );
-            ast->array++;
+            ast->desc.array++;
         }
     }
 
@@ -338,6 +231,9 @@ x::using_decl_ast_ptr x::grammar::using_decl()
     ast->location = _location;
 
     ast->name = validity( token_t::TK_IDENTIFIER ).str;
+
+    validity( token_t::TK_ASSIGN );
+
     ast->retype = type();
 
     return ast;
@@ -347,9 +243,66 @@ x::template_decl_ast_ptr x::grammar::template_decl()
 {
     validity( token_t::TK_TEMPLATE );
 
-    /// TODO: template
+    auto ast = std::make_shared<template_decl_ast>();
+    ast->location = _location;
 
-    return x::template_decl_ast_ptr();
+    ast->name = validity( token_t::TK_IDENTIFIER ).str;
+
+    validity( token_t::TK_LESS );
+    while ( !verify( token_t::TK_LARG ) )
+    {
+        ast->elements.push_back( validity( token_t::TK_IDENTIFIER ).str );
+
+        if ( !verify( token_t::TK_COMMA ) )
+            break;
+    }
+    validity( token_t::TK_LARG );
+
+    if ( verify( token_t::TK_WHERE ) )
+        ast->where = exp_stat();
+
+    if ( verify( token_t::TK_TYPECAST ) )
+        ast->base = type();
+
+    validity( token_t::TK_LEFT_CURLY_BRACES );
+    do
+    {
+        auto acc = access();
+
+        switch ( lookup().type )
+        {
+        case token_t::TK_USING:
+        {
+            auto usi = using_decl();
+            usi->access = acc;
+            ast->usings.emplace_back( usi );
+        }
+        break;
+        case token_t::TK_VARIABLE:
+        {
+            auto var = variable_decl();
+            var->access = acc;
+            ast->variables.emplace_back( var );
+        }
+        break;
+        case token_t::TK_FUNCTION:
+        {
+            auto fun = function_decl();
+            fun->access = acc;
+            ast->functions.emplace_back( fun );
+        }
+        break;
+        case token_t::TK_SEMICOLON:
+            next();
+            break;
+        default:
+            ASSERT( true, "" );
+            break;
+        }
+
+    } while ( !verify( token_t::TK_RIGHT_CURLY_BRACES ) );
+
+    return ast;
 }
 
 x::variable_decl_ast_ptr x::grammar::variable_decl()
@@ -359,10 +312,11 @@ x::variable_decl_ast_ptr x::grammar::variable_decl()
     auto ast = std::make_shared<variable_decl_ast>();
     ast->location = _location;
 
-    if ( verify( token_t::TK_STATIC ) )
-        ast->is_static = true;
-    else if ( verify( token_t::TK_THREAD ) )
-        ast->is_thread = true;
+    switch ( verify( { token_t::TK_STATIC, token_t::TK_THREAD } ) )
+    {
+    case token_t::TK_STATIC: ast->is_static = true; break;
+    case token_t::TK_THREAD: ast->is_thread = true; break;
+    }
 
     ast->name = validity( token_t::TK_IDENTIFIER ).str;
 
@@ -398,12 +352,12 @@ x::function_decl_ast_ptr x::grammar::function_decl()
             break;
         }
     } while ( tk != token_t::TK_EOF );
-    if ( verify( token_t::TK_STATIC ) )
-        ast->is_static = true;
-    else if ( verify( token_t::TK_VIRTUAL ) )
-        ast->is_virtual = true;
-    else if ( verify( token_t::TK_OVERRIDE ) )
-        ast->is_virtual = true;
+    switch ( verify( { token_t::TK_STATIC, token_t::TK_VIRTUAL, token_t::TK_OVERRIDE } ) )
+    {
+    case token_t::TK_STATIC: ast->is_static = true; break;
+    case token_t::TK_VIRTUAL: ast->is_virtual = true; break;
+    case token_t::TK_OVERRIDE: ast->is_virtual = true; break;
+    }
     do
     {
         tk = verify( { token_t::TK_CONST, token_t::TK_ASYNC } );
@@ -762,12 +716,12 @@ x::local_stat_ast_ptr x::grammar::local_stat()
     auto ast = std::make_shared<local_stat_ast>();
     ast->location = _location;
 
-    if ( verify( token_t::TK_LOCAL ) )
-        ast->is_local = true;
-    else if ( verify( token_t::TK_STATIC ) )
-        ast->is_static = true;
-    else if ( verify( token_t::TK_THREAD ) )
-        ast->is_thread = true;
+    switch ( verify( { token_t::TK_LOCAL, token_t::TK_STATIC, token_t::TK_THREAD } ) )
+    {
+    case token_t::TK_LOCAL: ast->is_local = true; break;
+    case token_t::TK_STATIC: ast->is_static = true; break;
+    case token_t::TK_THREAD: ast->is_thread = true; break;
+    }
 
     ast->name = validity( token_t::TK_IDENTIFIER ).str;
 
@@ -1504,10 +1458,10 @@ x::type_ast_ptr x::grammar::type( std::string_view name, bool is_ref, bool is_co
 {
     auto ast = std::make_shared<x::type_ast>();
     ast->location = _location;
-    ast->name = name;
-    ast->array = array;
-    ast->is_ref = is_ref;
-    ast->is_const = is_const;
+    ast->desc.name = name;
+    ast->desc.array = array;
+    ast->desc.is_ref = is_ref;
+    ast->desc.is_const = is_const;
     return ast;
 }
 

@@ -151,6 +151,11 @@ bool x::value::is_object() const
 	return type() == x::value_t::OBJECT;
 }
 
+bool x::value::is_intptr() const
+{
+	return type() == x::value_t::INTPTR;
+}
+
 bool x::value::to_bool() const
 {
 	ASSERT( is_bool(), "" );
@@ -242,7 +247,14 @@ x::object * x::value::to_object() const
 	return obj;
 }
 
-std::string_view x::value::to_string() const
+x::intptr x::value::to_intptr() const
+{
+	ASSERT( is_intptr(), "" );
+
+	return ptr;
+}
+
+const char * x::value::to_string() const
 {
 	ASSERT( is_string(), "" );
 
