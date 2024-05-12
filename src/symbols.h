@@ -23,6 +23,8 @@ namespace x
 	public:
 		bool is_type() const;
 		bool is_scope() const;
+		bool is_variable() const;
+		bool is_function() const;
 
 	public:
 		x::type_symbol * cast_type();
@@ -119,6 +121,7 @@ namespace x
 
 	public:
 		x::class_symbol * base = nullptr;
+		std::vector<x::alias_symbol *> aliases;
 		std::vector<x::function_symbol *> functions;
 		std::vector<x::variable_symbol *> variables;
 	};
@@ -197,6 +200,7 @@ namespace x
 
 	public:
 		x::class_symbol * base = nullptr;
+		std::vector<x::alias_symbol *> aliases;
 		std::vector<x::function_symbol *> functions;
 		std::vector<x::variable_symbol *> variables;
 		std::vector<x::temp_element_symbol *> elements;
@@ -271,8 +275,8 @@ namespace x
 		x::scope_symbol * find_scope_symbol( std::string_view name ) const;
 		x::class_symbol * find_class_symbol( std::string_view name ) const;
 		x::symbol * find_symbol( std::string_view name, x::scope_symbol * scope = nullptr ) const;
-		x::symbol * up_find_symbol( std::string_view name, x::scope_symbol * scope = nullptr ) const;
-		x::symbol * down_find_symbol( std::string_view name, x::scope_symbol * scope = nullptr ) const;
+		x::symbol * up_find_symbol( std::string_view name, x::scope_symbol * scope ) const;
+		x::symbol * down_find_symbol( std::string_view name, x::scope_symbol * scope ) const;
 		x::scope_symbol * current_scope() const;
 		void pop_scope();
 

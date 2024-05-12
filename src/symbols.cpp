@@ -4,14 +4,18 @@
 
 namespace
 {
-	template <class _Container> auto strbeg( const _Container & _Cont ) -> decltype( std::begin( _Cont ) )
+	template <class _Container> auto name_beg( const _Container & _Cont ) -> decltype( std::begin( _Cont ) )
 	{
 		return  std::begin( _Cont );
 	}
 
-	template <class _Container> auto strend( _Container & _Cont ) -> decltype( std::end( _Cont ) )
+	template <class _Container, class _Iterator = _Container::const_iterator> _Iterator name_end( _Container & _Cont, _Iterator _Off = {} )
 	{
-		auto i = _Cont.find( '.' );
+		size_t off = 0;
+		if ( _Off != _Iterator{} )
+			off = std::distance( std::begin( _Cont ), _Off );
+
+		auto i = _Cont.find( '.', off );
 		if ( i != _Container::npos )
 			return begin( _Cont ) + i;
 		return std::end( _Cont );
@@ -50,6 +54,23 @@ bool x::symbol::is_scope() const
 	return false;
 }
 
+bool x::symbol::is_variable() const
+{
+	switch ( type )
+	{
+	case x::symbol_t::LOCAL:
+	case x::symbol_t::PARAM:
+	case x::symbol_t::VARIABLE:
+		return true;
+	}
+	return false;
+}
+
+bool x::symbol::is_function() const
+{
+	return type == x::symbol_t::FUNCTION;
+}
+
 x::type_symbol * x::symbol::cast_type()
 {
 	ASSERT( is_type(), "" );
@@ -85,11 +106,13 @@ x::unit_symbol::~unit_symbol()
 
 void x::unit_symbol::add_child( x::symbol * val )
 {
+	children.push_back( val );
 }
 
 x::symbol * x::unit_symbol::find_child( std::string_view name ) const
 {
-	return nullptr;
+	auto it = std::find_if( children.begin(), children.end(), [name]( auto val ) { return val->name == name; } );
+	return ( it != children.end() ) ? *it : nullptr;
 }
 
 x::enum_symbol::enum_symbol()
@@ -108,11 +131,15 @@ x::uint64 x::enum_symbol::size() const
 
 void x::enum_symbol::add_child( x::symbol * val )
 {
+	ASSERT( val->type == x::symbol_t::ENUM_ELEMENT, "" );
+
+	elements.push_back( static_cast<x::enum_element_symbol *>( val ) );
 }
 
 x::symbol * x::enum_symbol::find_child( std::string_view name ) const
 {
-	return nullptr;
+	auto it = std::find_if( elements.begin(), elements.end(), [name]( auto val ) { return val->name == name; } );
+	return ( it != elements.end() ) ? *it : nullptr;
 }
 
 x::flag_symbol::flag_symbol()
@@ -131,11 +158,15 @@ x::uint64 x::flag_symbol::size() const
 
 void x::flag_symbol::add_child( x::symbol * val )
 {
+	ASSERT( val->type == x::symbol_t::FLAG_ELEMENT, "" );
+
+	elements.push_back( static_cast<x::flag_element_symbol *>( val ) );
 }
 
 x::symbol * x::flag_symbol::find_child( std::string_view name ) const
 {
-	return nullptr;
+	auto it = std::find_if( elements.begin(), elements.end(), [name]( auto val ) { return val->name == name; } );
+	return ( it != elements.end() ) ? *it : nullptr;
 }
 
 x::alias_symbol::alias_symbol()
@@ -168,10 +199,37 @@ x::uint64 x::class_symbol::size() const
 
 void x::class_symbol::add_child( x::symbol * val )
 {
+	switch ( val->type )
+	{
+	case x::symbol_t::ALIAS:
+		aliases.push_back( static_cast<x::alias_symbol *>( val ) );
+		break;
+	case x::symbol_t::VARIABLE:
+		variables.push_back( static_cast<x::variable_symbol *>( val ) );
+		break;
+	case x::symbol_t::FUNCTION:
+		functions.push_back( static_cast<x::function_symbol *>( val ) );
+		break;
+	default:
+		ASSERT( false, "" );
+		break;
+	}
 }
 
 x::symbol * x::class_symbol::find_child( std::string_view name ) const
 {
+	auto ait = std::find_if( aliases.begin(), aliases.end(), [name]( auto val ) { return val->name == name; } );
+	if ( ait != aliases.end() )
+		return *ait;
+
+	auto vit = std::find_if( variables.begin(), variables.end(), [name]( auto val ) { return val->name == name; } );
+	if ( vit != variables.end() )
+		return *vit;
+
+	auto fit = std::find_if( functions.begin(), functions.end(), [name]( auto val ) { return val->name == name; } );
+	if ( fit != functions.end() )
+		return *fit;
+
 	return nullptr;
 }
 
@@ -186,11 +244,13 @@ x::block_symbol::~block_symbol()
 
 void x::block_symbol::add_child( x::symbol * val )
 {
+	children.push_back( val );
 }
 
 x::symbol * x::block_symbol::find_child( std::string_view name ) const
 {
-	return nullptr;
+	auto it = std::find_if( children.begin(), children.end(), [name]( auto val ) { return val->name == name; } );
+	return ( it != children.end() ) ? *it : nullptr;
 }
 
 x::cycle_symbol::cycle_symbol()
@@ -231,11 +291,15 @@ x::function_symbol::~function_symbol()
 
 void x::function_symbol::add_child( x::symbol * val )
 {
+	ASSERT( val->type == x::symbol_t::PARAM, "" );
+
+	parameters.push_back( static_cast<x::param_symbol *>( val ) );
 }
 
 x::symbol * x::function_symbol::find_child( std::string_view name ) const
 {
-	return nullptr;
+	auto it = std::find_if( parameters.begin(), parameters.end(), [name]( auto val ) { return val->name == name; } );
+	return ( it != parameters.end() ) ? *it : nullptr;
 }
 
 x::variable_symbol::variable_symbol()
@@ -263,10 +327,44 @@ x::uint64 x::template_symbol::size() const
 
 void x::template_symbol::add_child( x::symbol * val )
 {
+	switch ( val->type )
+	{
+	case x::symbol_t::ALIAS:
+		aliases.push_back( static_cast<x::alias_symbol *>( val ) );
+		break;
+	case x::symbol_t::VARIABLE:
+		variables.push_back( static_cast<x::variable_symbol *>( val ) );
+		break;
+	case x::symbol_t::FUNCTION:
+		functions.push_back( static_cast<x::function_symbol *>( val ) );
+		break;
+	case x::symbol_t::TEMP_ELEMENT:
+		elements.push_back( static_cast<x::temp_element_symbol *>( val ) );
+		break;
+	default:
+		ASSERT( false, "" );
+		break;
+	}
 }
 
 x::symbol * x::template_symbol::find_child( std::string_view name ) const
 {
+	auto ait = std::find_if( aliases.begin(), aliases.end(), [name]( auto val ) { return val->name == name; } );
+	if ( ait != aliases.end() )
+		return *ait;
+
+	auto vit = std::find_if( variables.begin(), variables.end(), [name]( auto val ) { return val->name == name; } );
+	if ( vit != variables.end() )
+		return *vit;
+
+	auto fit = std::find_if( functions.begin(), functions.end(), [name]( auto val ) { return val->name == name; } );
+	if ( fit != functions.end() )
+		return *fit;
+	
+	auto eit = std::find_if( elements.begin(), elements.end(), [name]( auto val ) { return val->name == name; } );
+	if ( eit != elements.end() )
+		return *eit;
+
 	return nullptr;
 }
 
@@ -281,11 +379,15 @@ x::namespace_symbol::~namespace_symbol()
 
 void x::namespace_symbol::add_child( x::symbol * val )
 {
+	ASSERT( val->is_type(), "" );
+
+	children.push_back( val->cast_type() );
 }
 
 x::symbol * x::namespace_symbol::find_child( std::string_view name ) const
 {
-	return nullptr;
+	auto it = std::find_if( children.begin(), children.end(), [name]( auto val ) { return val->cast_symbol()->name == name; } );
+	return ( it != children.end() ) ? (*it)->cast_symbol() : nullptr;
 }
 
 x::enum_element_symbol::enum_element_symbol()
@@ -687,34 +789,52 @@ x::symbol * x::symbols::find_symbol( std::string_view name, x::scope_symbol * sc
 	if ( scope->cast_symbol()->name == name )
 		return scope->cast_symbol();
 
-	auto beg = strbeg( name );
-	auto end = strend( name );
-
-	if ( auto sym = scope->find_child( { beg, end } ) )
-	{
-		if ( end == name.end() )
-			return sym;
-		else if ( sym->is_scope() )
-			return down_find_symbol( { strend( name ) + 1, name.end() }, sym->cast_scope() );
-	}
-	else if ( auto up_sym = up_find_symbol( { beg, end }, scope ) )
-	{
-		if ( end == name.end() )
-			return up_sym;
-		else if ( up_sym->is_scope() )
-			return down_find_symbol( { strend( name ) + 1, name.end() }, up_sym->cast_scope() );
-	}
+	if ( auto sym = down_find_symbol( name, scope ) )
+		return sym;
+	else if ( auto sym = up_find_symbol( name, scope ) )
+		return sym;
 
 	return nullptr;
 }
 
 x::symbol * x::symbols::up_find_symbol( std::string_view name, x::scope_symbol * scope ) const
 {
+	auto beg = name_beg( name );
+	auto end = name_end( name );
+	std::string_view nname{ beg, end };
+
+	if ( auto parent = scope->cast_symbol()->parent )
+	{
+		if ( parent->name == nname )
+		{
+			if ( end == name.end() )
+				return parent;
+			else
+				return down_find_symbol( { end + 1, name_end( name, end + 1 ) }, parent->cast_scope() );
+		}
+		else
+		{
+			return up_find_symbol( name, parent->cast_scope() );
+		}
+	}
+
 	return nullptr;
 }
 
 x::symbol * x::symbols::down_find_symbol( std::string_view name, x::scope_symbol * scope ) const
 {
+	auto beg = name_beg( name );
+	auto end = name_end( name );
+	std::string_view nname{ beg, end };
+
+	if ( auto child = scope->find_child( nname ) )
+	{
+		if ( end == name.end() )
+			return child;
+		else if ( child->is_scope() )
+			return down_find_symbol( { end + 1, name_end( name, end + 1 ) }, child->cast_scope() );
+	}
+
 	return nullptr;
 }
 
