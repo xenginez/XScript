@@ -251,7 +251,10 @@ x::template_decl_ast_ptr x::grammar::template_decl()
     validity( token_t::TK_LESS );
     while ( !verify( token_t::TK_LARG ) )
     {
-        ast->elements.push_back( validity( token_t::TK_IDENTIFIER ).str );
+        auto element = std::make_shared<temp_element_ast>();
+        element->location = _location;
+        element->name = validity( token_t::TK_IDENTIFIER ).str;
+        ast->elements.push_back( element );
 
         if ( !verify( token_t::TK_COMMA ) )
             break;

@@ -107,6 +107,7 @@ namespace x
 
 	public:
 		x::typedesc desc;
+		x::type_symbol * value = nullptr;
 	};
 	class class_symbol : public symbol, public type_symbol, public scope_symbol
 	{
@@ -151,6 +152,7 @@ namespace x
 		~local_symbol() override;
 
 	public:
+		x::typedesc desc;
 		x::type_symbol * value = nullptr;
 	};
 	class param_symbol : public symbol
@@ -160,6 +162,7 @@ namespace x
 		~param_symbol() override;
 
 	public:
+		x::typedesc desc;
 		x::type_symbol * value = nullptr;
 	};
 	class function_symbol : public symbol, public scope_symbol
@@ -185,6 +188,9 @@ namespace x
 
 	public:
 		x::uint64 idx = 0;
+		x::typedesc desc;
+		bool is_static = false;
+		bool is_thread = false;
 		x::type_symbol * value = nullptr;
 	};
 	class template_symbol : public symbol, public type_symbol, public scope_symbol
@@ -257,19 +263,19 @@ namespace x
 		x::unit_symbol * add_unit( const x::location & location );
 		x::enum_symbol * add_enum( std::string_view name, const x::location & location );
 		x::flag_symbol * add_flag( std::string_view name, const x::location & location );
-		x::alias_symbol * add_alias( std::string_view name, const x::typedesc & desc, const x::location & location );
-		x::class_symbol * add_class( std::string_view name, std::string_view base, const x::location & location );
+		x::alias_symbol * add_alias( std::string_view name, const x::location & location );
+		x::class_symbol * add_class( std::string_view name, const x::location & location );
 		x::block_symbol * add_block( const x::location & location );
 		x::cycle_symbol * add_cycle( const x::location & location );
-		x::local_symbol * add_local( std::string_view name, std::string_view type, const x::location & location );
-		x::param_symbol * add_param( std::string_view name, std::string_view type, const x::location & location );
-		x::function_symbol * add_function( std::string_view name, std::string_view type, const x::location & location );
-		x::variable_symbol * add_variable( std::string_view name, std::string_view type, const x::location & location );
-		x::template_symbol * add_template( std::string_view name, std::string_view base, const x::location & location );
+		x::local_symbol * add_local( std::string_view name, const x::location & location );
+		x::param_symbol * add_param( std::string_view name, const x::location & location );
+		x::function_symbol * add_function( std::string_view name, const x::location & location );
+		x::variable_symbol * add_variable( std::string_view name, const x::location & location );
+		x::template_symbol * add_template( std::string_view name, const x::location & location );
 		x::namespace_symbol * add_namespace( std::string_view name, const x::location & location );
-		x::enum_element_symbol * add_enum_element( std::string_view name, x::int64 value, const x::location & location );
-		x::flag_element_symbol * add_flag_element( std::string_view name, x::uint64 value, const x::location & location );
-		x::temp_element_symbol * add_temp_element( std::string_view name, x::typedesc desc, const x::location & location );
+		x::enum_element_symbol * add_enum_element( std::string_view name, const x::location & location );
+		x::flag_element_symbol * add_flag_element( std::string_view name, const x::location & location );
+		x::temp_element_symbol * add_temp_element( std::string_view name, const x::location & location );
 		bool has_symbol( std::string_view name ) const;
 		x::type_symbol * find_type_symbol( std::string_view name ) const;
 		x::scope_symbol * find_scope_symbol( std::string_view name ) const;

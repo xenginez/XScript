@@ -100,6 +100,16 @@ void x::flag_element_ast::accept( ast_visitor * visitor )
 	visitor->visit( this );
 }
 
+x::ast_t x::temp_element_ast::type() const
+{
+	return x::ast_t::TEMP_ELEMENT;
+}
+
+void x::temp_element_ast::accept( ast_visitor * visitor )
+{
+	visitor->visit( this );
+}
+
 x::ast_t x::template_decl_ast::type() const
 {
 	return x::ast_t::TEMPLATE_DECL;
@@ -722,6 +732,11 @@ void x::ast_visitor::visit( x::enum_element_ast * val )
 
 void x::ast_visitor::visit( x::flag_element_ast * val )
 {
+}
+
+void x::ast_visitor::visit( x::temp_element_ast * val )
+{
+
 }
 
 void x::ast_visitor::visit( x::template_decl_ast * val )

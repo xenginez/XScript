@@ -180,7 +180,7 @@ x::alias_symbol::~alias_symbol()
 
 x::uint64 x::alias_symbol::size() const
 {
-	return x::uint64();
+	return value->size();
 }
 
 x::class_symbol::class_symbol()
@@ -194,7 +194,19 @@ x::class_symbol::~class_symbol()
 
 x::uint64 x::class_symbol::size() const
 {
-	return x::uint64();
+	x::uint64 sz = 1;
+
+	if ( base != nullptr )
+		sz = base->size();
+
+	for ( auto it : variables )
+	{
+		if ( it->is_static || it->is_thread )
+			continue;
+
+		sz = it->value->size();
+	}
+	return ALIGN( sz, 8 );
 }
 
 void x::class_symbol::add_child( x::symbol * val )
@@ -420,9 +432,27 @@ x::temp_element_symbol::~temp_element_symbol()
 x::symbols::symbols()
 {
 	auto val = new namespace_symbol;
-
 	_symbolmap[""] = val;
 	_scope.push_back( val );
+	{
+		auto void_symbol = add_class( "void", {} );
+		auto byte_symbol = add_class( "byte", {} );
+		auto bool_symbol = add_class( "bool", {} );
+		auto any_symbol = add_class( "any", {} );
+		auto intptr_symbol = add_class( "intptr", {} );
+		auto int8_symbol = add_class( "int8", {} );
+		auto int16_symbol = add_class( "int16", {} );
+		auto int32_symbol = add_class( "int32", {} );
+		auto int64_symbol = add_class( "int64", {} );
+		auto uint8_symbol = add_class( "uint8", {} );
+		auto uint16_symbol = add_class( "uint16", {} );
+		auto uint32_symbol = add_class( "uint32", {} );
+		auto uint64_symbol = add_class( "uint64", {} );
+		auto float16_symbol = add_class( "float16", {} );
+		auto float32_symbol = add_class( "float32", {} );
+		auto float64_symbol = add_class( "float64", {} );
+		auto string_symbol = add_class( "string", {} );
+	}
 }
 
 x::symbols::~symbols()
@@ -442,8 +472,7 @@ x::unit_symbol * x::symbols::add_unit( const x::location & location )
 {
 	std::string fullname = { location.file.data(), location.file.size() };
 
-	auto it = _symbolmap.find( fullname );
-	ASSERT( it != _symbolmap.end(), "" );
+	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new unit_symbol;
 	sym->name = fullname;
@@ -461,8 +490,7 @@ x::enum_symbol * x::symbols::add_enum( std::string_view name, const x::location 
 {
 	std::string fullname = calc_fullname( name );
 
-	auto it = _symbolmap.find( fullname );
-	ASSERT( it != _symbolmap.end(), "" );
+	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new enum_symbol;
 	sym->name = fullname;
@@ -480,8 +508,7 @@ x::flag_symbol * x::symbols::add_flag( std::string_view name, const x::location 
 {
 	std::string fullname = calc_fullname( name );
 
-	auto it = _symbolmap.find( fullname );
-	ASSERT( it != _symbolmap.end(), "" );
+	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new flag_symbol;
 	sym->name = fullname;
@@ -495,18 +522,16 @@ x::flag_symbol * x::symbols::add_flag( std::string_view name, const x::location 
 	return sym;
 }
 
-x::alias_symbol * x::symbols::add_alias( std::string_view name, const x::typedesc & desc, const x::location & location )
+x::alias_symbol * x::symbols::add_alias( std::string_view name, const x::location & location )
 {
 	std::string fullname = calc_fullname( name );
 
-	auto it = _symbolmap.find( fullname );
-	ASSERT( it != _symbolmap.end(), "" );
+	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new alias_symbol;
 	sym->name = fullname;
 	sym->fullname = fullname;
 	sym->location = location;
-	sym->desc = desc;
 	sym->parent = current_scope()->cast_symbol();
 
 	_symbolmap[sym->fullname] = sym;
@@ -515,18 +540,16 @@ x::alias_symbol * x::symbols::add_alias( std::string_view name, const x::typedes
 	return sym;
 }
 
-x::class_symbol * x::symbols::add_class( std::string_view name, std::string_view base, const x::location & location )
+x::class_symbol * x::symbols::add_class( std::string_view name, const x::location & location )
 {
 	std::string fullname = calc_fullname( name );
 
-	auto it = _symbolmap.find( fullname );
-	ASSERT( it != _symbolmap.end(), "" );
+	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new class_symbol;
 	sym->name = fullname;
 	sym->fullname = fullname;
 	sym->location = location;
-	sym->base = find_class_symbol( base );
 	sym->parent = current_scope()->cast_symbol();
 
 	_symbolmap[sym->fullname] = sym;
@@ -537,10 +560,9 @@ x::class_symbol * x::symbols::add_class( std::string_view name, std::string_view
 
 x::block_symbol * x::symbols::add_block( const x::location & location )
 {
-	std::string fullname = std::format( "block_{}-{}-{}", location.file, location.line, location.column );
+	std::string fullname = std::format( "block_{}_{}_{}", location.file, location.line, location.column );
 
-	auto it = _symbolmap.find( fullname );
-	ASSERT( it != _symbolmap.end(), "" );
+	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new block_symbol;
 	sym->name = fullname;
@@ -556,10 +578,9 @@ x::block_symbol * x::symbols::add_block( const x::location & location )
 
 x::cycle_symbol * x::symbols::add_cycle( const x::location & location )
 {
-	std::string fullname = std::format( "cycle_{}-{}-{}", location.file, location.line, location.column );
+	std::string fullname = std::format( "cycle_{}_{}_{}", location.file, location.line, location.column );
 
-	auto it = _symbolmap.find( fullname );
-	ASSERT( it != _symbolmap.end(), "" );
+	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new cycle_symbol;
 	sym->name = fullname;
@@ -573,18 +594,16 @@ x::cycle_symbol * x::symbols::add_cycle( const x::location & location )
 	return sym;
 }
 
-x::local_symbol * x::symbols::add_local( std::string_view name, std::string_view type, const x::location & location )
+x::local_symbol * x::symbols::add_local( std::string_view name, const x::location & location )
 {
 	std::string fullname = calc_fullname( name );
 
-	auto it = _symbolmap.find( fullname );
-	ASSERT( it != _symbolmap.end(), "" );
+	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new local_symbol;
 	sym->name = fullname;
 	sym->fullname = fullname;
 	sym->location = location;
-	sym->value = find_type_symbol( type );
 	sym->parent = current_scope()->cast_symbol();
 
 	_symbolmap[sym->fullname] = sym;
@@ -593,18 +612,16 @@ x::local_symbol * x::symbols::add_local( std::string_view name, std::string_view
 	return sym;
 }
 
-x::param_symbol * x::symbols::add_param( std::string_view name, std::string_view type, const x::location & location )
+x::param_symbol * x::symbols::add_param( std::string_view name, const x::location & location )
 {
 	std::string fullname = calc_fullname( name );
 
-	auto it = _symbolmap.find( fullname );
-	ASSERT( it != _symbolmap.end(), "" );
+	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new param_symbol;
 	sym->name = fullname;
 	sym->fullname = fullname;
 	sym->location = location;
-	sym->value = find_type_symbol( type );
 	sym->parent = current_scope()->cast_symbol();
 
 	_symbolmap[sym->fullname] = sym;
@@ -613,18 +630,16 @@ x::param_symbol * x::symbols::add_param( std::string_view name, std::string_view
 	return sym;
 }
 
-x::function_symbol * x::symbols::add_function( std::string_view name, std::string_view type, const x::location & location )
+x::function_symbol * x::symbols::add_function( std::string_view name, const x::location & location )
 {
 	std::string fullname = calc_fullname( name );
 
-	auto it = _symbolmap.find( fullname );
-	ASSERT( it != _symbolmap.end(), "" );
+	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new function_symbol;
 	sym->name = fullname;
 	sym->fullname = fullname;
 	sym->location = location;
-	sym->result = find_type_symbol( type );
 	sym->parent = current_scope()->cast_symbol();
 
 	_symbolmap[sym->fullname] = sym;
@@ -633,18 +648,16 @@ x::function_symbol * x::symbols::add_function( std::string_view name, std::strin
 	return sym;
 }
 
-x::variable_symbol * x::symbols::add_variable( std::string_view name, std::string_view type, const x::location & location )
+x::variable_symbol * x::symbols::add_variable( std::string_view name, const x::location & location )
 {
 	std::string fullname = calc_fullname( name );
 
-	auto it = _symbolmap.find( fullname );
-	ASSERT( it != _symbolmap.end(), "" );
+	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new variable_symbol;
 	sym->name = fullname;
 	sym->fullname = fullname;
 	sym->location = location;
-	sym->value = find_type_symbol( type );
 	sym->parent = current_scope()->cast_symbol();
 
 	_symbolmap[sym->fullname] = sym;
@@ -653,18 +666,16 @@ x::variable_symbol * x::symbols::add_variable( std::string_view name, std::strin
 	return sym;
 }
 
-x::template_symbol * x::symbols::add_template( std::string_view name, std::string_view base, const x::location & location )
+x::template_symbol * x::symbols::add_template( std::string_view name, const x::location & location )
 {
 	std::string fullname = calc_fullname( name );
 
-	auto it = _symbolmap.find( fullname );
-	ASSERT( it != _symbolmap.end(), "" );
+	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new template_symbol;
 	sym->name = fullname;
 	sym->fullname = fullname;
 	sym->location = location;
-	sym->base = find_class_symbol( base );
 	sym->parent = current_scope()->cast_symbol();
 
 	_symbolmap[sym->fullname] = sym;
@@ -677,8 +688,7 @@ x::namespace_symbol * x::symbols::add_namespace( std::string_view name, const x:
 {
 	std::string fullname = calc_fullname( name );
 
-	auto it = _symbolmap.find( fullname );
-	ASSERT( it != _symbolmap.end(), "" );
+	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new namespace_symbol;
 	sym->name = fullname;
@@ -692,18 +702,16 @@ x::namespace_symbol * x::symbols::add_namespace( std::string_view name, const x:
 	return sym;
 }
 
-x::enum_element_symbol * x::symbols::add_enum_element( std::string_view name, x::int64 value, const x::location & location )
+x::enum_element_symbol * x::symbols::add_enum_element( std::string_view name, const x::location & location )
 {
 	std::string fullname = calc_fullname( name );
 
-	auto it = _symbolmap.find( fullname );
-	ASSERT( it != _symbolmap.end(), "" );
+	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new enum_element_symbol;
 	sym->name = fullname;
 	sym->fullname = fullname;
 	sym->location = location;
-	sym->value = value;
 	sym->parent = current_scope()->cast_symbol();
 
 	_symbolmap[sym->fullname] = sym;
@@ -712,18 +720,16 @@ x::enum_element_symbol * x::symbols::add_enum_element( std::string_view name, x:
 	return sym;
 }
 
-x::flag_element_symbol * x::symbols::add_flag_element( std::string_view name, x::uint64 value, const x::location & location )
+x::flag_element_symbol * x::symbols::add_flag_element( std::string_view name, const x::location & location )
 {
 	std::string fullname = calc_fullname( name );
 
-	auto it = _symbolmap.find( fullname );
-	ASSERT( it != _symbolmap.end(), "" );
+	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new flag_element_symbol;
 	sym->name = fullname;
 	sym->fullname = fullname;
 	sym->location = location;
-	sym->value = value;
 	sym->parent = current_scope()->cast_symbol();
 
 	_symbolmap[sym->fullname] = sym;
@@ -732,18 +738,16 @@ x::flag_element_symbol * x::symbols::add_flag_element( std::string_view name, x:
 	return sym;
 }
 
-x::temp_element_symbol * x::symbols::add_temp_element( std::string_view name, x::typedesc desc, const x::location & location )
+x::temp_element_symbol * x::symbols::add_temp_element( std::string_view name, const x::location & location )
 {
 	std::string fullname = calc_fullname( name );
 
-	auto it = _symbolmap.find( fullname );
-	ASSERT( it != _symbolmap.end(), "" );
+	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new temp_element_symbol;
 	sym->name = fullname;
 	sym->fullname = fullname;
 	sym->location = location;
-	sym->desc = desc;
 	sym->parent = current_scope()->cast_symbol();
 
 	_symbolmap[sym->fullname] = sym;

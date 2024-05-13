@@ -13,6 +13,7 @@
 
 #include "float16.h"
 
+#define ALIGN(size, align) ( ( (size) + (align) - 1 ) & ~( (align) - 1 ) )
 #ifdef _DEBUG
 #define ASSERT( a, s ) assert( ( a ) && s );
 #else
@@ -50,6 +51,7 @@ namespace x
         USING_DECL,
         ENUM_ELEMENT,
         FLAG_ELEMENT,
+        TEMP_ELEMENT,
         TEMPLATE_DECL,
         VARIABLE_DECL,
         FUNCTION_DECL,
@@ -419,6 +421,7 @@ namespace x
     class using_decl_ast; using using_decl_ast_ptr = std::shared_ptr<using_decl_ast>;
     class enum_element_ast; using enum_element_ast_ptr = std::shared_ptr<enum_element_ast>;
     class flag_element_ast; using flag_element_ast_ptr = std::shared_ptr<flag_element_ast>;
+    class temp_element_ast; using temp_element_ast_ptr = std::shared_ptr<temp_element_ast>;
     class template_decl_ast; using template_decl_ast_ptr = std::shared_ptr<template_decl_ast>;
     class variable_decl_ast; using variable_decl_ast_ptr = std::shared_ptr<variable_decl_ast>;
     class function_decl_ast; using function_decl_ast_ptr = std::shared_ptr<function_decl_ast>;

@@ -126,6 +126,15 @@ namespace x
 		x::uint64 value;
 		x::attribute_ast_ptr attr;
 	};
+	class temp_element_ast : public ast
+	{
+	public:
+		x::ast_t type() const override;
+		void accept( ast_visitor * visitor ) override;
+
+	public:
+		std::string name;
+	};
 	class template_decl_ast : public decl_ast
 	{
 	public:
@@ -135,8 +144,8 @@ namespace x
 	public:
 		x::type_ast_ptr base;
 		x::exp_stat_ast_ptr where;
-		std::vector<std::string> elements;
 		std::vector<x::using_decl_ast_ptr> usings;
+		std::vector<temp_element_ast_ptr> elements;
 		std::vector<x::variable_decl_ast_ptr> variables;
 		std::vector<x::function_decl_ast_ptr> functions;
 	};
@@ -695,13 +704,14 @@ namespace x
 		virtual void visit( x::type_ast * val );
 		virtual void visit( x::import_ast * val );
 		virtual void visit( x::attribute_ast * val );
-
+		
 		virtual void visit( x::enum_decl_ast * val );
 		virtual void visit( x::flag_decl_ast * val );
 		virtual void visit( x::class_decl_ast * val );
 		virtual void visit( x::using_decl_ast * val );
 		virtual void visit( x::enum_element_ast * val );
 		virtual void visit( x::flag_element_ast * val );
+		virtual void visit( x::temp_element_ast * val );
 		virtual void visit( x::template_decl_ast * val );
 		virtual void visit( x::variable_decl_ast * val );
 		virtual void visit( x::function_decl_ast * val );
