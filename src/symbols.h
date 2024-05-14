@@ -287,8 +287,8 @@ namespace x
 		x::symbol * find_symbol_from_fullname( std::string_view fullname ) const;
 
 	public:
-		void add_reference( const x::location & location, x::symbol * val );
-		x::symbol * find_reference( const x::location & location ) const;
+		void add_reference( std::string_view name, x::symbol * val );
+		x::symbol * find_reference( std::string_view name ) const;
 
 	private:
 		void add_symbol( x::symbol * val );

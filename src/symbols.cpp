@@ -24,6 +24,10 @@ namespace
 		return std::end( _Cont );
 	}
 
+	class builtin_symbol
+	{
+
+	};
 	class foundation_symbol : public x::class_symbol
 	{
 	public:
@@ -225,9 +229,9 @@ x::uint64 x::class_symbol::size() const
 //		if ( ast->is_local )
 //			sz += val_type_sz * ast->value_type->desc.array;
 //		else
-//			sz += ref_size;
+//			sz += reference_size;
 	}
-	return ALIGN( sz, ref_size );
+	return ALIGN( sz, reference_size );
 }
 
 void x::class_symbol::add_child( x::symbol * val )
@@ -869,13 +873,16 @@ x::symbol * x::symbols::find_symbol_from_fullname( std::string_view fullname ) c
 	return it != _symbolmap.end() ? it->second : nullptr;
 }
 
-void x::symbols::add_reference( const x::location & location, x::symbol * val )
+void x::symbols::add_reference( std::string_view name, x::symbol * val )
 {
+	_referencemap.emplace( name, val );
 }
 
-x::symbol * x::symbols::find_reference( const x::location & location ) const
+x::symbol * x::symbols::find_reference( std::string_view name ) const
 {
-	return nullptr;
+	auto it = _referencemap.find( { name.begin(), name.end() } );
+	
+	return it != _referencemap.end() ? it->second : nullptr;
 }
 
 void x::symbols::add_symbol( x::symbol * val )

@@ -81,7 +81,6 @@ namespace x
 		x::access_t access();
 		std::string type_name();
 		x::type_ast_ptr type( std::string_view name, bool is_const = false );
-		std::string location_to_name( const x::location & location, std::string_view suffix = "" );
 
 	private:
 		x::token next();

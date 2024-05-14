@@ -23,7 +23,7 @@ namespace x
 {
     static constexpr const int magic_num = 'xsl\0';
     static constexpr const int version_num = '0001';
-    static constexpr const int ref_size = sizeof( std::intptr_t );
+    static constexpr const int reference_size = sizeof( std::intptr_t );
 
     using byte = std::byte;
     using int8 = std::int8_t;
@@ -297,6 +297,7 @@ namespace x
         CYCLE,
         LOCAL,
         PARAM,
+        BUILTIN,
         ELEMENT,
         FUNCTION,
         VARIABLE,
@@ -521,7 +522,7 @@ namespace x
         std::string str;
         location location;
     };
-
+    
     inline constexpr x::uint64 hash( const char * str, x::uint64 size = std::numeric_limits<x::uint64>::max(), x::uint64 value = 14695981039346656037ULL )
     {
         while ( *str++ != '\0' && size-- != 0 )
@@ -545,9 +546,17 @@ namespace x
         return hash( str.data(), str.size() );
     }
 
+    inline constexpr std::string location_to_name( const x::location & location, std::string_view suffix = {} )
+    {
+        if ( suffix.empty() )
+            return std::format( "{}_{}_{}", location.file, location.line, location.column );
+
+        return std::format( "{}_{}_{}_{}", suffix, location.file, location.line, location.column );
+    }
+
     template<typename ... Ts> struct overload : Ts ... { using Ts::operator() ...; }; template<class... Ts> overload( Ts... ) -> overload<Ts...>;
-    template<template<class...> class Target, class T> struct is_template_of { static const bool value = false; };
-    template<template<class...> class Target, class...Args> struct is_template_of< Target, Target<Args...> > { static const bool value = true; };
+    template<template<typename...> typename Target, typename T> struct is_template_of : public std::false_type {};
+    template<template<typename...> typename Target, typename...Args> struct is_template_of< Target, Target<Args...> > : public std::true_type {};
 
     static std::map<std::string, x::token_t> token_map =
     {

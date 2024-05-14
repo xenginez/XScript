@@ -131,7 +131,7 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
-		x::int64 value = 0;
+		x::exp_stat_ast_ptr value;
 	};
 	class template_decl_ast : public decl_ast
 	{
@@ -240,7 +240,6 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
-		bool is_break = false;
 		x::exp_stat_ast_ptr exp;
 	};
 	class try_stat_ast : public stat_ast
@@ -364,7 +363,7 @@ namespace x
 	class binary_exp_ast : public exp_stat_ast
 	{
 	public:
-		x::token_t tk_type = x::token_t::TK_EOF;
+		x::token_t token = x::token_t::TK_EOF;
 		x::exp_stat_ast_ptr left, right;
 	};
 	class assignment_exp_ast : public binary_exp_ast
@@ -482,7 +481,7 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
-		x::token_t tk_type = x::token_t::TK_EOF;
+		x::token_t token = x::token_t::TK_EOF;
 		x::exp_stat_ast_ptr exp;
 	};
 	class postfix_exp_ast : public unary_exp_ast

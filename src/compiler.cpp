@@ -49,12 +49,10 @@ x::context_ptr x::compiler::compile( const std::filesystem::path & file )
 	if ( load_source_file( file ) )
 	{
 		symbol_scanner_pass scaner( _p->_symbols );
-		reference_solver_pass solver( _p->_symbols );
 		type_checker_pass checker( _p->_symbols );
 		semantic_checker_pass semantic( _p->_symbols );
 
 		for ( const auto & it : _p->_uobjs ) it.second.ast->accept( &scaner );
-		for ( const auto & it : _p->_uobjs ) it.second.ast->accept( &solver );
 		for ( const auto & it : _p->_uobjs ) it.second.ast->accept( &checker );
 		for ( const auto & it : _p->_uobjs ) it.second.ast->accept( &semantic );
 
