@@ -2,6 +2,9 @@
 
 #include <regex>
 
+#include "ast.h"
+#include "object.h"
+
 namespace
 {
 	template <class _Container> auto name_beg( const _Container & _Cont ) -> decltype( std::begin( _Cont ) )
@@ -20,6 +23,26 @@ namespace
 			return begin( _Cont ) + i;
 		return std::end( _Cont );
 	}
+
+	class foundation_symbol : public x::class_symbol
+	{
+	public:
+		foundation_symbol( std::string_view name, x::uint64 sz )
+			:_size( sz )
+		{
+			name = name;
+			fullname = name;
+		}
+
+	public:
+		x::uint64 size() const override
+		{
+			return _size;
+		}
+		
+	private:
+		x::uint64 _size = 0;
+	};
 }
 
 bool x::symbol::is_type() const
@@ -27,7 +50,6 @@ bool x::symbol::is_type() const
 	switch ( type )
 	{
 	case x::symbol_t::ENUM:
-	case x::symbol_t::FLAG:
 	case x::symbol_t::ALIAS:
 	case x::symbol_t::CLASS:
 	case x::symbol_t::TEMPLATE:
@@ -42,7 +64,6 @@ bool x::symbol::is_scope() const
 	{
 	case x::symbol_t::UNIT:
 	case x::symbol_t::ENUM:
-	case x::symbol_t::FLAG:
 	case x::symbol_t::CLASS:
 	case x::symbol_t::BLOCK:
 	case x::symbol_t::CYCLE:
@@ -104,6 +125,11 @@ x::unit_symbol::~unit_symbol()
 {
 }
 
+x::unit_ast_ptr x::unit_symbol::cast_ast() const
+{
+	return std::static_pointer_cast<x::unit_ast>( ast );
+}
+
 void x::unit_symbol::add_child( x::symbol * val )
 {
 	children.push_back( val );
@@ -124,6 +150,11 @@ x::enum_symbol::~enum_symbol()
 {
 }
 
+x::enum_decl_ast_ptr x::enum_symbol::cast_ast() const
+{
+	return std::static_pointer_cast<x::enum_decl_ast>( ast );
+}
+
 x::uint64 x::enum_symbol::size() const
 {
 	return x::uint64();
@@ -131,39 +162,12 @@ x::uint64 x::enum_symbol::size() const
 
 void x::enum_symbol::add_child( x::symbol * val )
 {
-	ASSERT( val->type == x::symbol_t::ENUM_ELEMENT, "" );
+	ASSERT( val->type == x::symbol_t::ELEMENT, "" );
 
-	elements.push_back( static_cast<x::enum_element_symbol *>( val ) );
+	elements.push_back( static_cast<x::element_symbol *>( val ) );
 }
 
 x::symbol * x::enum_symbol::find_child( std::string_view name ) const
-{
-	auto it = std::find_if( elements.begin(), elements.end(), [name]( auto val ) { return val->name == name; } );
-	return ( it != elements.end() ) ? *it : nullptr;
-}
-
-x::flag_symbol::flag_symbol()
-{
-	type = x::symbol_t::FLAG;
-}
-
-x::flag_symbol::~flag_symbol()
-{
-}
-
-x::uint64 x::flag_symbol::size() const
-{
-	return x::uint64();
-}
-
-void x::flag_symbol::add_child( x::symbol * val )
-{
-	ASSERT( val->type == x::symbol_t::FLAG_ELEMENT, "" );
-
-	elements.push_back( static_cast<x::flag_element_symbol *>( val ) );
-}
-
-x::symbol * x::flag_symbol::find_child( std::string_view name ) const
 {
 	auto it = std::find_if( elements.begin(), elements.end(), [name]( auto val ) { return val->name == name; } );
 	return ( it != elements.end() ) ? *it : nullptr;
@@ -178,9 +182,14 @@ x::alias_symbol::~alias_symbol()
 {
 }
 
+x::using_decl_ast_ptr x::alias_symbol::cast_ast() const
+{
+	return std::static_pointer_cast<x::using_decl_ast>( ast );
+}
+
 x::uint64 x::alias_symbol::size() const
 {
-	return value->size();
+	return retype->size();
 }
 
 x::class_symbol::class_symbol()
@@ -192,6 +201,11 @@ x::class_symbol::~class_symbol()
 {
 }
 
+x::class_decl_ast_ptr x::class_symbol::cast_ast() const
+{
+	return std::static_pointer_cast<x::class_decl_ast>( ast );
+}
+
 x::uint64 x::class_symbol::size() const
 {
 	x::uint64 sz = 1;
@@ -201,12 +215,19 @@ x::uint64 x::class_symbol::size() const
 
 	for ( auto it : variables )
 	{
-		if ( it->is_static || it->is_thread )
-			continue;
-
-		sz = it->value->size();
+//		auto ast = it->cast_ast();
+//
+//		if ( ast->is_static || ast->is_thread )
+//			continue;
+//
+//		auto val_type_sz = it->value->size();
+//
+//		if ( ast->is_local )
+//			sz += val_type_sz * ast->value_type->desc.array;
+//		else
+//			sz += ref_size;
 	}
-	return ALIGN( sz, 8 );
+	return ALIGN( sz, ref_size );
 }
 
 void x::class_symbol::add_child( x::symbol * val )
@@ -216,11 +237,11 @@ void x::class_symbol::add_child( x::symbol * val )
 	case x::symbol_t::ALIAS:
 		aliases.push_back( static_cast<x::alias_symbol *>( val ) );
 		break;
-	case x::symbol_t::VARIABLE:
-		variables.push_back( static_cast<x::variable_symbol *>( val ) );
-		break;
 	case x::symbol_t::FUNCTION:
 		functions.push_back( static_cast<x::function_symbol *>( val ) );
+		break;
+	case x::symbol_t::VARIABLE:
+		variables.push_back( static_cast<x::variable_symbol *>( val ) );
 		break;
 	default:
 		ASSERT( false, "" );
@@ -254,15 +275,36 @@ x::block_symbol::~block_symbol()
 {
 }
 
+x::compound_stat_ast_ptr x::block_symbol::cast_ast() const
+{
+	return std::static_pointer_cast<x::compound_stat_ast>( ast );
+}
+
 void x::block_symbol::add_child( x::symbol * val )
 {
-	children.push_back( val );
+	switch ( val->type )
+	{
+	case x::symbol_t::LOCAL:
+		locals.push_back( static_cast<x::local_symbol *>( val ) );
+		break;
+	case x::symbol_t::BLOCK:
+	case x::symbol_t::CYCLE:
+		blocks.push_back( static_cast<x::block_symbol *>( val ) );
+		break;
+	}
 }
 
 x::symbol * x::block_symbol::find_child( std::string_view name ) const
 {
-	auto it = std::find_if( children.begin(), children.end(), [name]( auto val ) { return val->name == name; } );
-	return ( it != children.end() ) ? *it : nullptr;
+	auto bit = std::find_if( blocks.begin(), blocks.end(), [name]( auto val ) { return val->name == name; } );
+	if ( bit != blocks.end() )
+		return *bit;
+	
+	auto lit = std::find_if( locals.begin(), locals.end(), [name]( auto val ) { return val->name == name; } );
+	if ( lit != locals.end() )
+		return *lit;
+
+	return nullptr;
 }
 
 x::cycle_symbol::cycle_symbol()
@@ -274,6 +316,11 @@ x::cycle_symbol::~cycle_symbol()
 {
 }
 
+x::cycle_stat_ast_ptr x::cycle_symbol::cast_ast() const
+{
+	return std::static_pointer_cast<x::cycle_stat_ast>( ast );
+}
+
 x::local_symbol::local_symbol()
 {
 	type = x::symbol_t::LOCAL;
@@ -281,6 +328,11 @@ x::local_symbol::local_symbol()
 
 x::local_symbol::~local_symbol()
 {
+}
+
+x::local_stat_ast_ptr x::local_symbol::cast_ast() const
+{
+	return std::static_pointer_cast<x::local_stat_ast>( ast );
 }
 
 x::param_symbol::param_symbol()
@@ -292,6 +344,11 @@ x::param_symbol::~param_symbol()
 {
 }
 
+x::parameter_decl_ast_ptr x::param_symbol::cast_ast() const
+{
+	return std::static_pointer_cast<x::parameter_decl_ast>( ast );
+}
+
 x::function_symbol::function_symbol()
 {
 	type = x::symbol_t::FUNCTION;
@@ -299,6 +356,11 @@ x::function_symbol::function_symbol()
 
 x::function_symbol::~function_symbol()
 {
+}
+
+x::function_decl_ast_ptr x::function_symbol::cast_ast() const
+{
+	return std::static_pointer_cast<x::function_decl_ast>( ast );
 }
 
 void x::function_symbol::add_child( x::symbol * val )
@@ -323,6 +385,11 @@ x::variable_symbol::~variable_symbol()
 {
 }
 
+x::variable_decl_ast_ptr x::variable_symbol::cast_ast() const
+{
+	return std::static_pointer_cast<x::variable_decl_ast>( ast );
+}
+
 x::template_symbol::template_symbol()
 {
 	type = x::symbol_t::TEMPLATE;
@@ -330,6 +397,11 @@ x::template_symbol::template_symbol()
 
 x::template_symbol::~template_symbol()
 {
+}
+
+x::template_decl_ast_ptr x::template_symbol::cast_ast() const
+{
+	return std::static_pointer_cast<x::template_decl_ast>( ast );
 }
 
 x::uint64 x::template_symbol::size() const
@@ -349,9 +421,6 @@ void x::template_symbol::add_child( x::symbol * val )
 		break;
 	case x::symbol_t::FUNCTION:
 		functions.push_back( static_cast<x::function_symbol *>( val ) );
-		break;
-	case x::symbol_t::TEMP_ELEMENT:
-		elements.push_back( static_cast<x::temp_element_symbol *>( val ) );
 		break;
 	default:
 		ASSERT( false, "" );
@@ -373,10 +442,6 @@ x::symbol * x::template_symbol::find_child( std::string_view name ) const
 	if ( fit != functions.end() )
 		return *fit;
 	
-	auto eit = std::find_if( elements.begin(), elements.end(), [name]( auto val ) { return val->name == name; } );
-	if ( eit != elements.end() )
-		return *eit;
-
 	return nullptr;
 }
 
@@ -387,6 +452,11 @@ x::namespace_symbol::namespace_symbol()
 
 x::namespace_symbol::~namespace_symbol()
 {
+}
+
+x::namespace_decl_ast_ptr x::namespace_symbol::cast_ast() const
+{
+	return std::static_pointer_cast<x::namespace_decl_ast>( ast );
 }
 
 void x::namespace_symbol::add_child( x::symbol * val )
@@ -402,31 +472,18 @@ x::symbol * x::namespace_symbol::find_child( std::string_view name ) const
 	return ( it != children.end() ) ? (*it)->cast_symbol() : nullptr;
 }
 
-x::enum_element_symbol::enum_element_symbol()
+x::element_symbol::element_symbol()
 {
-	type = x::symbol_t::ENUM_ELEMENT;
+	type = x::symbol_t::ELEMENT;
 }
 
-x::enum_element_symbol::~enum_element_symbol()
-{
-}
-
-x::flag_element_symbol::flag_element_symbol()
-{
-	type = x::symbol_t::FLAG_ELEMENT;
-}
-
-x::flag_element_symbol::~flag_element_symbol()
+x::element_symbol::~element_symbol()
 {
 }
 
-x::temp_element_symbol::temp_element_symbol()
+x::element_decl_ast_ptr x::element_symbol::cast_ast() const
 {
-	type = x::symbol_t::TEMP_ELEMENT;
-}
-
-x::temp_element_symbol::~temp_element_symbol()
-{
+	return std::static_pointer_cast<x::element_decl_ast>( ast );
 }
 
 x::symbols::symbols()
@@ -435,23 +492,28 @@ x::symbols::symbols()
 	_symbolmap[""] = val;
 	_scope.push_back( val );
 	{
-		auto void_symbol = add_class( "void", {} );
-		auto byte_symbol = add_class( "byte", {} );
-		auto bool_symbol = add_class( "bool", {} );
-		auto any_symbol = add_class( "any", {} );
-		auto intptr_symbol = add_class( "intptr", {} );
-		auto int8_symbol = add_class( "int8", {} );
-		auto int16_symbol = add_class( "int16", {} );
-		auto int32_symbol = add_class( "int32", {} );
-		auto int64_symbol = add_class( "int64", {} );
-		auto uint8_symbol = add_class( "uint8", {} );
-		auto uint16_symbol = add_class( "uint16", {} );
-		auto uint32_symbol = add_class( "uint32", {} );
-		auto uint64_symbol = add_class( "uint64", {} );
-		auto float16_symbol = add_class( "float16", {} );
-		auto float32_symbol = add_class( "float32", {} );
-		auto float64_symbol = add_class( "float64", {} );
-		auto string_symbol = add_class( "string", {} );
+		x::symbol * sym = nullptr;
+
+#define FOUNDATION( TYPE ) sym = new foundation_symbol( #TYPE, sizeof( TYPE ) ); add_symbol( sym );
+		sym = new foundation_symbol( "void", 0 ); add_symbol( sym );
+		FOUNDATION( byte );
+		FOUNDATION( bool );
+		FOUNDATION( byte );
+		FOUNDATION( intptr );
+		FOUNDATION( int8 );
+		FOUNDATION( int16 );
+		FOUNDATION( int32 );
+		FOUNDATION( int64 );
+		FOUNDATION( uint8 );
+		FOUNDATION( uint16 );
+		FOUNDATION( uint32 );
+		FOUNDATION( uint64 );
+		FOUNDATION( float16 );
+		FOUNDATION( float32 );
+		FOUNDATION( float64 );
+		FOUNDATION( string );
+		sym = new foundation_symbol( "object", sizeof( x::intptr ) ); add_symbol( sym );
+#undef FOUNDATION
 	}
 }
 
@@ -468,297 +530,225 @@ void x::symbols::push_scope( std::string_view name )
 	_scope.push_back( sym->cast_scope() );
 }
 
-x::unit_symbol * x::symbols::add_unit( const x::location & location )
+x::unit_symbol * x::symbols::add_unit( x::unit_ast * ast )
 {
-	std::string fullname = { location.file.data(), location.file.size() };
+	std::string fullname = { ast->location.file.data(), ast->location.file.size() };
 
 	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new unit_symbol;
+
+	sym->ast = ast->shared_from_this();
 	sym->name = fullname;
 	sym->fullname = fullname;
-	sym->location = location;
-	sym->parent = current_scope()->cast_symbol();
 
-	_symbolmap[sym->fullname] = sym;
-	current_scope()->add_child( sym );
+	add_symbol( sym );
 
 	return sym;
 }
 
-x::enum_symbol * x::symbols::add_enum( std::string_view name, const x::location & location )
+x::enum_symbol * x::symbols::add_enum( x::enum_decl_ast * ast )
 {
-	std::string fullname = calc_fullname( name );
+	std::string fullname = calc_fullname( ast->name );
 
 	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new enum_symbol;
-	sym->name = fullname;
-	sym->fullname = fullname;
-	sym->location = location;
-	sym->parent = current_scope()->cast_symbol();
 
-	_symbolmap[sym->fullname] = sym;
-	current_scope()->add_child( sym );
+	sym->ast = ast->shared_from_this();
+	sym->name = ast->name;
+	sym->fullname = fullname;
+
+	add_symbol( sym );
 
 	return sym;
 }
 
-x::flag_symbol * x::symbols::add_flag( std::string_view name, const x::location & location )
+x::alias_symbol * x::symbols::add_alias( x::using_decl_ast * ast )
 {
-	std::string fullname = calc_fullname( name );
-
-	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
-
-	auto sym = new flag_symbol;
-	sym->name = fullname;
-	sym->fullname = fullname;
-	sym->location = location;
-	sym->parent = current_scope()->cast_symbol();
-
-	_symbolmap[sym->fullname] = sym;
-	current_scope()->add_child( sym );
-
-	return sym;
-}
-
-x::alias_symbol * x::symbols::add_alias( std::string_view name, const x::location & location )
-{
-	std::string fullname = calc_fullname( name );
+	std::string fullname = calc_fullname( ast->name );
 
 	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new alias_symbol;
-	sym->name = fullname;
-	sym->fullname = fullname;
-	sym->location = location;
-	sym->parent = current_scope()->cast_symbol();
 
-	_symbolmap[sym->fullname] = sym;
-	current_scope()->add_child( sym );
+	sym->ast = ast->shared_from_this();
+	sym->name = ast->name;
+	sym->fullname = fullname;
+
+	add_symbol( sym );
 
 	return sym;
 }
 
-x::class_symbol * x::symbols::add_class( std::string_view name, const x::location & location )
+x::class_symbol * x::symbols::add_class( x::class_decl_ast * ast )
 {
-	std::string fullname = calc_fullname( name );
+	std::string fullname = calc_fullname( ast->name );
 
 	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new class_symbol;
-	sym->name = fullname;
-	sym->fullname = fullname;
-	sym->location = location;
-	sym->parent = current_scope()->cast_symbol();
 
-	_symbolmap[sym->fullname] = sym;
-	current_scope()->add_child( sym );
+	sym->ast = ast->shared_from_this();
+	sym->name = ast->name;
+	sym->fullname = fullname;
+
+	add_symbol( sym );
 
 	return sym;
 }
 
-x::block_symbol * x::symbols::add_block( const x::location & location )
+x::block_symbol * x::symbols::add_block( x::compound_stat_ast * ast )
 {
-	std::string fullname = std::format( "block_{}_{}_{}", location.file, location.line, location.column );
+	std::string fullname = std::format( "block_{}_{}_{}", ast->location.file, ast->location.line, ast->location.column );
 
 	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new block_symbol;
+
+	sym->ast = ast->shared_from_this();
 	sym->name = fullname;
 	sym->fullname = fullname;
-	sym->location = location;
-	sym->parent = current_scope()->cast_symbol();
 
-	_symbolmap[sym->fullname] = sym;
-	current_scope()->add_child( sym );
+	add_symbol( sym );
 
 	return sym;
 }
 
-x::cycle_symbol * x::symbols::add_cycle( const x::location & location )
+x::cycle_symbol * x::symbols::add_cycle( x::cycle_stat_ast * ast )
 {
-	std::string fullname = std::format( "cycle_{}_{}_{}", location.file, location.line, location.column );
+	std::string fullname = std::format( "cycle_{}_{}_{}", ast->location.file, ast->location.line, ast->location.column );
 
 	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new cycle_symbol;
+
+	sym->ast = ast->shared_from_this();
 	sym->name = fullname;
 	sym->fullname = fullname;
-	sym->location = location;
-	sym->parent = current_scope()->cast_symbol();
 
-	_symbolmap[sym->fullname] = sym;
-	current_scope()->add_child( sym );
+	add_symbol( sym );
 
 	return sym;
 }
 
-x::local_symbol * x::symbols::add_local( std::string_view name, const x::location & location )
+x::local_symbol * x::symbols::add_local( x::local_stat_ast * ast )
 {
-	std::string fullname = calc_fullname( name );
+	std::string fullname = calc_fullname( ast->name );
 
 	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new local_symbol;
-	sym->name = fullname;
-	sym->fullname = fullname;
-	sym->location = location;
-	sym->parent = current_scope()->cast_symbol();
 
-	_symbolmap[sym->fullname] = sym;
-	current_scope()->add_child( sym );
+	sym->ast = ast->shared_from_this();
+	sym->name = ast->name;
+	sym->fullname = fullname;
+
+	add_symbol( sym );
 
 	return sym;
 }
 
-x::param_symbol * x::symbols::add_param( std::string_view name, const x::location & location )
+x::param_symbol * x::symbols::add_param( x::parameter_decl_ast * ast )
 {
-	std::string fullname = calc_fullname( name );
+	std::string fullname = calc_fullname( ast->name );
 
 	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new param_symbol;
-	sym->name = fullname;
-	sym->fullname = fullname;
-	sym->location = location;
-	sym->parent = current_scope()->cast_symbol();
 
-	_symbolmap[sym->fullname] = sym;
-	current_scope()->add_child( sym );
+	sym->ast = ast->shared_from_this();
+	sym->name = ast->name;
+	sym->fullname = fullname;
+
+	add_symbol( sym );
 
 	return sym;
 }
 
-x::function_symbol * x::symbols::add_function( std::string_view name, const x::location & location )
+x::element_symbol * x::symbols::add_element( x::element_decl_ast * ast )
 {
-	std::string fullname = calc_fullname( name );
+	std::string fullname = calc_fullname( ast->name );
+
+	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
+
+	auto sym = new element_symbol;
+
+	sym->ast = ast->shared_from_this();
+	sym->name = ast->name;
+	sym->fullname = fullname;
+
+	add_symbol( sym );
+
+	return sym;
+}
+
+x::function_symbol * x::symbols::add_function( x::function_decl_ast * ast )
+{
+	std::string fullname = calc_fullname( ast->name );
 
 	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new function_symbol;
-	sym->name = fullname;
-	sym->fullname = fullname;
-	sym->location = location;
-	sym->parent = current_scope()->cast_symbol();
 
-	_symbolmap[sym->fullname] = sym;
-	current_scope()->add_child( sym );
+	sym->ast = ast->shared_from_this();
+	sym->name = ast->name;
+	sym->fullname = fullname;
+
+	add_symbol( sym );
 
 	return sym;
 }
 
-x::variable_symbol * x::symbols::add_variable( std::string_view name, const x::location & location )
+x::variable_symbol * x::symbols::add_variable( x::variable_decl_ast * ast )
 {
-	std::string fullname = calc_fullname( name );
+	std::string fullname = calc_fullname( ast->name );
 
 	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new variable_symbol;
-	sym->name = fullname;
-	sym->fullname = fullname;
-	sym->location = location;
-	sym->parent = current_scope()->cast_symbol();
 
-	_symbolmap[sym->fullname] = sym;
-	current_scope()->add_child( sym );
+	sym->ast = ast->shared_from_this();
+	sym->name = ast->name;
+	sym->fullname = fullname;
+
+	add_symbol( sym );
 
 	return sym;
 }
 
-x::template_symbol * x::symbols::add_template( std::string_view name, const x::location & location )
+x::template_symbol * x::symbols::add_template( x::template_decl_ast * ast )
 {
-	std::string fullname = calc_fullname( name );
+	std::string fullname = calc_fullname( ast->name );
 
 	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new template_symbol;
-	sym->name = fullname;
-	sym->fullname = fullname;
-	sym->location = location;
-	sym->parent = current_scope()->cast_symbol();
 
-	_symbolmap[sym->fullname] = sym;
-	current_scope()->add_child( sym );
+	sym->ast = ast->shared_from_this();
+	sym->name = ast->name;
+	sym->fullname = fullname;
+
+	add_symbol( sym );
 
 	return sym;
 }
 
-x::namespace_symbol * x::symbols::add_namespace( std::string_view name, const x::location & location )
+x::namespace_symbol * x::symbols::add_namespace( x::namespace_decl_ast * ast )
 {
-	std::string fullname = calc_fullname( name );
+	std::string fullname = calc_fullname( ast->name );
 
 	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new namespace_symbol;
-	sym->name = fullname;
-	sym->fullname = fullname;
-	sym->location = location;
-	sym->parent = current_scope()->cast_symbol();
 
-	_symbolmap[sym->fullname] = sym;
-	current_scope()->add_child( sym );
+	sym->ast = ast->shared_from_this();
+	sym->name = ast->name;
+	sym->fullname = fullname;
+
+	add_symbol( sym );
 
 	return sym;
-}
-
-x::enum_element_symbol * x::symbols::add_enum_element( std::string_view name, const x::location & location )
-{
-	std::string fullname = calc_fullname( name );
-
-	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
-
-	auto sym = new enum_element_symbol;
-	sym->name = fullname;
-	sym->fullname = fullname;
-	sym->location = location;
-	sym->parent = current_scope()->cast_symbol();
-
-	_symbolmap[sym->fullname] = sym;
-	current_scope()->add_child( sym );
-
-	return sym;
-}
-
-x::flag_element_symbol * x::symbols::add_flag_element( std::string_view name, const x::location & location )
-{
-	std::string fullname = calc_fullname( name );
-
-	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
-
-	auto sym = new flag_element_symbol;
-	sym->name = fullname;
-	sym->fullname = fullname;
-	sym->location = location;
-	sym->parent = current_scope()->cast_symbol();
-
-	_symbolmap[sym->fullname] = sym;
-	current_scope()->add_child( sym );
-
-	return sym;
-}
-
-x::temp_element_symbol * x::symbols::add_temp_element( std::string_view name, const x::location & location )
-{
-	std::string fullname = calc_fullname( name );
-
-	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
-
-	auto sym = new temp_element_symbol;
-	sym->name = fullname;
-	sym->fullname = fullname;
-	sym->location = location;
-	sym->parent = current_scope()->cast_symbol();
-
-	_symbolmap[sym->fullname] = sym;
-	current_scope()->add_child( sym );
-
-	return sym;
-}
-
-bool x::symbols::has_symbol( std::string_view name ) const
-{
-	return find_symbol( name ) != nullptr;
 }
 
 x::type_symbol * x::symbols::find_type_symbol( std::string_view name ) const
@@ -886,4 +876,11 @@ void x::symbols::add_reference( const x::location & location, x::symbol * val )
 x::symbol * x::symbols::find_reference( const x::location & location ) const
 {
 	return nullptr;
+}
+
+void x::symbols::add_symbol( x::symbol * val )
+{
+	_symbolmap[val->fullname] = val;
+	val->parent = current_scope()->cast_symbol();
+	current_scope()->add_child( val );
 }

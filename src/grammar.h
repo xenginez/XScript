@@ -19,7 +19,6 @@ namespace x
 		x::attribute_ast_ptr attribute();
 
 		x::enum_decl_ast_ptr enum_decl();
-		x::flag_decl_ast_ptr flag_decl();
 		x::class_decl_ast_ptr class_decl();
 		x::using_decl_ast_ptr using_decl();
 		x::template_decl_ast_ptr template_decl();
@@ -81,14 +80,14 @@ namespace x
 	private:
 		x::access_t access();
 		std::string type_name();
-		x::type_ast_ptr type( std::string_view name, bool is_ref = false, bool is_const = false, int array = 0 );
+		x::type_ast_ptr type( std::string_view name, bool is_const = false );
 		std::string location_to_name( const x::location & location, std::string_view suffix = "" );
 
 	private:
 		x::token next();
 		x::token lookup();
 		bool verify( x::token_t k );
-		x::token_t verify( std::initializer_list<x::token_t> list );
+		x::token verify( std::initializer_list<x::token_t> list );
 		x::token validity( x::token_t k );
 
 	private:

@@ -10,16 +10,6 @@ void x::unit_ast::accept( ast_visitor * visitor )
 	visitor->visit( this );
 }
 
-x::ast_t x::type_ast::type() const
-{
-	return x::ast_t::TYPE;
-}
-
-void x::type_ast::accept( ast_visitor * visitor )
-{
-	visitor->visit( this );
-}
-
 x::ast_t x::import_ast::type() const
 {
 	return x::ast_t::IMPORT;
@@ -40,22 +30,52 @@ void x::attribute_ast::accept( ast_visitor * visitor )
 	visitor->visit( this );
 }
 
+x::ast_t x::type_ast::type() const
+{
+	return x::ast_t::TYPE;
+}
+
+void x::type_ast::accept( ast_visitor * visitor )
+{
+	visitor->visit( this );
+}
+
+x::ast_t x::temp_type_ast::type() const
+{
+	return x::ast_t::TEMP_TYPE;
+}
+
+void x::temp_type_ast::accept( ast_visitor * visitor )
+{
+	visitor->visit( this );
+}
+
+x::ast_t x::func_type_ast::type() const
+{
+	return x::ast_t::FUNC_TYPE;
+}
+
+void x::func_type_ast::accept( ast_visitor * visitor )
+{
+	visitor->visit( this );
+}
+
+x::ast_t x::array_type_ast::type() const
+{
+	return x::ast_t::ARRAY_TYPE;
+}
+
+void x::array_type_ast::accept( ast_visitor * visitor )
+{
+	visitor->visit( this );
+}
+
 x::ast_t x::enum_decl_ast::type() const
 {
 	return x::ast_t::ENUM_DECL;
 }
 
 void x::enum_decl_ast::accept( ast_visitor * visitor )
-{
-	visitor->visit( this );
-}
-
-x::ast_t x::flag_decl_ast::type() const
-{
-	return x::ast_t::FLAG_DECL;
-}
-
-void x::flag_decl_ast::accept( ast_visitor * visitor )
 {
 	visitor->visit( this );
 }
@@ -80,32 +100,12 @@ void x::using_decl_ast::accept( ast_visitor * visitor )
 	visitor->visit( this );
 }
 
-x::ast_t x::enum_element_ast::type() const
+x::ast_t x::element_decl_ast::type() const
 {
-	return x::ast_t::ENUM_ELEMENT;
+	return x::ast_t::ELEMENT_DECL;
 }
 
-void x::enum_element_ast::accept( ast_visitor * visitor )
-{
-	visitor->visit( this );
-}
-
-x::ast_t x::flag_element_ast::type() const
-{
-	return x::ast_t::FLAG_ELEMENT;
-}
-
-void x::flag_element_ast::accept( ast_visitor * visitor )
-{
-	visitor->visit( this );
-}
-
-x::ast_t x::temp_element_ast::type() const
-{
-	return x::ast_t::TEMP_ELEMENT;
-}
-
-void x::temp_element_ast::accept( ast_visitor * visitor )
+void x::element_decl_ast::accept( ast_visitor * visitor )
 {
 	visitor->visit( this );
 }
@@ -577,6 +577,7 @@ x::ast_t x::int8_const_exp_ast::type() const
 
 void x::int8_const_exp_ast::accept( ast_visitor * visitor )
 {
+	visitor->visit( this );
 }
 
 x::ast_t x::int16_const_exp_ast::type() const
@@ -586,6 +587,7 @@ x::ast_t x::int16_const_exp_ast::type() const
 
 void x::int16_const_exp_ast::accept( ast_visitor * visitor )
 {
+	visitor->visit( this );
 }
 
 x::ast_t x::int32_const_exp_ast::type() const
@@ -595,6 +597,7 @@ x::ast_t x::int32_const_exp_ast::type() const
 
 void x::int32_const_exp_ast::accept( ast_visitor * visitor )
 {
+	visitor->visit( this );
 }
 
 x::ast_t x::int64_const_exp_ast::type() const
@@ -604,6 +607,7 @@ x::ast_t x::int64_const_exp_ast::type() const
 
 void x::int64_const_exp_ast::accept( ast_visitor * visitor )
 {
+	visitor->visit( this );
 }
 
 x::ast_t x::uint8_const_exp_ast::type() const
@@ -613,6 +617,7 @@ x::ast_t x::uint8_const_exp_ast::type() const
 
 void x::uint8_const_exp_ast::accept( ast_visitor * visitor )
 {
+	visitor->visit( this );
 }
 
 x::ast_t x::uint16_const_exp_ast::type() const
@@ -622,6 +627,7 @@ x::ast_t x::uint16_const_exp_ast::type() const
 
 void x::uint16_const_exp_ast::accept( ast_visitor * visitor )
 {
+	visitor->visit( this );
 }
 
 x::ast_t x::uint32_const_exp_ast::type() const
@@ -631,6 +637,7 @@ x::ast_t x::uint32_const_exp_ast::type() const
 
 void x::uint32_const_exp_ast::accept( ast_visitor * visitor )
 {
+	visitor->visit( this );
 }
 
 x::ast_t x::uint64_const_exp_ast::type() const
@@ -640,6 +647,7 @@ x::ast_t x::uint64_const_exp_ast::type() const
 
 void x::uint64_const_exp_ast::accept( ast_visitor * visitor )
 {
+	visitor->visit( this );
 }
 
 x::ast_t x::float16_const_exp_ast::type() const
@@ -649,6 +657,7 @@ x::ast_t x::float16_const_exp_ast::type() const
 
 void x::float16_const_exp_ast::accept( ast_visitor * visitor )
 {
+	visitor->visit( this );
 }
 
 x::ast_t x::float32_const_exp_ast::type() const
@@ -658,6 +667,7 @@ x::ast_t x::float32_const_exp_ast::type() const
 
 void x::float32_const_exp_ast::accept( ast_visitor * visitor )
 {
+	visitor->visit( this );
 }
 
 x::ast_t x::float64_const_exp_ast::type() const
@@ -667,6 +677,7 @@ x::ast_t x::float64_const_exp_ast::type() const
 
 void x::float64_const_exp_ast::accept( ast_visitor * visitor )
 {
+	visitor->visit( this );
 }
 
 x::ast_t x::string_const_exp_ast::type() const
@@ -688,15 +699,31 @@ void x::ast_visitor::visit( x::unit_ast * val )
 		it->accept( this );
 }
 
-void x::ast_visitor::visit( x::type_ast * val )
-{
-}
-
 void x::ast_visitor::visit( x::import_ast * val )
 {
 }
 
 void x::ast_visitor::visit( x::attribute_ast * val )
+{
+}
+
+void x::ast_visitor::visit( x::type_ast * val )
+{
+}
+
+void x::ast_visitor::visit( x::temp_type_ast * val )
+{
+	for ( const auto & it : val->elements )
+		it->accept( this );
+}
+
+void x::ast_visitor::visit( x::func_type_ast * val )
+{
+	for ( const auto & it : val->parameters )
+		it->accept( this );
+}
+
+void x::ast_visitor::visit( x::array_type_ast * val )
 {
 }
 
@@ -706,15 +733,12 @@ void x::ast_visitor::visit( x::enum_decl_ast * val )
 		it->accept( this );
 }
 
-void x::ast_visitor::visit( x::flag_decl_ast * val )
-{
-	for ( const auto & it : val->elements )
-		it->accept( this );
-}
-
 void x::ast_visitor::visit( x::class_decl_ast * val )
 {
-	if ( val->base ) val->base->accept( this );
+	if ( val->base )
+		val->base->accept( this );
+	for ( const auto & it : val->usings )
+		it->accept( this );
 	for ( const auto & it : val->variables )
 		it->accept( this );
 	for ( const auto & it : val->functions )
@@ -726,27 +750,33 @@ void x::ast_visitor::visit( x::using_decl_ast * val )
 	val->retype->accept( this );
 }
 
-void x::ast_visitor::visit( x::enum_element_ast * val )
+void x::ast_visitor::visit( x::element_decl_ast * val )
 {
-}
-
-void x::ast_visitor::visit( x::flag_element_ast * val )
-{
-}
-
-void x::ast_visitor::visit( x::temp_element_ast * val )
-{
-
 }
 
 void x::ast_visitor::visit( x::template_decl_ast * val )
 {
+	if ( val->base )
+		val->base->accept( this );
+	if ( val->where )
+		val->where->accept( this );
+
+	for ( const auto & it : val->elements )
+		it->accept( this );
+	for ( const auto & it : val->usings )
+		it->accept( this );
+	for ( const auto & it : val->variables )
+		it->accept( this );
+	for ( const auto & it : val->functions )
+		it->accept( this );
 }
 
 void x::ast_visitor::visit( x::variable_decl_ast * val )
 {
 	val->value_type->accept( this );
-	if ( val->init ) val->init->accept( this );
+
+	if ( val->init )
+		val->init->accept( this );
 }
 
 void x::ast_visitor::visit( x::function_decl_ast * val )
@@ -756,7 +786,7 @@ void x::ast_visitor::visit( x::function_decl_ast * val )
 	for ( const auto & it : val->parameters )
 		it->accept( this );
 
-	if ( val->stat ) val->stat->accept( this );
+	val->stat->accept( this );
 }
 
 void x::ast_visitor::visit( x::parameter_decl_ast * val )
@@ -791,7 +821,7 @@ void x::ast_visitor::visit( x::await_stat_ast * val )
 
 void x::ast_visitor::visit( x::yield_stat_ast * val )
 {
-	if ( val->exp ) val->exp->accept( this );
+	val->exp->accept( this );
 }
 
 void x::ast_visitor::visit( x::try_stat_ast * val )
@@ -816,7 +846,8 @@ void x::ast_visitor::visit( x::if_stat_ast * val )
 {
 	val->cond->accept( this );
 	val->then_stat->accept( this );
-	if ( val->else_stat ) val->else_stat->accept( this );
+	if ( val->else_stat )
+		val->else_stat->accept( this );
 }
 
 void x::ast_visitor::visit( x::while_stat_ast * val )
@@ -846,7 +877,8 @@ void x::ast_visitor::visit( x::break_stat_ast * val )
 
 void x::ast_visitor::visit( x::return_stat_ast * val )
 {
-	if ( val->exp ) val->exp->accept( this );
+	if ( val->exp )
+		val->exp->accept( this );
 }
 
 void x::ast_visitor::visit( x::continue_stat_ast * val )
@@ -857,7 +889,8 @@ void x::ast_visitor::visit( x::local_stat_ast * val )
 {
 	val->value_type->accept( this );
 
-	if ( val->init ) val->init->accept( this );
+	if ( val->init )
+		val->init->accept( this );
 }
 
 void x::ast_visitor::visit( x::assignment_exp_ast * val )
@@ -984,7 +1017,7 @@ void x::ast_visitor::visit( x::closure_exp_ast * val )
 	for ( const auto & it : val->parameters )
 		it->accept( this );
 
-	if ( val->stat ) val->stat->accept( this );
+	val->stat->accept( this );
 }
 
 void x::ast_visitor::visit( x::arguments_exp_ast * val )

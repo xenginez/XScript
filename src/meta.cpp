@@ -36,41 +36,7 @@ x::static_string_view x::meta_enum::fullname() const
 	return _fullname;
 }
 
-std::span<const x::meta_enum_element_ptr> x::meta_enum::elements() const
-{
-	return _elements;
-}
-
-x::meta_flag::meta_flag()
-{
-}
-
-x::meta_t x::meta_flag::type() const
-{
-	return x::meta_t::FLAG;
-}
-
-x::uint64 x::meta_flag::size() const
-{
-	return sizeof( x::uint64 );
-}
-
-x::uint64 x::meta_flag::hashcode() const
-{
-	return x::hash( fullname() );
-}
-
-x::static_string_view x::meta_flag::name() const
-{
-	return _name;
-}
-
-x::static_string_view x::meta_flag::fullname() const
-{
-	return _fullname;
-}
-
-std::span<const x::meta_flag_element_ptr> x::meta_flag::elements() const
+std::span<const x::meta_element_ptr> x::meta_enum::elements() const
 {
 	return _elements;
 }
@@ -123,62 +89,33 @@ void x::meta_class::construct( void * ptr ) const
 {
 }
 
-x::meta_function::meta_function()
+x::meta_element::meta_element()
 {
 }
 
-x::meta_t x::meta_function::type() const
+x::meta_t x::meta_element::type() const
 {
-	return x::meta_t::FUNCTION;
+	return x::meta_t::ENUM_ELEMENT;
 }
 
-x::uint64 x::meta_function::hashcode() const
+x::uint64 x::meta_element::hashcode() const
 {
 	return x::hash( fullname() );
 }
 
-x::static_string_view x::meta_function::name() const
+x::static_string_view x::meta_element::name() const
 {
 	return _name;
 }
 
-x::static_string_view x::meta_function::fullname() const
+x::static_string_view x::meta_element::fullname() const
 {
 	return _fullname;
 }
 
-bool x::meta_function::is_const() const
+x::int64 x::meta_element::value() const
 {
-	return _is_const;
-}
-
-bool x::meta_function::is_async() const
-{
-	return _is_async;
-}
-
-bool x::meta_function::is_static() const
-{
-	return _is_static;
-}
-
-x::access_t x::meta_function::access() const
-{
-	return _access;
-}
-
-x::typedesc x::meta_function::result() const
-{
-	return _result;
-}
-
-std::span<const x::meta_param_element_ptr> x::meta_function::parameters() const
-{
-	return _parameter_types;
-}
-
-void x::meta_function::invoke() const
-{
+	return _value;
 }
 
 x::meta_variable::meta_variable()
@@ -233,6 +170,93 @@ void x::meta_variable::set( const x::value & obj ) const
 {
 }
 
+x::meta_function::meta_function()
+{
+}
+
+x::meta_t x::meta_function::type() const
+{
+	return x::meta_t::FUNCTION;
+}
+
+x::uint64 x::meta_function::hashcode() const
+{
+	return x::hash( fullname() );
+}
+
+x::static_string_view x::meta_function::name() const
+{
+	return _name;
+}
+
+x::static_string_view x::meta_function::fullname() const
+{
+	return _fullname;
+}
+
+bool x::meta_function::is_const() const
+{
+	return _is_const;
+}
+
+bool x::meta_function::is_async() const
+{
+	return _is_async;
+}
+
+bool x::meta_function::is_static() const
+{
+	return _is_static;
+}
+
+x::access_t x::meta_function::access() const
+{
+	return _access;
+}
+
+x::typedesc x::meta_function::result() const
+{
+	return _result;
+}
+
+std::span<const x::meta_parameter_ptr> x::meta_function::parameters() const
+{
+	return _parameter_types;
+}
+
+void x::meta_function::invoke() const
+{
+}
+
+x::meta_parameter::meta_parameter()
+{
+}
+
+x::meta_t x::meta_parameter::type() const
+{
+	return x::meta_t::PARAM_ELEMENT;
+}
+
+x::uint64 x::meta_parameter::hashcode() const
+{
+	return x::hash( fullname() );
+}
+
+x::static_string_view x::meta_parameter::name() const
+{
+	return _name;
+}
+
+x::static_string_view x::meta_parameter::fullname() const
+{
+	return _fullname;
+}
+
+const x::typedesc & x::meta_parameter::desc() const
+{
+	return _type;
+}
+
 x::meta_namespace::meta_namespace()
 {
 }
@@ -268,91 +292,4 @@ x::static_string_view x::meta_attribute::find( std::string_view key ) const
 	if ( it != _map.end() )
 		return it->second;
 	return {};
-}
-
-x::meta_enum_element::meta_enum_element()
-{
-}
-
-x::meta_t x::meta_enum_element::type() const
-{
-	return x::meta_t::ENUM_ELEMENT;
-}
-
-x::uint64 x::meta_enum_element::hashcode() const
-{
-	return x::hash( fullname() );
-}
-
-x::static_string_view x::meta_enum_element::name() const
-{
-	return _name;
-}
-
-x::static_string_view x::meta_enum_element::fullname() const
-{
-	return _fullname;
-}
-
-x::int64 x::meta_enum_element::value() const
-{
-	return _value;
-}
-
-x::meta_flag_element::meta_flag_element()
-{
-}
-
-x::meta_t x::meta_flag_element::type() const
-{
-	return x::meta_t::ENUM_ELEMENT;
-}
-
-x::uint64 x::meta_flag_element::hashcode() const
-{
-	return x::hash( fullname() );
-}
-
-x::static_string_view x::meta_flag_element::name() const
-{
-	return _name;
-}
-
-x::static_string_view x::meta_flag_element::fullname() const
-{
-	return _fullname;
-}
-
-x::uint64 x::meta_flag_element::value() const
-{
-	return _value;
-}
-
-x::meta_param_element::meta_param_element()
-{
-}
-
-x::meta_t x::meta_param_element::type() const
-{
-	return x::meta_t::PARAM_ELEMENT;
-}
-
-x::uint64 x::meta_param_element::hashcode() const
-{
-	return x::hash( fullname() );
-}
-
-x::static_string_view x::meta_param_element::name() const
-{
-	return _name;
-}
-
-x::static_string_view x::meta_param_element::fullname() const
-{
-	return _fullname;
-}
-
-const x::typedesc & x::meta_param_element::desc() const
-{
-	return _type;
 }

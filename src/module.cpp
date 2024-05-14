@@ -15,10 +15,6 @@ void x::module::visit( x::unit_ast * val )
 {
 }
 
-void x::module::visit( x::type_ast * val )
-{
-}
-
 void x::module::visit( x::import_ast * val )
 {
 }
@@ -27,11 +23,23 @@ void x::module::visit( x::attribute_ast * val )
 {
 }
 
-void x::module::visit( x::enum_decl_ast * val )
+void x::module::visit( x::type_ast * val )
 {
 }
 
-void x::module::visit( x::flag_decl_ast * val )
+void x::module::visit( x::temp_type_ast * val )
+{
+}
+
+void x::module::visit( x::func_type_ast * val )
+{
+}
+
+void x::module::visit( x::array_type_ast * val )
+{
+}
+
+void x::module::visit( x::enum_decl_ast * val )
 {
 }
 
@@ -43,11 +51,7 @@ void x::module::visit( x::using_decl_ast * val )
 {
 }
 
-void x::module::visit( x::enum_element_ast * val )
-{
-}
-
-void x::module::visit( x::flag_element_ast * val )
+void x::module::visit( x::element_decl_ast * val )
 {
 }
 

@@ -9,9 +9,8 @@
 #include <exception>
 
 #include "flags.hpp"
-#include "static_string_view.hpp"
-
 #include "float16.h"
+#include "static_string_view.hpp"
 
 #define ALIGN(size, align) ( ( (size) + (align) - 1 ) & ~( (align) - 1 ) )
 #ifdef _DEBUG
@@ -24,6 +23,7 @@ namespace x
 {
     static constexpr const int magic_num = 'xsl\0';
     static constexpr const int version_num = '0001';
+    static constexpr const int ref_size = sizeof( std::intptr_t );
 
     using byte = std::byte;
     using int8 = std::int8_t;
@@ -36,22 +36,24 @@ namespace x
     using uint64 = std::uint64_t;
     using float32 = float;
     using float64 = double;
+    using string = const char *;
     using intptr = std::intptr_t;
 
     enum class ast_t
     {
         UNIT,
-        TYPE,
         IMPORT,
         ATTRIBUTE,
 
+        TYPE,
+        TEMP_TYPE,
+        FUNC_TYPE,
+        ARRAY_TYPE,
+
         ENUM_DECL,
-        FLAG_DECL,
         CLASS_DECL,
         USING_DECL,
-        ENUM_ELEMENT,
-        FLAG_ELEMENT,
-        TEMP_ELEMENT,
+        ELEMENT_DECL,
         TEMPLATE_DECL,
         VARIABLE_DECL,
         FUNCTION_DECL,
@@ -181,10 +183,10 @@ namespace x
         TK_RIGHT_BRACKETS,       // )
         TK_LEFT_CURLY_BRACES,    // {
         TK_RIGHT_CURLY_BRACES,   // }
+        TK_OBJECT,               // object
         TK_VOID,                 // void
         TK_BYTE,                 // byte
         TK_BOOL,                 // bool
-        TK_ANY,                  // any
         TK_INTPTR,               // intptr
         TK_INT8,                 // int8
         TK_INT16,                // int16
@@ -204,7 +206,6 @@ namespace x
         TK_ATTRIBUTE,            // attribute
         TK_USING,                // using
         TK_ENUM,                 // enum
-        TK_FLAG,                 // flag
         TK_CLASS,                // class
         TK_VARIABLE,             // var
         TK_FUNCTION,             // func
@@ -290,20 +291,17 @@ namespace x
     {
         UNIT,
         ENUM,
-        FLAG,
         ALIAS,
         CLASS,
         BLOCK,
         CYCLE,
         LOCAL,
         PARAM,
+        ELEMENT,
         FUNCTION,
         VARIABLE,
         TEMPLATE,
         NAMESPACE,
-        ENUM_ELEMENT,
-        FLAG_ELEMENT,
-        TEMP_ELEMENT,
     };
 
     enum class opcode_t
@@ -401,27 +399,25 @@ namespace x
     class cycle_symbol;
     class local_symbol;
     class param_symbol;
+    class element_symbol;
     class function_symbol;
     class variable_symbol;
     class template_symbol;
     class namespace_symbol;
-    class enum_element_symbol;
-    class flag_element_symbol;
-    class temp_element_symbol;
 
     class ast; using ast_ptr = std::shared_ptr<ast>;
     class unit_ast; using unit_ast_ptr = std::shared_ptr<unit_ast>;
-    class type_ast; using type_ast_ptr = std::shared_ptr<type_ast>;
     class import_ast; using import_ast_ptr = std::shared_ptr<import_ast>;
     class attribute_ast; using attribute_ast_ptr = std::shared_ptr<attribute_ast>;
+    class type_ast; using type_ast_ptr = std::shared_ptr<type_ast>;
+    class temp_type_ast; using temp_type_ast_ptr = std::shared_ptr<temp_type_ast>;
+    class func_type_ast; using func_type_ast_ptr = std::shared_ptr<func_type_ast>;
+    class array_type_ast; using array_type_ast_ptr = std::shared_ptr<array_type_ast>;
     class decl_ast; using decl_ast_ptr = std::shared_ptr<decl_ast>;
     class enum_decl_ast; using enum_decl_ast_ptr = std::shared_ptr<enum_decl_ast>;
-    class flag_decl_ast; using flag_decl_ast_ptr = std::shared_ptr<flag_decl_ast>;
     class class_decl_ast; using class_decl_ast_ptr = std::shared_ptr<class_decl_ast>;
     class using_decl_ast; using using_decl_ast_ptr = std::shared_ptr<using_decl_ast>;
-    class enum_element_ast; using enum_element_ast_ptr = std::shared_ptr<enum_element_ast>;
-    class flag_element_ast; using flag_element_ast_ptr = std::shared_ptr<flag_element_ast>;
-    class temp_element_ast; using temp_element_ast_ptr = std::shared_ptr<temp_element_ast>;
+    class element_decl_ast; using element_decl_ast_ptr = std::shared_ptr<element_decl_ast>;
     class template_decl_ast; using template_decl_ast_ptr = std::shared_ptr<template_decl_ast>;
     class variable_decl_ast; using variable_decl_ast_ptr = std::shared_ptr<variable_decl_ast>;
     class function_decl_ast; using function_decl_ast_ptr = std::shared_ptr<function_decl_ast>;
@@ -437,6 +433,7 @@ namespace x
     class catch_stat_ast; using catch_stat_ast_ptr = std::shared_ptr<catch_stat_ast>;
     class throw_stat_ast; using throw_stat_ast_ptr = std::shared_ptr<throw_stat_ast>;
     class if_stat_ast; using if_stat_ast_ptr = std::shared_ptr<if_stat_ast>;
+    class cycle_stat_ast; using cycle_stat_ast_ptr = std::shared_ptr<cycle_stat_ast>;
     class while_stat_ast; using while_stat_ast_ptr = std::shared_ptr<while_stat_ast>;
     class for_stat_ast; using for_stat_ast_ptr = std::shared_ptr<for_stat_ast>;
     class foreach_stat_ast; using foreach_stat_ast_ptr = std::shared_ptr<foreach_stat_ast>;
@@ -491,15 +488,13 @@ namespace x
     class meta; using meta_ptr = std::shared_ptr<meta>;
     class meta_type; using meta_type_ptr = std::shared_ptr<meta_type>;
     class meta_enum; using meta_enum_ptr = std::shared_ptr<meta_enum>;
-    class meta_flag; using meta_flag_ptr = std::shared_ptr<meta_flag>;
     class meta_class; using meta_class_ptr = std::shared_ptr<meta_class>;
+    class meta_element; using meta_element_ptr = std::shared_ptr<meta_element>;
     class meta_variable; using meta_variable_ptr = std::shared_ptr<meta_variable>;
     class meta_function; using meta_function_ptr = std::shared_ptr<meta_function>;
+    class meta_parameter; using meta_parameter_ptr = std::shared_ptr<meta_parameter>;
     class meta_namespace; using meta_namespace_ptr = std::shared_ptr<meta_namespace>;
     class meta_attribute; using meta_attribute_ptr = std::shared_ptr<meta_attribute>;
-    class meta_enum_element; using meta_enum_element_ptr = std::shared_ptr<meta_enum_element>;
-    class meta_flag_element; using meta_flag_element_ptr = std::shared_ptr<meta_flag_element>;
-    class meta_param_element; using meta_param_element_ptr = std::shared_ptr<meta_param_element>;
 
     class module; using module_ptr = std::shared_ptr<module>;
     class symbols; using symbols_ptr = std::shared_ptr<symbols>;
@@ -509,7 +504,6 @@ namespace x
     struct typedesc
     {
         int array = 0;
-        bool is_ref = false;
         bool is_const = false;
         std::string name;
     };
@@ -552,6 +546,8 @@ namespace x
     }
 
     template<typename ... Ts> struct overload : Ts ... { using Ts::operator() ...; }; template<class... Ts> overload( Ts... ) -> overload<Ts...>;
+    template<template<class...> class Target, class T> struct is_template_of { static const bool value = false; };
+    template<template<class...> class Target, class...Args> struct is_template_of< Target, Target<Args...> > { static const bool value = true; };
 
     static std::map<std::string, x::token_t> token_map =
     {
@@ -604,7 +600,7 @@ namespace x
         { (const char *)u8"void", x::token_t::TK_VOID },
         { (const char *)u8"byte", x::token_t::TK_BYTE },
         { (const char *)u8"bool", x::token_t::TK_BOOL },
-        { (const char *)u8"any", x::token_t::TK_ANY },
+        { (const char *)u8"object", x::token_t::TK_OBJECT },
         { (const char *)u8"intptr", x::token_t::TK_INTPTR },
         { (const char *)u8"int8", x::token_t::TK_INT8 },
         { (const char *)u8"int16", x::token_t::TK_INT16 },
@@ -624,7 +620,6 @@ namespace x
         { (const char *)u8"attribute", x::token_t::TK_ATTRIBUTE },
         { (const char *)u8"using", x::token_t::TK_USING },
         { (const char *)u8"enum", x::token_t::TK_ENUM },
-        { (const char *)u8"flag", x::token_t::TK_FLAG },
         { (const char *)u8"class", x::token_t::TK_CLASS },
         { (const char *)u8"var", x::token_t::TK_VARIABLE },
         { (const char *)u8"func", x::token_t::TK_FUNCTION },

@@ -29,7 +29,6 @@ namespace x
         {
             x::uint64 type; // type section index
             int array = 0;
-            bool is_ref = false;
             bool is_const = false;
         };
 
@@ -119,16 +118,18 @@ namespace x
 
     private:
 		void visit( x::unit_ast * val ) override;
-		void visit( x::type_ast * val ) override;
 		void visit( x::import_ast * val ) override;
 		void visit( x::attribute_ast * val ) override;
 
+        void visit( x::type_ast * val ) override;
+        void visit( x::temp_type_ast * val ) override;
+        void visit( x::func_type_ast * val ) override;
+        void visit( x::array_type_ast * val ) override;
+
 		void visit( x::enum_decl_ast * val ) override;
-		void visit( x::flag_decl_ast * val ) override;
 		void visit( x::class_decl_ast * val ) override;
 		void visit( x::using_decl_ast * val ) override;
-		void visit( x::enum_element_ast * val ) override;
-		void visit( x::flag_element_ast * val ) override;
+		void visit( x::element_decl_ast * val ) override;
 		void visit( x::template_decl_ast * val ) override;
 		void visit( x::variable_decl_ast * val ) override;
 		void visit( x::function_decl_ast * val ) override;

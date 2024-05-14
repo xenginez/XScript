@@ -29,16 +29,6 @@ namespace x
 		std::vector<import_ast_ptr> imports;
 		std::vector<namespace_decl_ast_ptr> namespaces;
 	};
-	class type_ast : public ast
-	{
-	public:
-		x::ast_t type() const override;
-		void accept( ast_visitor * visitor ) override;
-
-	public:
-		x::typedesc desc;
-		std::vector<x::type_ast_ptr> types;
-	};
 	class import_ast : public ast
 	{
 	public:
@@ -58,6 +48,45 @@ namespace x
 		std::map<std::string, std::string> _attributes;
 	};
 
+	class type_ast : public ast
+	{
+	public:
+		x::ast_t type() const override;
+		void accept( ast_visitor * visitor ) override;
+
+	public:
+		bool is_ref = false;
+		bool is_const = false;
+		std::string name;
+	};
+	class temp_type_ast : public type_ast
+	{
+	public:
+		x::ast_t type() const override;
+		void accept( ast_visitor * visitor ) override;
+
+	public:
+		std::vector<x::type_ast_ptr> elements;
+	};
+	class func_type_ast : public type_ast
+	{
+	public:
+		x::ast_t type() const override;
+		void accept( ast_visitor * visitor ) override;
+
+	public:
+		std::vector<x::type_ast_ptr> parameters;
+	};
+	class array_type_ast : public type_ast
+	{
+	public:
+		x::ast_t type() const override;
+		void accept( ast_visitor * visitor ) override;
+
+	public:
+		int array_count = 1;
+	};
+
 	class decl_ast : public ast
 	{
 	public:
@@ -72,16 +101,7 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
-		std::vector<x::enum_element_ast_ptr> elements;
-	};
-	class flag_decl_ast : public decl_ast
-	{
-	public:
-		x::ast_t type() const override;
-		void accept( ast_visitor * visitor ) override;
-
-	public:
-		std::vector<x::flag_element_ast_ptr> elements;
+		std::vector<x::element_decl_ast_ptr> elements;
 	};
 	class class_decl_ast : public decl_ast
 	{
@@ -104,36 +124,14 @@ namespace x
 	public:
 		x::type_ast_ptr retype;
 	};
-	class enum_element_ast : public ast
+	class element_decl_ast : public decl_ast
 	{
 	public:
 		x::ast_t type() const override;
 		void accept( ast_visitor * visitor ) override;
 
 	public:
-		std::string name;
-		x::int64 value;
-		x::attribute_ast_ptr attr;
-	};
-	class flag_element_ast : public ast
-	{
-	public:
-		x::ast_t type() const override;
-		void accept( ast_visitor * visitor ) override;
-
-	public:
-		std::string name;
-		x::uint64 value;
-		x::attribute_ast_ptr attr;
-	};
-	class temp_element_ast : public ast
-	{
-	public:
-		x::ast_t type() const override;
-		void accept( ast_visitor * visitor ) override;
-
-	public:
-		std::string name;
+		x::int64 value = 0;
 	};
 	class template_decl_ast : public decl_ast
 	{
@@ -144,8 +142,8 @@ namespace x
 	public:
 		x::type_ast_ptr base;
 		x::exp_stat_ast_ptr where;
+		std::vector<x::type_ast_ptr> elements;
 		std::vector<x::using_decl_ast_ptr> usings;
-		std::vector<temp_element_ast_ptr> elements;
 		std::vector<x::variable_decl_ast_ptr> variables;
 		std::vector<x::function_decl_ast_ptr> functions;
 	};
@@ -156,6 +154,7 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
+		bool is_local = false;
 		bool is_static = false;
 		bool is_thread = false;
 		x::type_ast_ptr value_type;
@@ -241,7 +240,7 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
-		bool is_break;
+		bool is_break = false;
 		x::exp_stat_ast_ptr exp;
 	};
 	class try_stat_ast : public stat_ast
@@ -284,7 +283,11 @@ namespace x
 		x::stat_ast_ptr then_stat;
 		x::stat_ast_ptr else_stat;
 	};
-	class while_stat_ast : public stat_ast
+	class cycle_stat_ast : public stat_ast
+	{
+
+	};
+	class while_stat_ast : public cycle_stat_ast
 	{
 	public:
 		x::ast_t type() const override;
@@ -294,7 +297,7 @@ namespace x
 		x::stat_ast_ptr stat;
 		x::exp_stat_ast_ptr cond;
 	};
-	class for_stat_ast : public stat_ast
+	class for_stat_ast : public cycle_stat_ast
 	{
 	public:
 		x::ast_t type() const override;
@@ -306,7 +309,7 @@ namespace x
 		x::exp_stat_ast_ptr step;
 		x::stat_ast_ptr stat;
 	};
-	class foreach_stat_ast : public stat_ast
+	class foreach_stat_ast : public cycle_stat_ast
 	{
 	public:
 		x::ast_t type() const override;
@@ -361,7 +364,7 @@ namespace x
 	class binary_exp_ast : public exp_stat_ast
 	{
 	public:
-		x::token_t tk_type;
+		x::token_t tk_type = x::token_t::TK_EOF;
 		x::exp_stat_ast_ptr left, right;
 	};
 	class assignment_exp_ast : public binary_exp_ast
@@ -479,7 +482,7 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
-		x::token_t tk_type;
+		x::token_t tk_type = x::token_t::TK_EOF;
 		x::exp_stat_ast_ptr exp;
 	};
 	class postfix_exp_ast : public unary_exp_ast
@@ -534,11 +537,9 @@ namespace x
 
 	public:
 		bool is_async = false;
-		bool is_static = false;
 		std::string name;
-		x::access_t access = x::access_t::PRIVATE;
-		x::stat_ast_ptr stat;
 		x::type_ast_ptr result;
+		x::compound_stat_ast_ptr stat;
 		std::vector<x::identifier_exp_ast_ptr> captures;
 		std::vector<x::parameter_decl_ast_ptr> parameters;
 	};
@@ -577,7 +578,7 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
-		bool value;
+		bool value = false;
 	};
 	class int_const_exp_ast : public const_exp_ast
 	{
@@ -589,7 +590,7 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
-		x::int8 value;
+		x::int8 value = 0;
 	};
 	class int16_const_exp_ast : public int_const_exp_ast
 	{
@@ -598,7 +599,7 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
-		x::int16 value;
+		x::int16 value = 0;
 	};
 	class int32_const_exp_ast : public int_const_exp_ast
 	{
@@ -607,7 +608,7 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
-		x::int32 value;
+		x::int32 value = 0;
 	};
 	class int64_const_exp_ast : public int_const_exp_ast
 	{
@@ -616,7 +617,7 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
-		x::int64 value;
+		x::int64 value = 0;
 	};
 	class uint8_const_exp_ast : public int_const_exp_ast
 	{
@@ -625,7 +626,7 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
-		x::uint8 value;
+		x::uint8 value = 0;
 	};
 	class uint16_const_exp_ast : public int_const_exp_ast
 	{
@@ -634,7 +635,7 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
-		x::uint16 value;
+		x::uint16 value = 0;
 	};
 	class uint32_const_exp_ast : public int_const_exp_ast
 	{
@@ -643,7 +644,7 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
-		x::uint32 value;
+		x::uint32 value = 0;
 	};
 	class uint64_const_exp_ast : public int_const_exp_ast
 	{
@@ -652,7 +653,7 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
-		x::uint64 value;
+		x::uint64 value = 0;
 	};
 	class float_const_exp_ast : public const_exp_ast
 	{
@@ -664,7 +665,7 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
-		x::float16 value;
+		x::float16 value = 0.0f;
 	};
 	class float32_const_exp_ast : public float_const_exp_ast
 	{
@@ -673,7 +674,7 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
-		x::float32 value;
+		x::float32 value = 0.0f;
 	};
 	class float64_const_exp_ast : public float_const_exp_ast
 	{
@@ -682,7 +683,7 @@ namespace x
 		void accept( ast_visitor * visitor ) override;
 
 	public:
-		x::float64 value;
+		x::float64 value = 0.0;
 	};
 	class string_const_exp_ast : public const_exp_ast
 	{
@@ -701,17 +702,18 @@ namespace x
 
 	public:
 		virtual void visit( x::unit_ast * val );
-		virtual void visit( x::type_ast * val );
 		virtual void visit( x::import_ast * val );
 		virtual void visit( x::attribute_ast * val );
-		
+
+		virtual void visit( x::type_ast * val );
+		virtual void visit( x::temp_type_ast * val );
+		virtual void visit( x::func_type_ast * val );
+		virtual void visit( x::array_type_ast * val );
+
 		virtual void visit( x::enum_decl_ast * val );
-		virtual void visit( x::flag_decl_ast * val );
 		virtual void visit( x::class_decl_ast * val );
 		virtual void visit( x::using_decl_ast * val );
-		virtual void visit( x::enum_element_ast * val );
-		virtual void visit( x::flag_element_ast * val );
-		virtual void visit( x::temp_element_ast * val );
+		virtual void visit( x::element_decl_ast * val );
 		virtual void visit( x::template_decl_ast * val );
 		virtual void visit( x::variable_decl_ast * val );
 		virtual void visit( x::function_decl_ast * val );

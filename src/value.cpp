@@ -146,14 +146,14 @@ bool x::value::is_string() const
 	return type() == x::value_t::STRING;
 }
 
-bool x::value::is_object() const
-{
-	return type() == x::value_t::OBJECT;
-}
-
 bool x::value::is_intptr() const
 {
 	return type() == x::value_t::INTPTR;
+}
+
+bool x::value::is_object() const
+{
+	return type() == x::value_t::OBJECT;
 }
 
 bool x::value::to_bool() const
@@ -240,13 +240,6 @@ x::float64 x::value::to_float64() const
 	return f64;
 }
 
-x::object * x::value::to_object() const
-{
-	ASSERT( is_object(), "" );
-
-	return obj;
-}
-
 x::intptr x::value::to_intptr() const
 {
 	ASSERT( is_intptr(), "" );
@@ -254,9 +247,16 @@ x::intptr x::value::to_intptr() const
 	return ptr;
 }
 
-const char * x::value::to_string() const
+x::string x::value::to_string() const
 {
 	ASSERT( is_string(), "" );
 
 	return str;
+}
+
+x::object * x::value::to_object() const
+{
+	ASSERT( is_object(), "" );
+
+	return obj;
 }

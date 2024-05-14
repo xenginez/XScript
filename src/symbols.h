@@ -32,9 +32,9 @@ namespace x
 
 	public:
 		x::symbol_t type = x::symbol_t::UNIT;
+		x::ast_ptr ast;
 		std::string name;
 		std::string fullname;
-		x::location location;
 		x::symbol * parent = nullptr;
 	};
 	class type_symbol
@@ -62,6 +62,9 @@ namespace x
 		~unit_symbol() override;
 
 	public:
+		x::unit_ast_ptr cast_ast() const;
+
+	public:
 		void add_child( x::symbol * val ) override;
 		x::symbol * find_child( std::string_view name ) const override;
 
@@ -75,26 +78,15 @@ namespace x
 		~enum_symbol() override;
 
 	public:
-		virtual x::uint64 size() const override;
+		x::enum_decl_ast_ptr cast_ast() const;
+
+	public:
+		x::uint64 size() const override;
 		void add_child( x::symbol * val ) override;
 		x::symbol * find_child( std::string_view name ) const override;
 
 	public:
-		std::vector<enum_element_symbol *> elements;
-	};
-	class flag_symbol :public symbol, public type_symbol, public scope_symbol
-	{
-	public:
-		flag_symbol();
-		~flag_symbol() override;
-
-	public:
-		virtual x::uint64 size() const override;
-		void add_child( x::symbol * val ) override;
-		x::symbol * find_child( std::string_view name ) const override;
-
-	public:
-		std::vector<flag_element_symbol *> elements;
+		std::vector<x::element_symbol *> elements;
 	};
 	class alias_symbol : public symbol, public type_symbol
 	{
@@ -103,11 +95,13 @@ namespace x
 		~alias_symbol() override;
 
 	public:
-		virtual x::uint64 size() const override;
+		x::using_decl_ast_ptr cast_ast() const;
 
 	public:
-		x::typedesc desc;
-		x::type_symbol * value = nullptr;
+		x::uint64 size() const override;
+
+	public:
+		x::type_symbol * retype = nullptr;
 	};
 	class class_symbol : public symbol, public type_symbol, public scope_symbol
 	{
@@ -116,7 +110,10 @@ namespace x
 		~class_symbol() override;
 
 	public:
-		virtual x::uint64 size() const override;
+		x::class_decl_ast_ptr cast_ast() const;
+
+	public:
+		x::uint64 size() const override;
 		void add_child( x::symbol * val ) override;
 		x::symbol * find_child( std::string_view name ) const override;
 
@@ -133,17 +130,24 @@ namespace x
 		~block_symbol() override;
 
 	public:
+		x::compound_stat_ast_ptr cast_ast() const;
+
+	public:
 		void add_child( x::symbol * val ) override;
 		x::symbol * find_child( std::string_view name ) const override;
 
 	public:
-		std::vector<x::symbol *> children;
+		std::vector<x::local_symbol *> locals;
+		std::vector<x::block_symbol *> blocks;
 	};
 	class cycle_symbol : public block_symbol
 	{
 	public:
 		cycle_symbol();
 		~cycle_symbol() override;
+
+	public:
+		x::cycle_stat_ast_ptr cast_ast() const;
 	};
 	class local_symbol : public symbol
 	{
@@ -152,8 +156,10 @@ namespace x
 		~local_symbol() override;
 
 	public:
-		x::typedesc desc;
-		x::type_symbol * value = nullptr;
+		x::local_stat_ast_ptr cast_ast() const;
+
+	public:
+		x::type_symbol * valuetype = nullptr;
 	};
 	class param_symbol : public symbol
 	{
@@ -162,14 +168,28 @@ namespace x
 		~param_symbol() override;
 
 	public:
-		x::typedesc desc;
-		x::type_symbol * value = nullptr;
+		x::parameter_decl_ast_ptr cast_ast() const;
+
+	public:
+		x::type_symbol * valuetype = nullptr;
+	};
+	class element_symbol : public symbol
+	{
+	public:
+		element_symbol();
+		~element_symbol() override;
+
+	public:
+		x::element_decl_ast_ptr cast_ast() const;
 	};
 	class function_symbol : public symbol, public scope_symbol
 	{
 	public:
 		function_symbol();
 		~function_symbol() override;
+
+	public:
+		x::function_decl_ast_ptr cast_ast() const;
 
 	public:
 		void add_child( x::symbol * val ) override;
@@ -187,10 +207,9 @@ namespace x
 		~variable_symbol() override;
 
 	public:
-		x::uint64 idx = 0;
-		x::typedesc desc;
-		bool is_static = false;
-		bool is_thread = false;
+		x::variable_decl_ast_ptr cast_ast() const;
+
+	public:
 		x::type_symbol * value = nullptr;
 	};
 	class template_symbol : public symbol, public type_symbol, public scope_symbol
@@ -200,7 +219,10 @@ namespace x
 		~template_symbol() override;
 
 	public:
-		virtual x::uint64 size() const override;
+		x::template_decl_ast_ptr cast_ast() const;
+
+	public:
+		x::uint64 size() const override;
 		void add_child( x::symbol * val ) override;
 		x::symbol * find_child( std::string_view name ) const override;
 
@@ -209,7 +231,6 @@ namespace x
 		std::vector<x::alias_symbol *> aliases;
 		std::vector<x::function_symbol *> functions;
 		std::vector<x::variable_symbol *> variables;
-		std::vector<x::temp_element_symbol *> elements;
 	};
 	class namespace_symbol : public symbol, public scope_symbol
 	{
@@ -218,38 +239,14 @@ namespace x
 		~namespace_symbol() override;
 
 	public:
+		x::namespace_decl_ast_ptr cast_ast() const;
+
+	public:
 		void add_child( x::symbol * val ) override;
 		x::symbol * find_child( std::string_view name ) const override;
 
 	public:
 		std::vector<x::type_symbol *> children;
-	};
-	class enum_element_symbol : public symbol
-	{
-	public:
-		enum_element_symbol();
-		~enum_element_symbol() override;
-
-	public:
-		x::int64 value = 0;
-	};
-	class flag_element_symbol : public symbol
-	{
-	public:
-		flag_element_symbol();
-		~flag_element_symbol() override;
-
-	public:
-		x::uint64 value = 0;
-	};
-	class temp_element_symbol : public symbol
-	{
-	public:
-		temp_element_symbol();
-		~temp_element_symbol() override;
-
-	public:
-		x::typedesc desc;
 	};
 
 	class symbols : public std::enable_shared_from_this<symbols>
@@ -260,30 +257,28 @@ namespace x
 
 	public:
 		void push_scope( std::string_view name );
-		x::unit_symbol * add_unit( const x::location & location );
-		x::enum_symbol * add_enum( std::string_view name, const x::location & location );
-		x::flag_symbol * add_flag( std::string_view name, const x::location & location );
-		x::alias_symbol * add_alias( std::string_view name, const x::location & location );
-		x::class_symbol * add_class( std::string_view name, const x::location & location );
-		x::block_symbol * add_block( const x::location & location );
-		x::cycle_symbol * add_cycle( const x::location & location );
-		x::local_symbol * add_local( std::string_view name, const x::location & location );
-		x::param_symbol * add_param( std::string_view name, const x::location & location );
-		x::function_symbol * add_function( std::string_view name, const x::location & location );
-		x::variable_symbol * add_variable( std::string_view name, const x::location & location );
-		x::template_symbol * add_template( std::string_view name, const x::location & location );
-		x::namespace_symbol * add_namespace( std::string_view name, const x::location & location );
-		x::enum_element_symbol * add_enum_element( std::string_view name, const x::location & location );
-		x::flag_element_symbol * add_flag_element( std::string_view name, const x::location & location );
-		x::temp_element_symbol * add_temp_element( std::string_view name, const x::location & location );
-		bool has_symbol( std::string_view name ) const;
+
+		x::unit_symbol * add_unit( x::unit_ast * ast );
+		x::enum_symbol * add_enum( x::enum_decl_ast * ast );
+		x::alias_symbol * add_alias( x::using_decl_ast * ast );
+		x::class_symbol * add_class( x::class_decl_ast * ast );
+		x::block_symbol * add_block( x::compound_stat_ast * ast );
+		x::cycle_symbol * add_cycle( x::cycle_stat_ast * ast );
+		x::local_symbol * add_local( x::local_stat_ast * ast );
+		x::param_symbol * add_param( x::parameter_decl_ast * ast );
+		x::element_symbol * add_element( x::element_decl_ast * ast );
+		x::function_symbol * add_function( x::function_decl_ast * ast );
+		x::variable_symbol * add_variable( x::variable_decl_ast * ast );
+		x::template_symbol * add_template( x::template_decl_ast * ast );
+		x::namespace_symbol * add_namespace( x::namespace_decl_ast * ast );
+
 		x::type_symbol * find_type_symbol( std::string_view name ) const;
 		x::scope_symbol * find_scope_symbol( std::string_view name ) const;
 		x::class_symbol * find_class_symbol( std::string_view name ) const;
 		x::symbol * find_symbol( std::string_view name, x::scope_symbol * scope = nullptr ) const;
-		x::symbol * up_find_symbol( std::string_view name, x::scope_symbol * scope ) const;
-		x::symbol * down_find_symbol( std::string_view name, x::scope_symbol * scope ) const;
+
 		x::scope_symbol * current_scope() const;
+
 		void pop_scope();
 
 	public:
@@ -294,6 +289,11 @@ namespace x
 	public:
 		void add_reference( const x::location & location, x::symbol * val );
 		x::symbol * find_reference( const x::location & location ) const;
+
+	private:
+		void add_symbol( x::symbol * val );
+		x::symbol * up_find_symbol( std::string_view name, x::scope_symbol * scope ) const;
+		x::symbol * down_find_symbol( std::string_view name, x::scope_symbol * scope ) const;
 
 	private:
 		std::deque<x::scope_symbol *> _scope;

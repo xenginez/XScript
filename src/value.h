@@ -41,8 +41,8 @@ namespace x
 		bool is_float64() const;
 		bool is_floating() const;
 		bool is_string() const;
-		bool is_object() const;
 		bool is_intptr() const;
+		bool is_object() const;
 
 	public:
 		bool to_bool() const;
@@ -57,9 +57,9 @@ namespace x
 		x::float16 to_float16() const;
 		x::float32 to_float32() const;
 		x::float64 to_float64() const;
-		x::object * to_object() const;
+		x::string to_string() const;
 		x::intptr to_intptr() const;
-		const char * to_string() const;
+		x::object * to_object() const;
 
 	private:
 		x::value_flags _flags;
@@ -78,9 +78,9 @@ namespace x
 			x::float16 f16;
 			x::float32 f32;
 			x::float64 f64;
-			x::object * obj;
+			x::string str;
 			x::intptr ptr;
-			const char * str;
+			x::object * obj;
 		};
 	};
 }
