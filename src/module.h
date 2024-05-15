@@ -114,7 +114,15 @@ namespace x
 		module();
 
 	public:
+        void merge( const x::module_ptr & other );
 		void generate( const x::symbols_ptr & symbols, const x::unit_ast_ptr & unit );
+
+    public:
+        void load( std::istream & in );
+        void save( std::ostream & out ) const;
+
+    private:
+        using ast_visitor::visit;
 
     private:
 		void visit( x::unit_ast * val ) override;
@@ -141,6 +149,7 @@ namespace x
 		void visit( x::compound_stat_ast * val ) override;
 		void visit( x::await_stat_ast * val ) override;
 		void visit( x::yield_stat_ast * val ) override;
+        void visit( x::new_stat_ast * val ) override;
 		void visit( x::try_stat_ast * val ) override;
 		void visit( x::catch_stat_ast * val ) override;
 		void visit( x::throw_stat_ast * val ) override;
@@ -183,6 +192,7 @@ namespace x
 		void visit( x::string_const_exp_ast * val ) override;
 
 	public:
+        x::uint64 start = 0;
 		type_section type;
 		desc_section desc;
 		temp_section temp;

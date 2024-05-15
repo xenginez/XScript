@@ -210,6 +210,16 @@ void x::yield_stat_ast::accept( ast_visitor * visitor )
 	visitor->visit( this );
 }
 
+x::ast_t x::new_stat_ast::type() const
+{
+	return x::ast_t::NEW_STAT;
+}
+
+void x::new_stat_ast::accept( ast_visitor * visitor )
+{
+	visitor->visit( this );
+}
+
 x::ast_t x::try_stat_ast::type() const
 {
 	return x::ast_t::TRY_STAT;
@@ -822,6 +832,13 @@ void x::ast_visitor::visit( x::await_stat_ast * val )
 void x::ast_visitor::visit( x::yield_stat_ast * val )
 {
 	val->exp->accept( this );
+}
+
+void x::ast_visitor::visit( x::new_stat_ast * val )
+{
+	val->newtype->accept( this );
+	if ( val->init )
+		val->init->accept( this );
 }
 
 void x::ast_visitor::visit( x::try_stat_ast * val )

@@ -17,21 +17,6 @@ x::pass_with_scope::pass_with_scope( const x::symbols_ptr & val )
 {
 }
 
-x::symbol_scanner_pass::symbol_scanner_pass( const x::symbols_ptr & val )
-	: pass_with_scope( val )
-{
-}
-
-x::type_checker_pass::type_checker_pass( const x::symbols_ptr & val )
-	: pass_with_scope( val )
-{
-}
-
-x::semantic_checker_pass::semantic_checker_pass( const x::symbols_ptr & val )
-	: pass_with_scope( val )
-{
-}
-
 void x::pass_with_scope::visit( x::unit_ast * val )
 {
 	symbols()->push_scope( val->location.file );
@@ -120,6 +105,26 @@ void x::pass_with_scope::visit( x::foreach_stat_ast * val )
 		pass::visit( val );
 	}
 	symbols()->pop_scope();
+}
+
+bool x::pass_with_scope::is_const_int( x::exp_stat_ast * val ) const
+{
+	return false;
+}
+
+x::type_symbol * x::pass_with_scope::get_expr_type( x::exp_stat_ast * val ) const
+{
+	return nullptr;
+}
+
+std::string x::pass_with_scope::template_type_name( x::temp_type_ast * val ) const
+{
+	return std::string();
+}
+
+x::symbol_scanner_pass::symbol_scanner_pass( const x::symbols_ptr & val )
+	: pass_with_scope( val )
+{
 }
 
 void x::symbol_scanner_pass::visit( x::unit_ast * val )
@@ -227,42 +232,91 @@ void x::symbol_scanner_pass::visit( x::local_stat_ast * val )
 	pass_with_scope::visit( val );
 }
 
-void x::type_checker_pass::visit( x::type_ast * val )
+x::instant_template_pass::instant_template_pass( const x::symbols_ptr & val )
+	: pass_with_scope( val )
+{
+}
+
+void x::instant_template_pass::visit( x::temp_type_ast * val )
+{
+	//symbols()->find_template_symbols()
+}
+
+bool x::instant_template_pass::matching( x::template_decl_ast * temp, x::temp_type_ast * type ) const
+{
+	return false;
+}
+
+x::class_decl_ast_ptr x::instant_template_pass::instantiate( x::template_decl_ast * temp, x::temp_type_ast * type ) const
+{
+	return x::class_decl_ast_ptr();
+}
+
+x::semantic_checker_pass::semantic_checker_pass( const x::symbols_ptr & val )
+	: pass_with_scope( val )
+{
+}
+
+void x::semantic_checker_pass::visit( x::type_ast * val )
 {
 	ASSERT( symbols()->find_type_symbol( val->name ) != nullptr, "" );
 
 	pass_with_scope::visit( val );
 }
 
-void x::type_checker_pass::visit( x::temp_type_ast * val )
+void x::semantic_checker_pass::visit( x::temp_type_ast * val )
 {
 	ASSERT( symbols()->find_type_symbol( val->name ) != nullptr, "" );
 
 	pass_with_scope::visit( val );
 }
 
-void x::type_checker_pass::visit( x::func_type_ast * val )
+void x::semantic_checker_pass::visit( x::func_type_ast * val )
 {
 	ASSERT( symbols()->find_type_symbol( val->name ) != nullptr, "" );
 
 	pass_with_scope::visit( val );
 }
 
-void x::type_checker_pass::visit( x::array_type_ast * val )
+void x::semantic_checker_pass::visit( x::array_type_ast * val )
 {
 	ASSERT( symbols()->find_type_symbol( val->name ) != nullptr, "" );
 
 	pass_with_scope::visit( val );
 }
 
-void x::type_checker_pass::visit( x::element_decl_ast * val )
+void x::semantic_checker_pass::visit( x::element_decl_ast * val )
 {
 	ASSERT( is_const_int( val->value.get() ), "" );
 
 	pass_with_scope::visit( val );
 }
 
-void x::type_checker_pass::visit( x::assignment_exp_ast * val )
+void x::semantic_checker_pass::visit( x::break_stat_ast * val )
+{
+	ASSERT( symbols()->up_find_symbol_from_type( x::symbol_t::CYCLE ) != nullptr, "" );
+
+	pass_with_scope::visit( val );
+}
+
+void x::semantic_checker_pass::visit( x::return_stat_ast * val )
+{
+	auto func_sym = symbols()->up_find_symbol_from_type( x::symbol_t::FUNCTION );
+	ASSERT( func_sym != nullptr, "" );
+
+	ASSERT( func_sym->cast_function()->result == get_expr_type( val->exp.get() ), "" );
+
+	pass_with_scope::visit( val );
+}
+
+void x::semantic_checker_pass::visit( x::continue_stat_ast * val )
+{
+	ASSERT( symbols()->up_find_symbol_from_type( x::symbol_t::CYCLE ) != nullptr, "" );
+
+	pass_with_scope::visit( val );
+}
+
+void x::semantic_checker_pass::visit( x::assignment_exp_ast * val )
 {
 	switch ( val->token )
 	{
@@ -286,39 +340,6 @@ void x::type_checker_pass::visit( x::assignment_exp_ast * val )
 	pass_with_scope::visit( val );
 }
 
-void x::type_checker_pass::visit( x::index_exp_ast * val )
-{
-	ASSERT( is_const_int( val->right.get() ), "" );
-
-	pass_with_scope::visit( val );
-}
-
-bool x::type_checker_pass::is_const_int( x::exp_stat_ast * val ) const
-{
-	return false;
-}
-
-x::type_symbol * x::type_checker_pass::get_expr_type( x::exp_stat_ast * val ) const
-{
-	return nullptr;
-}
-
-void x::semantic_checker_pass::visit( x::break_stat_ast * val )
-{
-}
-
-void x::semantic_checker_pass::visit( x::return_stat_ast * val )
-{
-}
-
-void x::semantic_checker_pass::visit( x::continue_stat_ast * val )
-{
-}
-
-void x::semantic_checker_pass::visit( x::assignment_exp_ast * val )
-{
-}
-
 void x::semantic_checker_pass::visit( x::unary_exp_ast * val )
 {
 }
@@ -329,6 +350,9 @@ void x::semantic_checker_pass::visit( x::postfix_exp_ast * val )
 
 void x::semantic_checker_pass::visit( x::index_exp_ast * val )
 {
+	ASSERT( is_const_int( val->right.get() ), "" );
+
+	pass_with_scope::visit( val );
 }
 
 void x::semantic_checker_pass::visit( x::invoke_exp_ast * val )

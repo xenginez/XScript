@@ -4,11 +4,23 @@ x::module::module()
 {
 }
 
+void x::module::merge( const x::module_ptr & other )
+{
+}
+
 void x::module::generate( const x::symbols_ptr & symbols, const x::unit_ast_ptr & unit )
 {
 	_symbols = symbols.get();
 	unit->accept( this );
 	_symbols = nullptr;
+}
+
+void x::module::load( std::istream & in )
+{
+}
+
+void x::module::save( std::ostream & out ) const
+{
 }
 
 void x::module::visit( x::unit_ast * val )
@@ -92,6 +104,10 @@ void x::module::visit( x::await_stat_ast * val )
 }
 
 void x::module::visit( x::yield_stat_ast * val )
+{
+}
+
+void x::module::visit( x::new_stat_ast * val )
 {
 }
 

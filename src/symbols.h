@@ -29,6 +29,10 @@ namespace x
 	public:
 		x::type_symbol * cast_type();
 		x::scope_symbol * cast_scope();
+		x::local_symbol * cast_local();
+		x::param_symbol * cast_param();
+		x::variable_symbol * cast_variable();
+		x::function_symbol * cast_function();
 
 	public:
 		x::symbol_t type = x::symbol_t::UNIT;
@@ -275,8 +279,9 @@ namespace x
 		x::type_symbol * find_type_symbol( std::string_view name ) const;
 		x::scope_symbol * find_scope_symbol( std::string_view name ) const;
 		x::class_symbol * find_class_symbol( std::string_view name ) const;
+		std::vector<x::template_symbol *> find_template_symbols( std::string_view name ) const;
 		x::symbol * find_symbol( std::string_view name, x::scope_symbol * scope = nullptr ) const;
-
+		x::symbol * up_find_symbol_from_type( x::symbol_t type ) const;
 		x::scope_symbol * current_scope() const;
 
 		void pop_scope();
@@ -299,5 +304,6 @@ namespace x
 		std::deque<x::scope_symbol *> _scope;
 		std::map<std::string, x::symbol *> _symbolmap;
 		std::map<std::string, x::symbol *> _referencemap;
+		std::multimap<std::string, x::template_symbol *> _templatemap;
 	};
 }

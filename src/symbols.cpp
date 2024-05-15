@@ -3,7 +3,6 @@
 #include <regex>
 
 #include "ast.h"
-#include "object.h"
 
 namespace
 {
@@ -31,11 +30,11 @@ namespace
 	class foundation_symbol : public x::class_symbol
 	{
 	public:
-		foundation_symbol( std::string_view name, x::uint64 sz )
-			:_size( sz )
+		foundation_symbol( std::string_view name, x::uint64 size )
+			:_size( size )
 		{
-			name = name;
-			fullname = name;
+			this->name = name;
+			this->fullname = name;
 		}
 
 	public:
@@ -108,6 +107,26 @@ x::scope_symbol * x::symbol::cast_scope()
 	ASSERT( is_scope(), "" );
 
 	return reinterpret_cast<x::scope_symbol *>( this );
+}
+
+x::local_symbol * x::symbol::cast_local()
+{
+	return dynamic_cast<x::local_symbol *>( this );
+}
+
+x::param_symbol * x::symbol::cast_param()
+{
+	return dynamic_cast<x::param_symbol *>( this );
+}
+
+x::variable_symbol * x::symbol::cast_variable()
+{
+	return dynamic_cast<x::variable_symbol *>( this );
+}
+
+x::function_symbol * x::symbol::cast_function()
+{
+	return dynamic_cast<x::function_symbol *>( this );
 }
 
 x::symbol * x::type_symbol::cast_symbol()
@@ -500,10 +519,8 @@ x::symbols::symbols()
 
 #define FOUNDATION( TYPE ) sym = new foundation_symbol( #TYPE, sizeof( TYPE ) ); add_symbol( sym );
 		sym = new foundation_symbol( "void", 0 ); add_symbol( sym );
-		FOUNDATION( byte );
 		FOUNDATION( bool );
 		FOUNDATION( byte );
-		FOUNDATION( intptr );
 		FOUNDATION( int8 );
 		FOUNDATION( int16 );
 		FOUNDATION( int32 );
@@ -516,7 +533,8 @@ x::symbols::symbols()
 		FOUNDATION( float32 );
 		FOUNDATION( float64 );
 		FOUNDATION( string );
-		sym = new foundation_symbol( "object", sizeof( x::intptr ) ); add_symbol( sym );
+		FOUNDATION( intptr );
+		sym = new foundation_symbol( "object", sizeof( x::object * ) ); add_symbol( sym );
 #undef FOUNDATION
 	}
 }
@@ -776,6 +794,19 @@ x::class_symbol * x::symbols::find_class_symbol( std::string_view name ) const
 	return reinterpret_cast<x::class_symbol *>( sym );
 }
 
+std::vector<x::template_symbol *> x::symbols::find_template_symbols( std::string_view name ) const
+{
+	std::vector<x::template_symbol *> result;
+
+	auto pair = _templatemap.equal_range( calc_fullname( name ) );
+	for ( auto it = pair.first; it != pair.second; ++it )
+	{
+		result.push_back( it->second );
+	}
+	
+	return result;
+}
+
 x::symbol * x::symbols::find_symbol( std::string_view name, x::scope_symbol * scope ) const
 {
 	if ( scope == nullptr )
@@ -791,6 +822,25 @@ x::symbol * x::symbols::find_symbol( std::string_view name, x::scope_symbol * sc
 		return sym;
 	else if ( auto sym = up_find_symbol( name, scope ) )
 		return sym;
+
+	return nullptr;
+}
+
+x::symbol * x::symbols::up_find_symbol_from_type( x::symbol_t type ) const
+{
+	auto scope = current_scope();
+
+	while ( scope )
+	{
+		if ( scope->cast_symbol()->type == type )
+			return scope->cast_symbol();
+
+		auto parent = scope->cast_symbol()->parent;
+		if ( parent && parent->is_scope() )
+			scope = parent->cast_scope();
+		else
+			scope = nullptr;
+	}
 
 	return nullptr;
 }
@@ -887,7 +937,12 @@ x::symbol * x::symbols::find_reference( std::string_view name ) const
 
 void x::symbols::add_symbol( x::symbol * val )
 {
-	_symbolmap[val->fullname] = val;
 	val->parent = current_scope()->cast_symbol();
+
+	_symbolmap[val->fullname] = val;
+
+	if ( val->type == x::symbol_t::TEMPLATE )
+		_templatemap.emplace( val->fullname, static_cast<x::template_symbol *>( val ) );
+
 	current_scope()->add_child( val );
 }

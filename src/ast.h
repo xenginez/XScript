@@ -242,6 +242,16 @@ namespace x
 	public:
 		x::exp_stat_ast_ptr exp;
 	};
+	class new_stat_ast : public stat_ast
+	{
+	public:
+		x::ast_t type() const override;
+		void accept( ast_visitor * visitor ) override;
+
+	public:
+		x::type_ast_ptr newtype;
+		x::initializers_exp_ast_ptr init;
+	};
 	class try_stat_ast : public stat_ast
 	{
 	public:
@@ -724,6 +734,7 @@ namespace x
 		virtual void visit( x::compound_stat_ast * val );
 		virtual void visit( x::await_stat_ast * val );
 		virtual void visit( x::yield_stat_ast * val );
+		virtual void visit( x::new_stat_ast * val );
 		virtual void visit( x::try_stat_ast * val );
 		virtual void visit( x::catch_stat_ast * val );
 		virtual void visit( x::throw_stat_ast * val );

@@ -32,6 +32,7 @@ namespace x
 		x::compound_stat_ast_ptr compound_stat();
 		x::await_stat_ast_ptr await_stat();
 		x::yield_stat_ast_ptr yield_stat();
+		x::new_stat_ast_ptr new_stat();
 		x::try_stat_ast_ptr try_stat();
 		x::catch_stat_ast_ptr catch_stat();
 		x::throw_stat_ast_ptr throw_stat();

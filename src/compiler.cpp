@@ -2,12 +2,14 @@
 
 #include <map>
 #include <fstream>
+#include <iostream>
 
 #include "pass.h"
 #include "module.h"
 #include "grammar.h"
 #include "symbols.h"
 #include "context.h"
+#include "exception.h"
 
 namespace
 {
@@ -23,13 +25,19 @@ namespace
 struct x::compiler::private_p
 {
 	x::symbols_ptr _symbols;
-	std::vector<std::filesystem::path> _paths;
+	x::compiler::log_callback_t _logger;
 	std::map<std::filesystem::path, uobject> _uobjs;
+	std::deque<std::filesystem::path> _relative_paths;
+	std::vector<std::filesystem::path> _absolute_paths;
 };
 
-x::compiler::compiler()
+x::compiler::compiler( const log_callback_t & callback )
 	: _p( new private_p )
 {
+	if ( callback )
+		_p->_logger = callback;
+	else
+		_p->_logger = []( std::string_view message ) { std::cout << message << std::endl; };
 }
 
 x::compiler::~compiler()
@@ -39,61 +47,113 @@ x::compiler::~compiler()
 
 void x::compiler::add_search_path( const std::filesystem::path & path )
 {
-	_p->_paths.push_back( path );
+	_p->_absolute_paths.push_back( path );
 }
 
-x::context_ptr x::compiler::compile( const std::filesystem::path & file )
+x::module_ptr x::compiler::compile( const std::filesystem::path & file )
 {
 	_p->_symbols = std::make_shared<x::symbols>();
 
-	if ( load_source_file( file ) )
+	try
 	{
-		symbol_scanner_pass scaner( _p->_symbols );
-		type_checker_pass checker( _p->_symbols );
-		semantic_checker_pass semantic( _p->_symbols );
+		load_source_file( file );
 
-		for ( const auto & it : _p->_uobjs ) it.second.ast->accept( &scaner );
-		for ( const auto & it : _p->_uobjs ) it.second.ast->accept( &checker );
-		for ( const auto & it : _p->_uobjs ) it.second.ast->accept( &semantic );
+		symbols();
 
-		for ( auto & it : _p->_uobjs )
-		{
-			if ( it.second.module == nullptr )
-			{
-				it.second.module = std::make_shared<x::module>();
-				it.second.module->generate( _p->_symbols, it.second.ast );
-			}
-		}
+		instant();
 
-		return generate();
+		checker();
+
+		gen_unit_module();
+
+		return merge_all_module();
+	}
+	catch ( const std::exception & e )
+	{
+		_p->_logger( e.what() );
 	}
 
-	return {};
+	return nullptr;
 }
 
-bool x::compiler::load_source_file( std::filesystem::path file )
+void x::compiler::symbols()
 {
-	bool result = false;
+	x::symbol_scanner_pass scaner( _p->_symbols );
+
+	for ( const auto & it : _p->_uobjs )
+		it.second.ast->accept( &scaner );
+}
+
+void x::compiler::instant()
+{
+	x::instant_template_pass instant( _p->_symbols );
+
+	for ( const auto & it : _p->_uobjs )
+		it.second.ast->accept( &instant );
+}
+
+void x::compiler::checker()
+{
+	x::semantic_checker_pass semantic( _p->_symbols );
+
+	for ( const auto & it : _p->_uobjs )
+		it.second.ast->accept( &semantic );
+}
+
+void x::compiler::gen_unit_module()
+{
+	for ( auto & it : _p->_uobjs )
+	{
+		if ( it.second.module == nullptr )
+		{
+			it.second.module = std::make_shared<x::module>();
+			it.second.module->generate( _p->_symbols, it.second.ast );
+			_p->_logger( std::format( "building module {}", it.second.path.string() ) );
+		}
+	}
+}
+
+x::module_ptr x::compiler::merge_all_module()
+{
+	auto result = std::make_shared<x::module>();
+	for ( auto & it : _p->_uobjs )
+	{
+		result->merge( it.second.module );
+	}
+
+	_p->_logger( std::format( "merging all module success" ) );
+
+	return result;
+}
+
+void x::compiler::load_source_file( std::filesystem::path file )
+{
 	std::filesystem::path path;
 	
 	if ( std::filesystem::exists( file ) )
 	{
 		path = file.make_preferred();
 	}
+	else if ( file.is_relative() )
+	{
+		auto tmp = ( _p->_relative_paths.back() / file ).make_preferred();
+		if ( std::filesystem::exists( tmp ) )
+			path = tmp;
+	}
 	else
 	{
-		for ( auto it = _p->_paths.rbegin(); it != _p->_paths.rend(); ++it )
+		for ( const auto & it : _p->_absolute_paths )
 		{
-			auto tmp = ( *it / path ).make_preferred();
+			auto tmp = it / file;
 			if ( std::filesystem::exists( tmp ) )
 			{
-				path = tmp;
+				path = tmp.make_preferred();
 				break;
 			}
 		}
 	}
 
-	if ( path.empty() ) return result;
+	ASSERT( path.empty(), "" );
 
 	uobject * u = nullptr;
 	auto time = std::filesystem::last_write_time( path );
@@ -106,6 +166,7 @@ bool x::compiler::load_source_file( std::filesystem::path file )
 			it->second.ast = nullptr;
 			it->second.module = nullptr;
 		}
+
 		u = &it->second;
 	}
 	else
@@ -121,32 +182,17 @@ bool x::compiler::load_source_file( std::filesystem::path file )
 	{
 		std::ifstream ifs( path );
 		
-		if ( !ifs.is_open() ) return result;
+		ASSERT( ifs.is_open(), "" );
 
 		u->ast = x::grammar( ifs, path.string() ).unit();
+
+		_p->_logger( std::format( "loading script {}", path.string() ) );
 	}
 
-	result = true;
-	
-	_p->_paths.push_back( path.parent_path() );
+	_p->_relative_paths.push_back( path.parent_path() );
 	for ( const auto & it : u->ast->imports )
 	{
-		if ( !load_source_file( it->path ) )
-		{
-			result = false;
-			break;
-		}
+		load_source_file( it->path );
 	}
-	_p->_paths.pop_back();
-
-	return result;
-}
-
-x::context_ptr x::compiler::generate() const
-{
-	auto ctx = std::make_shared<x::context>();
-
-
-
-	return ctx;
+	_p->_relative_paths.pop_back();
 }

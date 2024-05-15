@@ -39,6 +39,11 @@ namespace x
 		void visit( x::while_stat_ast * val ) override;
 		void visit( x::for_stat_ast * val ) override;
 		void visit( x::foreach_stat_ast * val ) override;
+
+	protected:
+		bool is_const_int( x::exp_stat_ast * val ) const;
+		x::type_symbol * get_expr_type( x::exp_stat_ast * val ) const;
+		std::string template_type_name( x::temp_type_ast * val ) const;
 	};
 
 	class symbol_scanner_pass : public pass_with_scope
@@ -68,28 +73,20 @@ namespace x
 		void visit( x::local_stat_ast * val ) override;
 	};
 
-	class type_checker_pass : public pass_with_scope
+	class instant_template_pass : public pass_with_scope
 	{
 	public:
 		using pass_with_scope::visit;
 
 	public:
-		type_checker_pass( const x::symbols_ptr & val );
+		instant_template_pass( const x::symbols_ptr & val );
 
 	public:
-		void visit( x::type_ast * val ) override;
 		void visit( x::temp_type_ast * val ) override;
-		void visit( x::func_type_ast * val ) override;
-		void visit( x::array_type_ast * val ) override;
-
-		void visit( x::element_decl_ast * val ) override;
-
-		void visit( x::assignment_exp_ast * val ) override;
-		void visit( x::index_exp_ast * val ) override;
 
 	private:
-		bool is_const_int( x::exp_stat_ast * val ) const;
-		x::type_symbol * get_expr_type( x::exp_stat_ast * val ) const;
+		bool matching( x::template_decl_ast * temp, x::temp_type_ast * type ) const;
+		x::class_decl_ast_ptr instantiate( x::template_decl_ast * temp, x::temp_type_ast * type ) const;
 	};
 
 	class semantic_checker_pass : public pass_with_scope
@@ -101,6 +98,13 @@ namespace x
 		semantic_checker_pass( const x::symbols_ptr & val );
 
 	public:
+		void visit( x::type_ast * val ) override;
+		void visit( x::temp_type_ast * val ) override;
+		void visit( x::func_type_ast * val ) override;
+		void visit( x::array_type_ast * val ) override;
+
+		void visit( x::element_decl_ast * val ) override;
+
 		void visit( x::break_stat_ast * val ) override;
 		void visit( x::return_stat_ast * val ) override;
 		void visit( x::continue_stat_ast * val ) override;

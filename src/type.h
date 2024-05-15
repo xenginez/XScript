@@ -65,6 +65,7 @@ namespace x
         COMPOUND_STAT,
         AWAIT_STAT,
         YIELD_STAT,
+        NEW_STAT,
         TRY_STAT,
         CATCH_STAT,
         THROW_STAT,
@@ -221,6 +222,7 @@ namespace x
         TK_VIRTUAL,              // virtual
         TK_OVERRIDE,             // override
         TK_THREAD,               // thread_local
+        TK_NEW,                  // new
         TK_WHILE,                // while
         TK_IF,                   // if
         TK_ELSE,                 // else
@@ -430,6 +432,7 @@ namespace x
     class compound_stat_ast; using compound_stat_ast_ptr = std::shared_ptr<compound_stat_ast>;
     class await_stat_ast; using await_stat_ast_ptr = std::shared_ptr<await_stat_ast>;
     class yield_stat_ast; using yield_stat_ast_ptr = std::shared_ptr<yield_stat_ast>;
+    class new_stat_ast; using new_stat_ast_ptr = std::shared_ptr<new_stat_ast>;
     class try_stat_ast; using try_stat_ast_ptr = std::shared_ptr<try_stat_ast>;
     class catch_stat_ast; using catch_stat_ast_ptr = std::shared_ptr<catch_stat_ast>;
     class throw_stat_ast; using throw_stat_ast_ptr = std::shared_ptr<throw_stat_ast>;
@@ -644,6 +647,7 @@ namespace x
         { (const char *)u8"virtual", x::token_t::TK_VIRTUAL },
         { (const char *)u8"override", x::token_t::TK_OVERRIDE },
         { (const char *)u8"thread_local", x::token_t::TK_THREAD },
+        { (const char *)u8"new", x::token_t::TK_NEW },
         { (const char *)u8"while", x::token_t::TK_WHILE },
         { (const char *)u8"if", x::token_t::TK_IF },
         { (const char *)u8"else", x::token_t::TK_ELSE },

@@ -10,17 +10,13 @@ namespace x
 		friend class compiler;
 
 	public:
-		context();
+		context( const x::module_ptr & module );
 		~context();
 
 	public:
 		int version() const;
 		x::meta_ptr find_meta( x::uint64 hashcode ) const;
 		x::meta_ptr find_meta( std::string_view fullname ) const;
-
-	public:
-		void load( std::istream & in );
-		void save( std::ostream & out ) const;
 
 	private:
 		int _version = 0;

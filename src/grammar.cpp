@@ -512,6 +512,8 @@ x::stat_ast_ptr x::grammar::stat()
         return for_stat();
     case x::token_t::TK_FOREACH:
         return foreach_stat();
+    case x::token_t::TK_NEW:
+        return new_stat();
     case x::token_t::TK_TRY:
         return try_stat();
     case x::token_t::TK_THROW:
@@ -593,6 +595,23 @@ x::yield_stat_ast_ptr x::grammar::yield_stat()
         ast->exp = exp_stat();
 
     verify( x::token_t::TK_SEMICOLON );
+
+    return ast;
+}
+
+x::new_stat_ast_ptr x::grammar::new_stat()
+{
+    validity( x::token_t::TK_NEW );
+
+    auto ast = std::make_shared<x::new_stat_ast>();
+    ast->location = _location;
+
+    ast->newtype = type();
+
+    if ( lookup().type == x::token_t::TK_LEFT_CURLY_BRACES )
+    {
+        ast->init = initializers_exp();
+    }
 
     return ast;
 }
