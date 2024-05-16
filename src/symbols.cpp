@@ -3,6 +3,7 @@
 #include <regex>
 
 #include "ast.h"
+#include "value.h"
 
 namespace
 {
@@ -231,6 +232,9 @@ x::class_decl_ast_ptr x::class_symbol::cast_ast() const
 
 x::uint64 x::class_symbol::size() const
 {
+	return 0;
+
+	/*
 	x::uint64 sz = 1;
 
 	if ( base != nullptr )
@@ -238,19 +242,20 @@ x::uint64 x::class_symbol::size() const
 
 	for ( auto it : variables )
 	{
-//		auto ast = it->cast_ast();
-//
-//		if ( ast->is_static || ast->is_thread )
-//			continue;
-//
-//		auto val_type_sz = it->value->size();
-//
-//		if ( ast->is_local )
-//			sz += val_type_sz * ast->value_type->desc.array;
-//		else
-//			sz += reference_size;
+		auto ast = it->cast_ast();
+
+		if ( ast->is_static || ast->is_thread )
+			continue;
+
+		auto val_type_sz = it->value->size();
+
+		if ( ast->is_local )
+			sz += val_type_sz * ast->value_type->desc.array;
+		else
+			sz += reference_size;
 	}
 	return ALIGN( sz, reference_size );
+	*/
 }
 
 void x::class_symbol::add_child( x::symbol * val )
@@ -518,6 +523,7 @@ x::symbols::symbols()
 		x::symbol * sym = nullptr;
 
 #define FOUNDATION( TYPE ) sym = new foundation_symbol( #TYPE, sizeof( TYPE ) ); add_symbol( sym );
+		sym = new foundation_symbol( "any", sizeof( x::value ) ); add_symbol( sym );
 		sym = new foundation_symbol( "void", 0 ); add_symbol( sym );
 		FOUNDATION( bool );
 		FOUNDATION( byte );
@@ -916,6 +922,12 @@ std::string x::symbols::calc_fullname( std::string_view name ) const
 	return fullname;
 }
 
+x::symbol * x::symbols::find_symbol_from_ast( const x::ast_ptr & ast ) const
+{
+	auto it = _astmap.find( ast );
+	return it != _astmap.end() ? it->second : nullptr;
+}
+
 x::symbol * x::symbols::find_symbol_from_fullname( std::string_view fullname ) const
 {
 	auto it = _symbolmap.find( { fullname.begin(), fullname.end() } );
@@ -939,6 +951,7 @@ void x::symbols::add_symbol( x::symbol * val )
 {
 	val->parent = current_scope()->cast_symbol();
 
+	_astmap[val->ast] = val;
 	_symbolmap[val->fullname] = val;
 
 	if ( val->type == x::symbol_t::TEMPLATE )

@@ -21,10 +21,6 @@
 
 namespace x
 {
-    static constexpr const int magic_num = 'xsl\0';
-    static constexpr const int version_num = '0001';
-    static constexpr const int reference_size = sizeof( std::intptr_t );
-
     using byte = std::byte;
     using int8 = std::int8_t;
     using int16 = std::int16_t;
@@ -39,7 +35,7 @@ namespace x
     using string = const char *;
     using intptr = std::intptr_t;
 
-    enum class ast_t
+    enum class ast_t : x::uint8
     {
         UNIT,
         IMPORT,
@@ -118,7 +114,7 @@ namespace x
         STRING_CONST_EXP,
     };
 
-    enum class meta_t
+    enum class meta_t : x::uint8
     {
         ENUM,
         FLAG,
@@ -131,7 +127,7 @@ namespace x
         PARAM_ELEMENT,
     };
 
-    enum class token_t
+    enum class token_t : x::uint8
     {
         TK_EOF = 0,
         TK_IDENTIFIER,           // identifier
@@ -184,6 +180,7 @@ namespace x
         TK_RIGHT_BRACKETS,       // )
         TK_LEFT_CURLY_BRACES,    // {
         TK_RIGHT_CURLY_BRACES,   // }
+        TK_ANY,                  // any
         TK_OBJECT,               // object
         TK_VOID,                 // void
         TK_BYTE,                 // byte
@@ -282,14 +279,14 @@ namespace x
         ASYN_MASK           = 1 << 30,
     };
 
-    enum class access_t
+    enum class access_t : x::uint8
     {
         PUBLIC,
         PRIVATE,
         PROTECTED,
     };
 
-    enum class symbol_t
+    enum class symbol_t : x::uint8
     {
         UNIT,
         ENUM,
@@ -307,7 +304,7 @@ namespace x
         NAMESPACE,
     };
 
-    enum class opcode_t
+    enum class opcode_t : x::uint8
     {
         OP_NOP = 0,       // nop(TKPLS)                                                     1 byte
         OP_MOV,           // mov(dr)            REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF         3-9 byte
@@ -372,16 +369,17 @@ namespace x
         OP_IDSTRUCT,      // idstruct(dr_0)     REGID(1BYTE)/DIFF(4BYTE) OFFSET(2BYTE)   4-7 byte
     };
 
-    enum class section_t
+    enum class section_t : x::uint8
     {
         TYPE,
-        DESC,
         TEMP,
+        DESC,
         DEPEND,
         GLOBAL,
         FUNCTION,
         VARIABLE,
-        CODEDATA,
+        ATTRIBUTE,
+        OPCODEDATA,
         STRINGDATA,
         CUSTOMDATA,
     };
@@ -390,6 +388,8 @@ namespace x
 
     class value;
     class object;
+
+    class visitor;
 
     class symbol;
     class type_symbol;
@@ -487,7 +487,6 @@ namespace x
     class float32_const_exp_ast; using float32_const_exp_ast_ptr = std::shared_ptr<float32_const_exp_ast>;
     class float64_const_exp_ast; using float64_const_exp_ast_ptr = std::shared_ptr<float64_const_exp_ast>;
     class string_const_exp_ast; using string_const_exp_ast_ptr = std::shared_ptr<string_const_exp_ast>;
-    class ast_visitor; using ast_visitor_ptr = std::shared_ptr<ast_visitor>;
 
     class meta; using meta_ptr = std::shared_ptr<meta>;
     class meta_type; using meta_type_ptr = std::shared_ptr<meta_type>;
@@ -517,6 +516,12 @@ namespace x
         x::uint32 line = 1;
         x::uint32 column = 1;
         std::string_view file;
+    };
+
+    struct range
+    {
+        x::uint32 beg;
+        x::uint32 end;
     };
 
     struct token
@@ -560,6 +565,10 @@ namespace x
     template<typename ... Ts> struct overload : Ts ... { using Ts::operator() ...; }; template<class... Ts> overload( Ts... ) -> overload<Ts...>;
     template<template<typename...> typename Target, typename T> struct is_template_of : public std::false_type {};
     template<template<typename...> typename Target, typename...Args> struct is_template_of< Target, Target<Args...> > : public std::true_type {};
+    template<template<typename...> typename Target, typename T> static constexpr const bool is_template_of_v = is_template_of<Target, T>::value;
+
+    static constexpr const uint32 magic_num = 'xsl\0';
+    static constexpr const uint32 version_num = '0001';
 
     static std::map<std::string, x::token_t> token_map =
     {
@@ -609,10 +618,11 @@ namespace x
         { (const char *)u8")", x::token_t::TK_RIGHT_BRACKETS },
         { (const char *)u8"{", x::token_t::TK_LEFT_CURLY_BRACES },
         { (const char *)u8"}", x::token_t::TK_RIGHT_CURLY_BRACES },
+        { (const char *)u8"any", x::token_t::TK_ANY },
+        { (const char *)u8"object", x::token_t::TK_OBJECT },
         { (const char *)u8"void", x::token_t::TK_VOID },
         { (const char *)u8"byte", x::token_t::TK_BYTE },
         { (const char *)u8"bool", x::token_t::TK_BOOL },
-        { (const char *)u8"object", x::token_t::TK_OBJECT },
         { (const char *)u8"intptr", x::token_t::TK_INTPTR },
         { (const char *)u8"int8", x::token_t::TK_INT8 },
         { (const char *)u8"int16", x::token_t::TK_INT16 },

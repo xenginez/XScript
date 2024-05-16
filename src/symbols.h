@@ -289,6 +289,7 @@ namespace x
 	public:
 		x::namespace_symbol * global_namespace() const;
 		std::string calc_fullname( std::string_view name ) const;
+		x::symbol * find_symbol_from_ast( const x::ast_ptr & ast ) const;
 		x::symbol * find_symbol_from_fullname( std::string_view fullname ) const;
 
 	public:
@@ -302,6 +303,7 @@ namespace x
 
 	private:
 		std::deque<x::scope_symbol *> _scope;
+		std::map<x::ast_ptr, x::symbol *> _astmap;
 		std::map<std::string, x::symbol *> _symbolmap;
 		std::map<std::string, x::symbol *> _referencemap;
 		std::multimap<std::string, x::template_symbol *> _templatemap;

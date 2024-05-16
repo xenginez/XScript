@@ -60,10 +60,11 @@ namespace x
 		x::string to_string() const;
 		x::intptr to_intptr() const;
 		x::object * to_object() const;
+		x::value & to_reference();
+		const x::value & to_reference() const;
 
 	private:
 		x::value_flags _flags;
-		x::meta_type_ptr _meta;
 		union
 		{
 			bool b;
@@ -81,6 +82,7 @@ namespace x
 			x::string str;
 			x::intptr ptr;
 			x::object * obj;
+			x::value * ref;
 		};
 	};
 }

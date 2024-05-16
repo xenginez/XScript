@@ -5,22 +5,10 @@ import("std")
 namespace sample
 {
     attribute(desc="int32")
-    public template test_template<T> where( sizeof( T ) == 4 )
-    {
-        public using value_type = T;
-    }
-    
-    attribute(desc="int64")
-    public template test_template<T> where( typeof( T ) == typeof( int32 ) )
-    {
-        public using value_type = T;
-    }
-    
     public class script_0
     {
         public var var_0: int32 = 0;
         private var static var_1: int32[] = { 0, 1, 2, 3 };
-        public var var_2: test_template<int32>;
 
         public func func_0( arg_0: int32, arg_1: float32 ) -> int32
         {

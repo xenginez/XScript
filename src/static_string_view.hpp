@@ -16,9 +16,6 @@ namespace x
                        "[strings.general]/1." );
 
     public:
-        friend class context;
-
-    public:
         using std_string_view = std::basic_string_view<_Elem, _Traits>;
         using traits_type = _Traits;
         using value_type = _Elem;
@@ -42,8 +39,6 @@ namespace x
         }
         constexpr static_basic_string_view( const static_basic_string_view & ) noexcept = default;
         constexpr static_basic_string_view & operator=( const static_basic_string_view & ) noexcept = default;
-
-    private:
         constexpr static_basic_string_view( std::string * _Str, const size_type _Start, const size_type _Count ) noexcept
             : _Mystr( _Str ), _Mystart( _Start ), _Mysize( _Count )
         {

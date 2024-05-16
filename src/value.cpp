@@ -23,17 +23,17 @@ x::value::~value()
 
 x::value_t x::value::type() const
 {
-	if ( _flags == x::value_t::INVALID )
+	if ( to_reference()._flags == x::value_t::INVALID )
 		return x::value_t::INVALID;
-	else if ( _flags == x::value_t::NIL )
+	else if ( to_reference()._flags == x::value_t::NIL )
 		return x::value_t::NIL;
 	else
-		return ( _flags & x::value_t::TYPE_MASK ).value();
+		return ( to_reference()._flags & x::value_t::TYPE_MASK ).value();
 }
 
 x::meta_type_ptr x::value::meta() const
 {
-	return _meta;
+	return nullptr;
 }
 
 bool x::value::is_ref() const
@@ -43,22 +43,22 @@ bool x::value::is_ref() const
 
 bool x::value::is_enum() const
 {
-	return _flags && x::value_t::ENUM_MASK;
+	return to_reference()._flags && x::value_t::ENUM_MASK;
 }
 
 bool x::value::is_flag() const
 {
-	return _flags && x::value_t::FLAG_MASK;
+	return to_reference()._flags && x::value_t::FLAG_MASK;
 }
 
 bool x::value::is_async() const
 {
-	return _flags && x::value_t::ASYN_MASK;
+	return to_reference()._flags && x::value_t::ASYN_MASK;
 }
 
 bool x::value::is_invalid() const
 {
-	return _flags == x::value_t::INVALID;
+	return to_reference()._flags == x::value_t::INVALID;
 }
 
 bool x::value::is_null() const
@@ -93,7 +93,7 @@ bool x::value::is_int64() const
 
 bool x::value::is_signed() const
 {
-	return _flags || x::value_t::SIGNED_MASK;
+	return to_reference()._flags || x::value_t::SIGNED_MASK;
 }
 
 bool x::value::is_uint8() const
@@ -118,7 +118,7 @@ bool x::value::is_uint64() const
 
 bool x::value::is_unsigned() const
 {
-	return _flags || x::value_t::UNSIGNED_MASK;
+	return to_reference()._flags || x::value_t::UNSIGNED_MASK;
 }
 
 bool x::value::is_float16() const
@@ -138,7 +138,7 @@ bool x::value::is_float64() const
 
 bool x::value::is_floating() const
 {
-	return _flags || x::value_t::FLOATING_MASK;
+	return to_reference()._flags || x::value_t::FLOATING_MASK;
 }
 
 bool x::value::is_string() const
@@ -160,103 +160,119 @@ bool x::value::to_bool() const
 {
 	ASSERT( is_bool(), "" );
 
-	return b;
+	return to_reference().b;
 }
 
 x::int8 x::value::to_int8() const
 {
 	ASSERT( is_int8(), "" );
 
-	return i8;
+	return to_reference().i8;
 }
 
 x::int16 x::value::to_int16() const
 {
 	ASSERT( is_int16(), "" );
 
-	return i16;
+	return to_reference().i16;
 }
 
 x::int32 x::value::to_int32() const
 {
 	ASSERT( is_int32(), "" );
 
-	return i32;
+	return to_reference().i32;
 }
 
 x::int64 x::value::to_int64() const
 {
 	ASSERT( is_int64(), "" );
 
-	return i64;
+	return to_reference().i64;
 }
 
 x::uint8 x::value::to_uint8() const
 {
 	ASSERT( is_uint8(), "" );
 
-	return u8;
+	return to_reference().u8;
 }
 
 x::uint16 x::value::to_uint16() const
 {
 	ASSERT( is_uint16(), "" );
 
-	return u16;
+	return to_reference().u16;
 }
 
 x::uint32 x::value::to_uint32() const
 {
 	ASSERT( is_uint32(), "" );
 
-	return u32;
+	return to_reference().u32;
 }
 
 x::uint64 x::value::to_uint64() const
 {
 	ASSERT( is_uint64(), "" );
 
-	return u64;
+	return to_reference().u64;
 }
 
 x::float16 x::value::to_float16() const
 {
 	ASSERT( is_float16(), "" );
 
-	return f16;
+	return to_reference().f16;
 }
 
 x::float32 x::value::to_float32() const
 {
 	ASSERT( is_float32(), "" );
 
-	return f32;
+	return to_reference().f32;
 }
 
 x::float64 x::value::to_float64() const
 {
 	ASSERT( is_float64(), "" );
 
-	return f64;
+	return to_reference().f64;
 }
 
 x::intptr x::value::to_intptr() const
 {
 	ASSERT( is_intptr(), "" );
 
-	return ptr;
+	return to_reference().ptr;
 }
 
 x::string x::value::to_string() const
 {
 	ASSERT( is_string(), "" );
 
-	return str;
+	return to_reference().str;
 }
 
 x::object * x::value::to_object() const
 {
 	ASSERT( is_object(), "" );
 
-	return obj;
+	return to_reference().obj;
+}
+
+x::value & x::value::to_reference()
+{
+	if ( is_ref() )
+		return ref->to_reference();
+	else
+		return *this;
+}
+
+const x::value & x::value::to_reference() const
+{
+	if ( is_ref() )
+		return ref->to_reference();
+	else
+		return *this;
 }

@@ -6,10 +6,9 @@ namespace x
 {
     struct type_section
     {
-        enum flag_t
+        enum class flag_t : x::uint8
         {
             ENUM,
-            FLAG,
             CLASS,
         };
 
@@ -17,19 +16,7 @@ namespace x
         {
             flag_t flag;
             x::uint64 size;
-            x::static_string_view name;
-        };
-
-        std::vector<item> items;
-    };
-
-    struct desc_section
-    {
-        struct item
-        {
-            x::uint64 type; // type section index
-            int array = 0;
-            bool is_const = false;
+            x::range name; // stringdata section range
         };
 
         std::vector<item> items;
@@ -37,27 +24,101 @@ namespace x
 
     struct temp_section
     {
-        std::vector<std::string> items;
+        struct item
+        {
+            std::vector<x::byte> data;
+            x::range name; // stringdata section range
+        };
+
+        std::vector<item> items;
+    };
+
+    struct desc_section
+    {
+        enum class flag_t : x::uint8
+        {
+            TYPE,
+            REFTYPE,
+            TEMPTYPE,
+            FUNCTYPE,
+            ARRAYTYPE,
+        };
+
+        struct item
+        {
+            flag_t flag;
+            bool is_const;
+            union
+            {
+                struct
+                {
+                    x::uint64 type; // type section index
+                } type;
+
+                struct
+                {
+                    x::uint64 type; // type section index
+                } reftype;
+
+                struct
+                {
+                    x::uint64 temp; // temp section index
+                    //std::vector<x::uint64> elements; // desc section index
+                } temptype;
+
+                struct
+                {
+                    x::uint64 result; // desc section index
+                    //std::vector<x::uint64> params; // desc section index
+                } functype;
+
+                struct
+                {
+                    x::uint64 type; // desc section index
+                    int array_layer;
+                } arraytype;
+            };
+        };
+
+        std::vector<item> items;
     };
 
     struct depend_section
     {
-    public:
-        std::vector<x::static_string_view> items;
+        enum class flag_t : x::uint8
+        {
+            ENUM,
+            CLASS,
+            VARIABLE,
+            FUNCTION,
+        };
+
+        struct item
+        {
+            flag_t flag;
+            x::range name; // stringdata section range
+        };
+
+        std::vector<item> items;
     };
 
     struct global_section
     {
+        enum class flag_t : x::uint8
+        {
+            STATIC,
+            THREAD,
+        };
+
         struct item
         {
+            flag_t flag;
             x::uint64 type; // desc section index
-            bool is_thread = false;
-            x::static_string_view name;
+            x::range name; // stringdata section range
             union
             {
                 x::int64 enum_init;
-                x::uint64 flag_init;
-                x::uint64 struct_init; // codedata section index
+                x::uint64 class_init; // opcodedata section index
             };
         };
 
@@ -71,11 +132,12 @@ namespace x
             bool is_const = false;
             bool is_async = false;
             bool is_static = false;
-            x::uint64 code; // codedata section index
+            bool is_virtual = false;
+            x::range name; // stringdata section range
+            x::uint64 code; // opcodedata section index
             x::uint64 owner; // type section index
             x::uint64 result; // desc section index
             std::vector<x::uint64> parameters; // desc section index
-            x::static_string_view name;
         };
 
         std::vector<item> items;
@@ -83,24 +145,45 @@ namespace x
 
     struct variable_section
     {
+        enum class flag_t : x::uint8
+        {
+            LOCAL,
+            STATIC,
+            THREAD,
+        };
+
         struct item
         {
+            flag_t flag;
+            x::uint64 idx;
+            x::range name; // stringdata section range
             x::uint64 owner; // type section index
             x::uint64 value; // desc section index
-            x::static_string_view name;
         };
 
         std::vector<item> items;
     };
 
-    struct codedata_section
+    struct attribute_section
+    {
+        struct item
+        {
+            x::uint64 type; // type section index
+            x::range key; // stringdata section range
+            x::range value; // stringdata section range
+        };
+
+        std::vector<item> items;
+    };
+
+    struct opcodedata_section
     {
         std::vector<x::byte> datas;
     };
 
     struct stringdata_section
     {
-        std::vector<std::string> datas;
+        std::string datas;
     };
 
     struct customdata_section
@@ -108,7 +191,7 @@ namespace x
         std::vector<std::string> datas;
     };
 
-	class module : public ast_visitor
+	class module : private std::enable_shared_from_this<module>
 	{
 	public:
 		module();
@@ -121,90 +204,24 @@ namespace x
         void load( std::istream & in );
         void save( std::ostream & out ) const;
 
-    private:
-        using ast_visitor::visit;
-
-    private:
-		void visit( x::unit_ast * val ) override;
-		void visit( x::import_ast * val ) override;
-		void visit( x::attribute_ast * val ) override;
-
-        void visit( x::type_ast * val ) override;
-        void visit( x::temp_type_ast * val ) override;
-        void visit( x::func_type_ast * val ) override;
-        void visit( x::array_type_ast * val ) override;
-
-		void visit( x::enum_decl_ast * val ) override;
-		void visit( x::class_decl_ast * val ) override;
-		void visit( x::using_decl_ast * val ) override;
-		void visit( x::element_decl_ast * val ) override;
-		void visit( x::template_decl_ast * val ) override;
-		void visit( x::variable_decl_ast * val ) override;
-		void visit( x::function_decl_ast * val ) override;
-		void visit( x::parameter_decl_ast * val ) override;
-		void visit( x::namespace_decl_ast * val ) override;
-
-		void visit( x::empty_stat_ast * val ) override;
-		void visit( x::extern_stat_ast * val ) override;
-		void visit( x::compound_stat_ast * val ) override;
-		void visit( x::await_stat_ast * val ) override;
-		void visit( x::yield_stat_ast * val ) override;
-        void visit( x::new_stat_ast * val ) override;
-		void visit( x::try_stat_ast * val ) override;
-		void visit( x::catch_stat_ast * val ) override;
-		void visit( x::throw_stat_ast * val ) override;
-		void visit( x::if_stat_ast * val ) override;
-		void visit( x::while_stat_ast * val ) override;
-		void visit( x::for_stat_ast * val ) override;
-		void visit( x::foreach_stat_ast * val ) override;
-		void visit( x::break_stat_ast * val ) override;
-		void visit( x::return_stat_ast * val ) override;
-		void visit( x::continue_stat_ast * val ) override;
-		void visit( x::local_stat_ast * val ) override;
-
-		void visit( x::assignment_exp_ast * val ) override;
-		void visit( x::logical_or_exp_ast * val ) override;
-		void visit( x::logical_and_exp_ast * val ) override;
-		void visit( x::or_exp_ast * val ) override;
-		void visit( x::xor_exp_ast * val ) override;
-		void visit( x::and_exp_ast * val ) override;
-		void visit( x::compare_exp_ast * val ) override;
-		void visit( x::shift_exp_ast * val ) override;
-		void visit( x::add_exp_ast * val ) override;
-		void visit( x::mul_exp_ast * val ) override;
-		void visit( x::as_exp_ast * val ) override;
-		void visit( x::is_exp_ast * val ) override;
-		void visit( x::sizeof_exp_ast * val ) override;
-		void visit( x::typeof_exp_ast * val ) override;
-		void visit( x::unary_exp_ast * val ) override;
-		void visit( x::postfix_exp_ast * val ) override;
-		void visit( x::index_exp_ast * val ) override;
-		void visit( x::invoke_exp_ast * val ) override;
-		void visit( x::member_exp_ast * val ) override;
-		void visit( x::identifier_exp_ast * val ) override;
-		void visit( x::closure_exp_ast * val ) override;
-		void visit( x::arguments_exp_ast * val ) override;
-		void visit( x::initializers_exp_ast * val ) override;
-		void visit( x::null_const_exp_ast * val ) override;
-		void visit( x::bool_const_exp_ast * val ) override;
-		void visit( x::int_const_exp_ast * val ) override;
-		void visit( x::float_const_exp_ast * val ) override;
-		void visit( x::string_const_exp_ast * val ) override;
+    public:
+        x::range transfer( std::string_view str );
 
 	public:
-        x::uint64 start = 0;
-		type_section type;
-		desc_section desc;
-		temp_section temp;
-		depend_section depend;
-		global_section global;
-		function_section function;
-		variable_section variable;
-		codedata_section codedata;
-		stringdata_section stringdata;
-		customdata_section customdata;
-
-	private:
-		x::symbols * _symbols = nullptr;
+        x::uint32 version = 0;
+        x::uint64 global = 0;
+        x::uint64 thread = 0;
+        std::string name;
+		type_section types;
+		temp_section temps;
+        desc_section descs;
+		depend_section depends;
+		global_section globals;
+		function_section functions;
+		variable_section variables;
+        attribute_section attributes;
+        opcodedata_section opcodedatas;
+		stringdata_section stringdatas;
+		customdata_section customdatas;
 	};
 }

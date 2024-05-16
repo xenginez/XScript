@@ -4,8 +4,8 @@
 #include <fstream>
 #include <iostream>
 
-#include "pass.h"
 #include "module.h"
+#include "visitor.h"
 #include "grammar.h"
 #include "symbols.h"
 #include "context.h"
@@ -78,7 +78,7 @@ x::module_ptr x::compiler::compile( const std::filesystem::path & file )
 
 void x::compiler::symbols()
 {
-	x::symbol_scanner_pass scaner( _p->_symbols );
+	x::symbol_scanner_visitor scaner( _p->_symbols );
 
 	for ( const auto & it : _p->_uobjs )
 		it.second.ast->accept( &scaner );
@@ -86,15 +86,15 @@ void x::compiler::symbols()
 
 void x::compiler::instant()
 {
-	x::instant_template_pass instant( _p->_symbols );
-
-	for ( const auto & it : _p->_uobjs )
-		it.second.ast->accept( &instant );
+	//x::instant_template_pass instant( _p->_symbols );
+	//
+	//for ( const auto & it : _p->_uobjs )
+	//	it.second.ast->accept( &instant );
 }
 
 void x::compiler::checker()
 {
-	x::semantic_checker_pass semantic( _p->_symbols );
+	x::semantic_checker_visitor semantic( _p->_symbols );
 
 	for ( const auto & it : _p->_uobjs )
 		it.second.ast->accept( &semantic );

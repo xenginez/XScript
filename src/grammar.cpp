@@ -99,7 +99,7 @@ x::type_ast_ptr x::grammar::type()
 
         while ( !verify( x::token_t::TK_RIGHT_INDEX ) )
         {
-            ++array_type->array_count;
+            ++array_type->array_layer;
 
             if ( !verify( x::token_t::TK_COMMA ) )
                 break;
@@ -145,7 +145,7 @@ x::attribute_ast_ptr x::grammar::attribute()
         auto key = validity( x::token_t::TK_IDENTIFIER ).str;
         validity( x::token_t::TK_ASSIGN );
         auto val = validity( x::token_t::TK_LITERAL_STRING ).str;
-        ast->_attributes.insert( { key, val } );
+        ast->attributes.insert( { key, val } );
 
         if ( !verify( x::token_t::TK_COMMA ) ) break;
     }
@@ -347,7 +347,7 @@ x::variable_decl_ast_ptr x::grammar::variable_decl()
     if ( verify( x::token_t::TK_TYPECAST ) )
         ast->value_type = type();
     else
-        ast->value_type = type( "object" );
+        ast->value_type = type( "any" );
 
     if ( verify( x::token_t::TK_ASSIGN ) ) ast->init = initializers_exp();
 
@@ -430,7 +430,7 @@ x::parameter_decl_ast_ptr x::grammar::parameter_decl()
     if ( verify( x::token_t::TK_TYPECAST ) )
         parameter->value_type = type();
     else
-        parameter->value_type = type( "object" );
+        parameter->value_type = type( "any" );
 
     return parameter;
 }
@@ -784,7 +784,7 @@ x::local_stat_ast_ptr x::grammar::local_stat()
     if ( verify( x::token_t::TK_TYPECAST ) )
         ast->value_type = type();
     else
-        ast->value_type = type( "object" );
+        ast->value_type = type( "any" );
 
     if ( verify( x::token_t::TK_ASSIGN ) ) ast->init = initializers_exp();
 
