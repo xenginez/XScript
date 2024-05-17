@@ -388,7 +388,6 @@ namespace x
 
     class value;
     class object;
-
     class visitor;
 
     class symbol;
@@ -503,6 +502,8 @@ namespace x
     class symbols; using symbols_ptr = std::shared_ptr<symbols>;
     class context; using context_ptr = std::shared_ptr<context>;
     class runtime; using runtime_ptr = std::shared_ptr<runtime>;
+    class interpreter; using interpreter_ptr = std::shared_ptr<interpreter>;
+    class virtual_machine; using virtual_machine_ptr = std::shared_ptr<virtual_machine>;
 
     struct typedesc
     {
@@ -569,7 +570,6 @@ namespace x
 
     static constexpr const uint32 magic_num = 'xsl\0';
     static constexpr const uint32 version_num = '0001';
-
     static std::map<std::string, x::token_t> token_map =
     {
         { (const char *)u8";", x::token_t::TK_SEMICOLON },

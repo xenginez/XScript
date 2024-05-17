@@ -32,7 +32,11 @@ add_executable (XScript
 "src/object.h"
 "src/object.cpp"
 "src/runtime.h"
-"src/runtime.cpp")
+"src/runtime.cpp"
+"src/interpreter.h"
+"src/interpreter.cpp"
+"src/virtual_machine.h"
+"src/virtual_machine.cpp")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET XScript PROPERTY CXX_STANDARD 20)

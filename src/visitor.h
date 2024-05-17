@@ -77,25 +77,10 @@ namespace x
 		virtual void visit( x::string_const_exp_ast * val );
 	};
 
-	class symbols_visitor : public visitor
+	class scope_with_visitor : public x::visitor
 	{
 	public:
 		using visitor::visit;
-
-	public:
-		symbols_visitor( const x::symbols_ptr & val );
-
-	public:
-		const x::symbols_ptr & symbols() const;
-
-	private:
-		x::symbols_ptr _symbols;
-	};
-
-	class scope_with_visitor : public symbols_visitor
-	{
-	public:
-		using symbols_visitor::visit;
 
 	public:
 		scope_with_visitor( const x::symbols_ptr & val );
@@ -114,12 +99,16 @@ namespace x
 		void visit( x::foreach_stat_ast * val ) override;
 
 	protected:
+		const x::symbols_ptr & symbols() const;
 		bool is_const_int( x::exp_stat_ast * val ) const;
 		x::type_symbol * get_expr_type( x::exp_stat_ast * val ) const;
 		std::string template_type_name( x::temp_type_ast * val ) const;
+
+	private:
+		x::symbols_ptr _symbols;
 	};
 
-	class symbol_scanner_visitor : public scope_with_visitor
+	class symbol_scanner_visitor : public x::scope_with_visitor
 	{
 	public:
 		using scope_with_visitor::visit;
@@ -146,13 +135,13 @@ namespace x
 		void visit( x::local_stat_ast * val ) override;
 	};
 
-	class instant_template_visitor : public scope_with_visitor
+	class instantiate_visitor : public x::scope_with_visitor
 	{
 	public:
 		using scope_with_visitor::visit;
 
 	public:
-		instant_template_visitor( const x::symbols_ptr & val );
+		instantiate_visitor( const x::symbols_ptr & val );
 
 	public:
 		void visit( x::temp_type_ast * val ) override;
@@ -162,7 +151,7 @@ namespace x
 		x::class_decl_ast_ptr instantiate( x::template_decl_ast * temp, x::temp_type_ast * type ) const;
 	};
 
-	class semantic_checker_visitor : public scope_with_visitor
+	class semantic_checker_visitor : public x::scope_with_visitor
 	{
 	public:
 		using scope_with_visitor::visit;
@@ -235,7 +224,6 @@ namespace x
 		void visit( x::function_decl_ast * val ) override;
 		void visit( x::parameter_decl_ast * val ) override;
 
-		void visit( x::empty_stat_ast * val ) override;
 		void visit( x::extern_stat_ast * val ) override;
 		void visit( x::compound_stat_ast * val ) override;
 		void visit( x::await_stat_ast * val ) override;

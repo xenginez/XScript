@@ -372,18 +372,8 @@ void x::visitor::visit( x::string_const_exp_ast * val )
 {
 }
 
-x::symbols_visitor::symbols_visitor( const x::symbols_ptr & val )
-	: _symbols( val )
-{
-}
-
-const x::symbols_ptr & x::symbols_visitor::symbols() const
-{
-	return _symbols;
-}
-
 x::scope_with_visitor::scope_with_visitor( const x::symbols_ptr & val )
-	: symbols_visitor( val )
+	: _symbols( val )
 {
 }
 
@@ -391,7 +381,7 @@ void x::scope_with_visitor::visit( x::unit_ast * val )
 {
 	symbols()->push_scope( val->location.file );
 	{
-		symbols_visitor::visit( val );
+		visitor::visit( val );
 	}
 	symbols()->pop_scope();
 }
@@ -400,7 +390,7 @@ void x::scope_with_visitor::visit( x::enum_decl_ast * val )
 {
 	symbols()->push_scope(val->name );
 	{
-		symbols_visitor::visit( val );
+		visitor::visit( val );
 	}
 	symbols()->pop_scope();
 }
@@ -409,7 +399,7 @@ void x::scope_with_visitor::visit( x::class_decl_ast * val )
 {
 	symbols()->push_scope( val->name );
 	{
-		symbols_visitor::visit( val );
+		visitor::visit( val );
 	}
 	symbols()->pop_scope();
 }
@@ -418,7 +408,7 @@ void x::scope_with_visitor::visit( x::function_decl_ast * val )
 {
 	symbols()->push_scope( val->name );
 	{
-		symbols_visitor::visit( val );
+		visitor::visit( val );
 	}
 	symbols()->pop_scope();
 }
@@ -436,7 +426,7 @@ void x::scope_with_visitor::visit( x::namespace_decl_ast * val )
 {
 	symbols()->push_scope( val->name );
 	{
-		symbols_visitor::visit( val );
+		visitor::visit( val );
 	}
 	symbols()->pop_scope();
 }
@@ -445,7 +435,7 @@ void x::scope_with_visitor::visit( x::compound_stat_ast * val )
 {
 	symbols()->push_scope( std::format( "block_{}_{}_{}", val->location.file, val->location.line, val->location.column ) );
 	{
-		symbols_visitor::visit( val );
+		visitor::visit( val );
 	}
 	symbols()->pop_scope();
 }
@@ -454,7 +444,7 @@ void x::scope_with_visitor::visit( x::while_stat_ast * val )
 {
 	symbols()->push_scope( std::format( "cycle_{}_{}_{}", val->location.file, val->location.line, val->location.column ) );
 	{
-		symbols_visitor::visit( val );
+		visitor::visit( val );
 	}
 	symbols()->pop_scope();
 }
@@ -463,7 +453,7 @@ void x::scope_with_visitor::visit( x::for_stat_ast * val )
 {
 	symbols()->push_scope( std::format( "cycle_{}_{}_{}", val->location.file, val->location.line, val->location.column ) );
 	{
-		symbols_visitor::visit( val );
+		visitor::visit( val );
 	}
 	symbols()->pop_scope();
 }
@@ -472,9 +462,14 @@ void x::scope_with_visitor::visit( x::foreach_stat_ast * val )
 {
 	symbols()->push_scope( std::format( "cycle_{}_{}_{}", val->location.file, val->location.line, val->location.column ) );
 	{
-		symbols_visitor::visit( val );
+		visitor::visit( val );
 	}
 	symbols()->pop_scope();
+}
+
+const x::symbols_ptr & x::scope_with_visitor::symbols() const
+{
+	return _symbols;
 }
 
 bool x::scope_with_visitor::is_const_int( x::exp_stat_ast * val ) const
@@ -602,22 +597,22 @@ void x::symbol_scanner_visitor::visit( x::local_stat_ast * val )
 	scope_with_visitor::visit( val );
 }
 
-x::instant_template_visitor::instant_template_visitor( const x::symbols_ptr & val )
+x::instantiate_visitor::instantiate_visitor( const x::symbols_ptr & val )
 	: scope_with_visitor( val )
 {
 }
 
-void x::instant_template_visitor::visit( x::temp_type_ast * val )
+void x::instantiate_visitor::visit( x::temp_type_ast * val )
 {
 	//symbols()->find_template_symbols()
 }
 
-bool x::instant_template_visitor::matching( x::template_decl_ast * temp, x::temp_type_ast * type ) const
+bool x::instantiate_visitor::matching( x::template_decl_ast * temp, x::temp_type_ast * type ) const
 {
 	return false;
 }
 
-x::class_decl_ast_ptr x::instant_template_visitor::instantiate( x::template_decl_ast * temp, x::temp_type_ast * type ) const
+x::class_decl_ast_ptr x::instantiate_visitor::instantiate( x::template_decl_ast * temp, x::temp_type_ast * type ) const
 {
 	return x::class_decl_ast_ptr();
 }
