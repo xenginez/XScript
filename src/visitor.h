@@ -273,4 +273,14 @@ namespace x
 	private:
 		x::module_ptr _module;
 	};
+
+	class llvmir_generater_visitor
+	{
+
+	};
+
+	class interpreter_execute_visitor
+	{
+
+	};
 }

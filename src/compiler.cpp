@@ -1,129 +1,107 @@
 #include "compiler.h"
 
-#include <map>
 #include <fstream>
 #include <iostream>
 
 #include "module.h"
-#include "visitor.h"
 #include "grammar.h"
 #include "symbols.h"
-#include "context.h"
+#include "visitor.h"
 #include "exception.h"
 
-namespace
-{
-	struct uobject
-	{
-		x::unit_ast_ptr ast;
-		x::module_ptr module;
-		std::filesystem::path path;
-		std::filesystem::file_time_type time;
-	};
-}
-
-struct x::compiler::private_p
-{
-	x::symbols_ptr _symbols;
-	x::compiler::log_callback_t _logger;
-	std::map<std::filesystem::path, uobject> _uobjs;
-	std::deque<std::filesystem::path> _relative_paths;
-	std::vector<std::filesystem::path> _absolute_paths;
-};
-
 x::compiler::compiler( const log_callback_t & callback )
-	: _p( new private_p )
 {
 	if ( callback )
-		_p->_logger = callback;
+		_logger = callback;
 	else
-		_p->_logger = []( std::string_view message ) { std::cout << message << std::endl; };
+		_logger = []( std::string_view message ) { std::cout << message << std::endl; };
 }
 
 x::compiler::~compiler()
 {
-	delete _p;
+}
+
+x::symbols_ptr x::compiler::symbols() const
+{
+	return _symbols;
+}
+
+std::span<const x::compiler::object_ptr> x::compiler::objects() const
+{
+	return _objects;
 }
 
 void x::compiler::add_search_path( const std::filesystem::path & path )
 {
-	_p->_absolute_paths.push_back( path );
+	if ( std::find( _absolute_paths.begin(), _absolute_paths.end(), path ) == _absolute_paths.end() )
+		_absolute_paths.push_back( path );
 }
 
-x::module_ptr x::compiler::compile( const std::filesystem::path & file )
+bool x::compiler::compile( const std::filesystem::path & file )
 {
-	_p->_symbols = std::make_shared<x::symbols>();
+	_symbols = std::make_shared<x::scanner>();
 
 	try
 	{
 		load_source_file( file );
 
-		symbols();
+		scanner();
 
 		instant();
 
 		checker();
 
-		gen_unit_module();
+		genunit();
 
-		return merge_all_module();
+		linking();
+
 	}
 	catch ( const std::exception & e )
 	{
-		_p->_logger( e.what() );
+		_logger( e.what() );
+
+		return false;
 	}
 
-	return nullptr;
+	return true;
 }
 
-void x::compiler::symbols()
+void x::compiler::scanner()
 {
-	x::symbol_scanner_visitor scaner( _p->_symbols );
+	x::symbol_scanner_visitor scaner( _symbols );
 
-	for ( const auto & it : _p->_uobjs )
-		it.second.ast->accept( &scaner );
+	for ( const auto & it : _objects )
+		it->ast->accept( &scaner );
 }
 
 void x::compiler::instant()
 {
-	//x::instant_template_pass instant( _p->_symbols );
+	//x::instant_template_pass instant( _symbols );
 	//
-	//for ( const auto & it : _p->_uobjs )
-	//	it.second.ast->accept( &instant );
+	//for ( const auto & it : _objects )
+	//	it->ast->accept( &instant );
 }
 
 void x::compiler::checker()
 {
-	x::semantic_checker_visitor semantic( _p->_symbols );
+	x::semantic_checker_visitor semantic( _symbols );
 
-	for ( const auto & it : _p->_uobjs )
-		it.second.ast->accept( &semantic );
+	for ( const auto & it : _objects )
+		it->ast->accept( &semantic );
 }
 
-void x::compiler::gen_unit_module()
+void x::compiler::genunit()
 {
-	for ( auto & it : _p->_uobjs )
-	{
-		if ( it.second.module == nullptr )
-		{
-			it.second.module = std::make_shared<x::module>();
-			it.second.module->generate( _p->_symbols, it.second.ast );
-			_p->_logger( std::format( "building module {}", it.second.path.string() ) );
-		}
-	}
+	genmodule();
+
+	_logger( std::format( "gen object success" ) );
 }
 
-x::module_ptr x::compiler::merge_all_module()
+void x::compiler::linking()
 {
-	auto result = std::make_shared<x::module>();
-	for ( auto & it : _p->_uobjs )
-	{
-		result->merge( it.second.module );
-	}
+	genmodule();
 
-	_p->_logger( std::format( "merging all module success" ) );
-
-	return result;
+	_logger( std::format( "link all module success" ) );
 }
 
 void x::compiler::load_source_file( std::filesystem::path file )
@@ -136,13 +114,13 @@ void x::compiler::load_source_file( std::filesystem::path file )
 	}
 	else if ( file.is_relative() )
 	{
-		auto tmp = ( _p->_relative_paths.back() / file ).make_preferred();
+		auto tmp = ( _relative_paths.back() / file ).make_preferred();
 		if ( std::filesystem::exists( tmp ) )
 			path = tmp;
 	}
 	else
 	{
-		for ( const auto & it : _p->_absolute_paths )
+		for ( const auto & it : _absolute_paths )
 		{
 			auto tmp = it / file;
 			if ( std::filesystem::exists( tmp ) )
@@ -155,44 +133,118 @@ void x::compiler::load_source_file( std::filesystem::path file )
 
 	ASSERT( path.empty(), "" );
 
-	uobject * u = nullptr;
+	object_ptr obj = nullptr;
 	auto time = std::filesystem::last_write_time( path );
 
-	auto it = _p->_uobjs.find( path );
-	if ( it != _p->_uobjs.end() )
+	auto it = std::find_if( _objects.begin(), _objects.end(), [path]( const auto & val ) { return val->path == path; } );
+	if ( it != _objects.end() )
 	{
-		if ( time != it->second.time )
+		if ( time != (*it)->time )
 		{
-			it->second.ast = nullptr;
-			it->second.module = nullptr;
+			(*it)->ast = nullptr;
+			(*it)->module = nullptr;
 		}
 
-		u = &it->second;
+		obj = *it;
 	}
 	else
 	{
-		uobject tmp;
-		tmp.path = path;
-		u = &_p->_uobjs.emplace( path, tmp ).first->second;
+		obj = make_object();
+		obj->path = path;
+		_objects.push_back( obj );
 	}
 
-	u->time = time;
+	obj->time = time;
 
-	if ( u->ast == nullptr )
+	if ( obj->ast == nullptr )
 	{
 		std::ifstream ifs( path );
 		
 		ASSERT( ifs.is_open(), "" );
 
-		u->ast = x::grammar( ifs, path.string() ).unit();
+		obj->ast = x::grammar( ifs, path.string() ).unit();
 
-		_p->_logger( std::format( "loading script {}", path.string() ) );
+		_logger( std::format( "loading script {}", path.string() ) );
 	}
 
-	_p->_relative_paths.push_back( path.parent_path() );
-	for ( const auto & it : u->ast->imports )
+	_relative_paths.push_back( path.parent_path() );
+	for ( const auto & it : obj->ast->imports )
 	{
 		load_source_file( it->path );
 	}
-	_p->_relative_paths.pop_back();
+	_relative_paths.pop_back();
+}
+
+x::module_compiler::module_compiler( const log_callback_t & callback )
+	: compiler( callback )
+{
+}
+
+x::module_compiler::~module_compiler()
+{
+}
+
+x::module_ptr x::module_compiler::module() const
+{
+	return _module;
+}
+
+void x::module_compiler::genmodule()
+{
+	for ( auto & it : objects() )
+	{
+		auto obj = std::static_pointer_cast<x::module_compiler::object>( it );
+		if ( obj->module == nullptr )
+		{
+			obj->module = std::make_shared<x::module>();
+			obj->module->generate( symbols(), obj->ast );
+		}
+	}
+}
+
+void x::module_compiler::linkmodule()
+{
+	_module = std::make_shared<x::module>();
+
+	for ( auto & it : objects() )
+	{
+		_module->merge( std::static_pointer_cast<x::module_compiler::object>( it )->module );
+	}
+}
+
+x::compiler::object_ptr x::module_compiler::make_object()
+{
+	return std::make_shared<x::module_compiler::object>();
+}
+
+x::llvmir_compiler::llvmir_compiler( const log_callback_t & callback )
+	: compiler( callback )
+{
+	_context = nullptr;
+	_module = nullptr;
+}
+
+x::llvmir_compiler::~llvmir_compiler()
+{
+	// if ( _module ) delete _module;
+	// if ( _context ) delete _context;
+}
+
+llvm::module_ptr x::llvmir_compiler::module() const
+{
+	return _module;
+}
+
+void x::llvmir_compiler::genmodule()
+{
+}
+
+void x::llvmir_compiler::linkmodule()
+{
+}
+
+x::compiler::object_ptr x::llvmir_compiler::make_object()
+{
+	auto obj = std::make_shared<x::llvmir_compiler::object>();
+	return obj;
 }

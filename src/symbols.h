@@ -253,11 +253,11 @@ namespace x
 		std::vector<x::type_symbol *> children;
 	};
 
-	class symbols : public std::enable_shared_from_this<symbols>
+	class scanner : public std::enable_shared_from_this<scanner>
 	{
 	public:
-		symbols();
-		~symbols();
+		scanner();
+		~scanner();
 
 	public:
 		void push_scope( std::string_view name );

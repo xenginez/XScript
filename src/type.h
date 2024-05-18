@@ -16,8 +16,15 @@
 #ifdef _DEBUG
 #define ASSERT( a, s ) assert( ( a ) && s );
 #else
-#define ASSERT( a, s ) if ( ( a ) ) throw std::exception( s );
+#define ASSERT( a, s ) if ( !( a ) ) throw std::exception( s );
 #endif // _DEBUG
+
+#ifdef _DEBUG
+#define XTHROW( EX, COND, MSG ) assert( ( a ) && s );
+#else
+#define XTHROW( EX, COND, MSG ) if( !( COND ) ) throw EX( MSG );
+#endif // _DEBUG
+
 
 namespace x
 {
@@ -499,7 +506,7 @@ namespace x
     class meta_attribute; using meta_attribute_ptr = std::shared_ptr<meta_attribute>;
 
     class module; using module_ptr = std::shared_ptr<module>;
-    class symbols; using symbols_ptr = std::shared_ptr<symbols>;
+    class scanner; using symbols_ptr = std::shared_ptr<scanner>;
     class context; using context_ptr = std::shared_ptr<context>;
     class runtime; using runtime_ptr = std::shared_ptr<runtime>;
     class interpreter; using interpreter_ptr = std::shared_ptr<interpreter>;
