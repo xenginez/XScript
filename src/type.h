@@ -391,6 +391,22 @@ namespace x
         CUSTOMDATA,
     };
 
+    enum class gcstage_t
+    {
+        NONE,
+        MARKING,
+        TRACKING,
+        CLEARING,
+        ARRANGE,
+    };
+
+    enum class gcstatus_t
+    {
+        WHITE,
+        BLACK,
+        GRAY
+    };
+
     using value_flags = flags<x::value_t>;
 
     class value;
@@ -451,48 +467,48 @@ namespace x
     class return_stat_ast; using return_stat_ast_ptr = std::shared_ptr<return_stat_ast>;
     class continue_stat_ast; using continue_stat_ast_ptr = std::shared_ptr<continue_stat_ast>;
     class local_stat_ast; using local_stat_ast_ptr = std::shared_ptr<local_stat_ast>;
-    class exp_stat_ast; using exp_stat_ast_ptr = std::shared_ptr<exp_stat_ast>;
-    class binary_exp_ast; using binary_exp_ast_ptr = std::shared_ptr<binary_exp_ast>;
-    class assignment_exp_ast; using assignment_exp_ast_ptr = std::shared_ptr<assignment_exp_ast>;
-    class logical_or_exp_ast; using logical_or_exp_ast_ptr = std::shared_ptr<logical_or_exp_ast>;
-    class logical_and_exp_ast; using logical_and_exp_ast_ptr = std::shared_ptr<logical_and_exp_ast>;
-    class or_exp_ast; using or_exp_ast_ptr = std::shared_ptr<or_exp_ast>;
-    class xor_exp_ast; using xor_exp_ast_ptr = std::shared_ptr<xor_exp_ast>;
-    class and_exp_ast; using and_exp_ast_ptr = std::shared_ptr<and_exp_ast>;
-    class compare_exp_ast; using compare_exp_ast_ptr = std::shared_ptr<compare_exp_ast>;
-    class shift_exp_ast; using shift_exp_ast_ptr = std::shared_ptr<shift_exp_ast>;
-    class add_exp_ast; using add_exp_ast_ptr = std::shared_ptr<add_exp_ast>;
-    class mul_exp_ast; using mul_exp_ast_ptr = std::shared_ptr<mul_exp_ast>;
-    class as_exp_ast; using as_exp_ast_ptr = std::shared_ptr<as_exp_ast>;
-    class is_exp_ast; using is_exp_ast_ptr = std::shared_ptr<is_exp_ast>;
-    class sizeof_exp_ast; using sizeof_exp_ast_ptr = std::shared_ptr<sizeof_exp_ast>;
-    class typeof_exp_ast; using typeof_exp_ast_ptr = std::shared_ptr<typeof_exp_ast>;
-    class unary_exp_ast; using unary_exp_ast_ptr = std::shared_ptr<unary_exp_ast>;
-    class postfix_exp_ast; using postfix_exp_ast_ptr = std::shared_ptr<postfix_exp_ast>;
-    class index_exp_ast; using index_exp_ast_ptr = std::shared_ptr<index_exp_ast>;
-    class invoke_exp_ast; using invoke_exp_ast_ptr = std::shared_ptr<invoke_exp_ast>;
-    class member_exp_ast; using member_exp_ast_ptr = std::shared_ptr<member_exp_ast>;
-    class identifier_exp_ast; using identifier_exp_ast_ptr = std::shared_ptr<identifier_exp_ast>;
-    class closure_exp_ast; using closure_exp_ast_ptr = std::shared_ptr<closure_exp_ast>;
-    class arguments_exp_ast; using arguments_exp_ast_ptr = std::shared_ptr<arguments_exp_ast>;
-    class initializers_exp_ast; using initializers_exp_ast_ptr = std::shared_ptr<initializers_exp_ast>;
-    class const_exp_ast; using const_exp_ast_ptr = std::shared_ptr<const_exp_ast>;
-    class null_const_exp_ast; using null_const_exp_ast_ptr = std::shared_ptr<null_const_exp_ast>;
-    class bool_const_exp_ast; using bool_const_exp_ast_ptr = std::shared_ptr<bool_const_exp_ast>;
-    class int_const_exp_ast; using int_const_exp_ast_ptr = std::shared_ptr<int_const_exp_ast>;
-    class int8_const_exp_ast; using int8_const_exp_ast_ptr = std::shared_ptr<int8_const_exp_ast>;
-    class int16_const_exp_ast; using int16_const_exp_ast_ptr = std::shared_ptr<int16_const_exp_ast>;
-    class int32_const_exp_ast; using int32_const_exp_ast_ptr = std::shared_ptr<int32_const_exp_ast>;
-    class int64_const_exp_ast; using int64_const_exp_ast_ptr = std::shared_ptr<int64_const_exp_ast>;
-    class uint8_const_exp_ast; using uint8_const_exp_ast_ptr = std::shared_ptr<uint8_const_exp_ast>;
-    class uint16_const_exp_ast; using uint16_const_exp_ast_ptr = std::shared_ptr<uint16_const_exp_ast>;
-    class uint32_const_exp_ast; using uint32_const_exp_ast_ptr = std::shared_ptr<uint32_const_exp_ast>;
-    class uint64_const_exp_ast; using uint64_const_exp_ast_ptr = std::shared_ptr<uint64_const_exp_ast>;
-    class float_const_exp_ast; using float_const_exp_ast_ptr = std::shared_ptr<float_const_exp_ast>;
-    class float16_const_exp_ast; using float16_const_exp_ast_ptr = std::shared_ptr<float16_const_exp_ast>;
-    class float32_const_exp_ast; using float32_const_exp_ast_ptr = std::shared_ptr<float32_const_exp_ast>;
-    class float64_const_exp_ast; using float64_const_exp_ast_ptr = std::shared_ptr<float64_const_exp_ast>;
-    class string_const_exp_ast; using string_const_exp_ast_ptr = std::shared_ptr<string_const_exp_ast>;
+    class expr_stat_ast; using expr_stat_ast_ptr = std::shared_ptr<expr_stat_ast>;
+    class binary_expr_ast; using binary_expr_ast_ptr = std::shared_ptr<binary_expr_ast>;
+    class assignment_expr_ast; using assignment_expr_ast_ptr = std::shared_ptr<assignment_expr_ast>;
+    class logical_or_expr_ast; using logical_or_expr_ast_ptr = std::shared_ptr<logical_or_expr_ast>;
+    class logical_and_expr_ast; using logical_and_expr_ast_ptr = std::shared_ptr<logical_and_expr_ast>;
+    class or_expr_ast; using or_expr_ast_ptr = std::shared_ptr<or_expr_ast>;
+    class xor_expr_ast; using xor_expr_ast_ptr = std::shared_ptr<xor_expr_ast>;
+    class and_expr_ast; using and_expr_ast_ptr = std::shared_ptr<and_expr_ast>;
+    class compare_expr_ast; using compare_expr_ast_ptr = std::shared_ptr<compare_expr_ast>;
+    class shift_expr_ast; using shift_expr_ast_ptr = std::shared_ptr<shift_expr_ast>;
+    class add_expr_ast; using add_expr_ast_ptr = std::shared_ptr<add_expr_ast>;
+    class mul_expr_ast; using mul_expr_ast_ptr = std::shared_ptr<mul_expr_ast>;
+    class as_expr_ast; using as_expr_ast_ptr = std::shared_ptr<as_expr_ast>;
+    class is_expr_ast; using is_expr_ast_ptr = std::shared_ptr<is_expr_ast>;
+    class sizeof_expr_ast; using sizeof_expr_ast_ptr = std::shared_ptr<sizeof_expr_ast>;
+    class typeof_expr_ast; using typeof_expr_ast_ptr = std::shared_ptr<typeof_expr_ast>;
+    class unary_expr_ast; using unary_expr_ast_ptr = std::shared_ptr<unary_expr_ast>;
+    class postfix_expr_ast; using postfix_expr_ast_ptr = std::shared_ptr<postfix_expr_ast>;
+    class index_expr_ast; using index_expr_ast_ptr = std::shared_ptr<index_expr_ast>;
+    class invoke_expr_ast; using invoke_expr_ast_ptr = std::shared_ptr<invoke_expr_ast>;
+    class member_expr_ast; using member_expr_ast_ptr = std::shared_ptr<member_expr_ast>;
+    class identifier_expr_ast; using identifier_expr_ast_ptr = std::shared_ptr<identifier_expr_ast>;
+    class closure_expr_ast; using closure_expr_ast_ptr = std::shared_ptr<closure_expr_ast>;
+    class arguments_expr_ast; using arguments_expr_ast_ptr = std::shared_ptr<arguments_expr_ast>;
+    class initializers_expr_ast; using initializers_expr_ast_ptr = std::shared_ptr<initializers_expr_ast>;
+    class const_expr_ast; using const_expr_ast_ptr = std::shared_ptr<const_expr_ast>;
+    class null_const_expr_ast; using null_const_expr_ast_ptr = std::shared_ptr<null_const_expr_ast>;
+    class bool_const_expr_ast; using bool_const_expr_ast_ptr = std::shared_ptr<bool_const_expr_ast>;
+    class int_const_expr_ast; using int_const_expr_ast_ptr = std::shared_ptr<int_const_expr_ast>;
+    class int8_const_expr_ast; using int8_const_expr_ast_ptr = std::shared_ptr<int8_const_expr_ast>;
+    class int16_const_expr_ast; using int16_const_expr_ast_ptr = std::shared_ptr<int16_const_expr_ast>;
+    class int32_const_expr_ast; using int32_const_expr_ast_ptr = std::shared_ptr<int32_const_expr_ast>;
+    class int64_const_expr_ast; using int64_const_expr_ast_ptr = std::shared_ptr<int64_const_expr_ast>;
+    class uint8_const_expr_ast; using uint8_const_expr_ast_ptr = std::shared_ptr<uint8_const_expr_ast>;
+    class uint16_const_expr_ast; using uint16_const_expr_ast_ptr = std::shared_ptr<uint16_const_expr_ast>;
+    class uint32_const_expr_ast; using uint32_const_expr_ast_ptr = std::shared_ptr<uint32_const_expr_ast>;
+    class uint64_const_expr_ast; using uint64_const_expr_ast_ptr = std::shared_ptr<uint64_const_expr_ast>;
+    class float_const_expr_ast; using float_const_expr_ast_ptr = std::shared_ptr<float_const_expr_ast>;
+    class float16_const_expr_ast; using float16_const_expr_ast_ptr = std::shared_ptr<float16_const_expr_ast>;
+    class float32_const_expr_ast; using float32_const_expr_ast_ptr = std::shared_ptr<float32_const_expr_ast>;
+    class float64_const_expr_ast; using float64_const_expr_ast_ptr = std::shared_ptr<float64_const_expr_ast>;
+    class string_const_expr_ast; using string_const_expr_ast_ptr = std::shared_ptr<string_const_expr_ast>;
 
     class meta; using meta_ptr = std::shared_ptr<meta>;
     class meta_type; using meta_type_ptr = std::shared_ptr<meta_type>;
@@ -690,4 +706,12 @@ namespace x
         { (const char *)u8"this", x::token_t::TK_THIS },
         { (const char *)u8"base", x::token_t::TK_BASE },
     };
+}
+
+namespace llvm
+{
+    class Module;
+    class LLVMContext;
+
+    using module_ptr = std::shared_ptr<Module>;
 }

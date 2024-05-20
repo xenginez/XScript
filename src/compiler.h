@@ -7,14 +7,6 @@
 
 #include "type.h"
 
-namespace llvm
-{
-	class Module;
-	class LLVMContext;
-
-	using module_ptr = std::shared_ptr<Module>;
-}
-
 namespace x
 {
 	class compiler : public std::enable_shared_from_this<compiler>

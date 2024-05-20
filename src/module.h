@@ -196,14 +196,13 @@ namespace x
 	public:
 		module();
 
-	public:
-        void merge( const x::module_ptr & other );
-		void generate( const x::symbols_ptr & scanner, const x::unit_ast_ptr & unit );
-
     public:
         void load( std::istream & in );
         void save( std::ostream & out ) const;
 
+	public:
+        void merge( const x::module_ptr & other );
+		
     public:
         x::range transfer( std::string_view str );
 

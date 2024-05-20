@@ -120,15 +120,6 @@ void x::module::merge( const x::module_ptr & other )
 {
 }
 
-void x::module::generate( const x::symbols_ptr & symbols, const x::unit_ast_ptr & unit )
-{
-	x::module_scanner_visitor scanner( shared_from_this(), symbols );
-	unit->accept( &scanner );
-
-    x::module_generater_visitor generater( shared_from_this(), symbols );
-	unit->accept( &generater );
-}
-
 void x::module::load( std::istream & in )
 {
     x::uint32 magic;

@@ -332,372 +332,372 @@ void x::local_stat_ast::accept( visitor * val )
 	val->visit( this );
 }
 
-x::ast_t x::assignment_exp_ast::type() const
+x::ast_t x::assignment_expr_ast::type() const
 {
 	return x::ast_t::ASSIGNMENT_EXP;
 }
 
-void x::assignment_exp_ast::accept( visitor * val )
+void x::assignment_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::logical_or_exp_ast::type() const
+x::ast_t x::logical_or_expr_ast::type() const
 {
 	return x::ast_t::LOGICAL_OR_EXP;
 }
 
-void x::logical_or_exp_ast::accept( visitor * val )
+void x::logical_or_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::logical_and_exp_ast::type() const
+x::ast_t x::logical_and_expr_ast::type() const
 {
 	return x::ast_t::LOGICAL_AND_EXP;
 }
 
-void x::logical_and_exp_ast::accept( visitor * val )
+void x::logical_and_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::or_exp_ast::type() const
+x::ast_t x::or_expr_ast::type() const
 {
 	return x::ast_t::OR_EXP;
 }
 
-void x::or_exp_ast::accept( visitor * val )
+void x::or_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::xor_exp_ast::type() const
+x::ast_t x::xor_expr_ast::type() const
 {
 	return x::ast_t::XOR_EXP;
 }
 
-void x::xor_exp_ast::accept( visitor * val )
+void x::xor_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::and_exp_ast::type() const
+x::ast_t x::and_expr_ast::type() const
 {
 	return x::ast_t::AND_EXP;
 }
 
-void x::and_exp_ast::accept( visitor * val )
+void x::and_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::compare_exp_ast::type() const
+x::ast_t x::compare_expr_ast::type() const
 {
 	return x::ast_t::COMPARE_EXP;
 }
 
-void x::compare_exp_ast::accept( visitor * val )
+void x::compare_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::shift_exp_ast::type() const
+x::ast_t x::shift_expr_ast::type() const
 {
 	return x::ast_t::SHIFT_EXP;
 }
 
-void x::shift_exp_ast::accept( visitor * val )
+void x::shift_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::add_exp_ast::type() const
+x::ast_t x::add_expr_ast::type() const
 {
 	return x::ast_t::ADD_EXP;
 }
 
-void x::add_exp_ast::accept( visitor * val )
+void x::add_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::mul_exp_ast::type() const
+x::ast_t x::mul_expr_ast::type() const
 {
 	return x::ast_t::MUL_EXP;
 }
 
-void x::mul_exp_ast::accept( visitor * val )
+void x::mul_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::as_exp_ast::type() const
+x::ast_t x::as_expr_ast::type() const
 {
 	return x::ast_t::AS_EXP;
 }
 
-void x::as_exp_ast::accept( visitor * val )
+void x::as_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::is_exp_ast::type() const
+x::ast_t x::is_expr_ast::type() const
 {
 	return x::ast_t::IS_EXP;
 }
 
-void x::is_exp_ast::accept( visitor * val )
+void x::is_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::sizeof_exp_ast::type() const
+x::ast_t x::sizeof_expr_ast::type() const
 {
 	return x::ast_t::SIZEOF_EXP;
 }
 
-void x::sizeof_exp_ast::accept( visitor * val )
+void x::sizeof_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::typeof_exp_ast::type() const
+x::ast_t x::typeof_expr_ast::type() const
 {
 	return x::ast_t::TYPEOF_EXP;
 }
 
-void x::typeof_exp_ast::accept( visitor * val )
+void x::typeof_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::unary_exp_ast::type() const
+x::ast_t x::unary_expr_ast::type() const
 {
 	return x::ast_t::UNARY_EXP;
 }
 
-void x::unary_exp_ast::accept( visitor * val )
+void x::unary_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::postfix_exp_ast::type() const
+x::ast_t x::postfix_expr_ast::type() const
 {
 	return x::ast_t::POSTFIX_EXP;
 }
 
-void x::postfix_exp_ast::accept( visitor * val )
+void x::postfix_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::index_exp_ast::type() const
+x::ast_t x::index_expr_ast::type() const
 {
 	return x::ast_t::INDEX_EXP;
 }
 
-void x::index_exp_ast::accept( visitor * val )
+void x::index_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::invoke_exp_ast::type() const
+x::ast_t x::invoke_expr_ast::type() const
 {
 	return x::ast_t::INVOKE_EXP;
 }
 
-void x::invoke_exp_ast::accept( visitor * val )
+void x::invoke_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::member_exp_ast::type() const
+x::ast_t x::member_expr_ast::type() const
 {
 	return x::ast_t::MEMBER_EXP;
 }
 
-void x::member_exp_ast::accept( visitor * val )
+void x::member_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::identifier_exp_ast::type() const
+x::ast_t x::identifier_expr_ast::type() const
 {
 	return x::ast_t::IDENTIFIER_EXP;
 }
 
-void x::identifier_exp_ast::accept( visitor * val )
+void x::identifier_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::closure_exp_ast::type() const
+x::ast_t x::closure_expr_ast::type() const
 {
 	return x::ast_t::CLOSURE_EXP;
 }
 
-void x::closure_exp_ast::accept( visitor * val )
+void x::closure_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::arguments_exp_ast::type() const
+x::ast_t x::arguments_expr_ast::type() const
 {
 	return x::ast_t::ARGUMENTS_EXP;
 }
 
-void x::arguments_exp_ast::accept( visitor * val )
+void x::arguments_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::initializers_exp_ast::type() const
+x::ast_t x::initializers_expr_ast::type() const
 {
 	return x::ast_t::INITIALIZERS_EXP;
 }
 
-void x::initializers_exp_ast::accept( visitor * val )
+void x::initializers_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::null_const_exp_ast::type() const
+x::ast_t x::null_const_expr_ast::type() const
 {
 	return x::ast_t::NULL_CONST_EXP;
 }
 
-void x::null_const_exp_ast::accept( visitor * val )
+void x::null_const_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::bool_const_exp_ast::type() const
+x::ast_t x::bool_const_expr_ast::type() const
 {
 	return x::ast_t::BOOL_CONST_EXP;
 }
 
-void x::bool_const_exp_ast::accept( visitor * val )
+void x::bool_const_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::int8_const_exp_ast::type() const
+x::ast_t x::int8_const_expr_ast::type() const
 {
 	return x::ast_t::INT8_CONST_EXP;
 }
 
-void x::int8_const_exp_ast::accept( visitor * val )
+void x::int8_const_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::int16_const_exp_ast::type() const
+x::ast_t x::int16_const_expr_ast::type() const
 {
 	return x::ast_t::INT16_CONST_EXP;
 }
 
-void x::int16_const_exp_ast::accept( visitor * val )
+void x::int16_const_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::int32_const_exp_ast::type() const
+x::ast_t x::int32_const_expr_ast::type() const
 {
 	return x::ast_t::INT32_CONST_EXP;
 }
 
-void x::int32_const_exp_ast::accept( visitor * val )
+void x::int32_const_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::int64_const_exp_ast::type() const
+x::ast_t x::int64_const_expr_ast::type() const
 {
 	return x::ast_t::INT64_CONST_EXP;
 }
 
-void x::int64_const_exp_ast::accept( visitor * val )
+void x::int64_const_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::uint8_const_exp_ast::type() const
+x::ast_t x::uint8_const_expr_ast::type() const
 {
 	return x::ast_t::UINT8_CONST_EXP;
 }
 
-void x::uint8_const_exp_ast::accept( visitor * val )
+void x::uint8_const_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::uint16_const_exp_ast::type() const
+x::ast_t x::uint16_const_expr_ast::type() const
 {
 	return x::ast_t::UINT16_CONST_EXP;
 }
 
-void x::uint16_const_exp_ast::accept( visitor * val )
+void x::uint16_const_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::uint32_const_exp_ast::type() const
+x::ast_t x::uint32_const_expr_ast::type() const
 {
 	return x::ast_t::UINT32_CONST_EXP;
 }
 
-void x::uint32_const_exp_ast::accept( visitor * val )
+void x::uint32_const_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::uint64_const_exp_ast::type() const
+x::ast_t x::uint64_const_expr_ast::type() const
 {
 	return x::ast_t::UINT64_CONST_EXP;
 }
 
-void x::uint64_const_exp_ast::accept( visitor * val )
+void x::uint64_const_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::float16_const_exp_ast::type() const
+x::ast_t x::float16_const_expr_ast::type() const
 {
 	return x::ast_t::FLOAT16_CONST_EXP;
 }
 
-void x::float16_const_exp_ast::accept( visitor * val )
+void x::float16_const_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::float32_const_exp_ast::type() const
+x::ast_t x::float32_const_expr_ast::type() const
 {
 	return x::ast_t::FLOAT32_CONST_EXP;
 }
 
-void x::float32_const_exp_ast::accept( visitor * val )
+void x::float32_const_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::float64_const_exp_ast::type() const
+x::ast_t x::float64_const_expr_ast::type() const
 {
 	return x::ast_t::FLOAT64_CONST_EXP;
 }
 
-void x::float64_const_exp_ast::accept( visitor * val )
+void x::float64_const_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
 
-x::ast_t x::string_const_exp_ast::type() const
+x::ast_t x::string_const_expr_ast::type() const
 {
 	return x::ast_t::STRING_CONST_EXP;
 }
 
-void x::string_const_exp_ast::accept( visitor * val )
+void x::string_const_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }

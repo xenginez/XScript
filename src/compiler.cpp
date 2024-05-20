@@ -76,10 +76,10 @@ void x::compiler::scanner()
 
 void x::compiler::instant()
 {
-	//x::instant_template_pass instant( _symbols );
-	//
-	//for ( const auto & it : _objects )
-	//	it->ast->accept( &instant );
+	x::instantiate_visitor instant( _symbols );
+	
+	for ( const auto & it : _objects )
+		it->ast->accept( &instant );
 }
 
 void x::compiler::checker()
@@ -197,7 +197,12 @@ void x::module_compiler::genmodule()
 		if ( obj->module == nullptr )
 		{
 			obj->module = std::make_shared<x::module>();
-			obj->module->generate( symbols(), obj->ast );
+
+			x::module_scanner_visitor scanner( obj->module, symbols() );
+			obj->ast->accept( &scanner );
+
+			x::module_generater_visitor generater( obj->module, symbols() );
+			obj->ast->accept( &generater );
 		}
 	}
 }
@@ -226,7 +231,6 @@ x::llvmir_compiler::llvmir_compiler( const log_callback_t & callback )
 
 x::llvmir_compiler::~llvmir_compiler()
 {
-	// if ( _module ) delete _module;
 	// if ( _context ) delete _context;
 }
 
@@ -237,14 +241,33 @@ llvm::module_ptr x::llvmir_compiler::module() const
 
 void x::llvmir_compiler::genmodule()
 {
+	for ( auto & it : objects() )
+	{
+		auto obj = std::static_pointer_cast<x::llvmir_compiler::object>( it );
+		if ( obj->module == nullptr )
+		{
+			//obj->module = std::make_shared<llvm::Module>();
+
+			x::llvmir_scanner_visitor scanner( obj->module, symbols() );
+			obj->ast->accept( &scanner );
+
+			x::llvmir_generater_visitor generater( obj->module, symbols() );
+			obj->ast->accept( &generater );
+		}
+	}
 }
 
 void x::llvmir_compiler::linkmodule()
 {
+	//_module = std::make_shared<llvm::Module>();
+
+	for ( auto & it : objects() )
+	{
+		// llvm::Linker::linkModules( *_module, it->module );
+	}
 }
 
 x::compiler::object_ptr x::llvmir_compiler::make_object()
 {
-	auto obj = std::make_shared<x::llvmir_compiler::object>();
-	return obj;
+	return std::make_shared<x::llvmir_compiler::object>();
 }

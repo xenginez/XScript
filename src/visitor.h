@@ -47,34 +47,34 @@ namespace x
 		virtual void visit( x::continue_stat_ast * val );
 		virtual void visit( x::local_stat_ast * val );
 
-		virtual void visit( x::assignment_exp_ast * val );
-		virtual void visit( x::logical_or_exp_ast * val );
-		virtual void visit( x::logical_and_exp_ast * val );
-		virtual void visit( x::or_exp_ast * val );
-		virtual void visit( x::xor_exp_ast * val );
-		virtual void visit( x::and_exp_ast * val );
-		virtual void visit( x::compare_exp_ast * val );
-		virtual void visit( x::shift_exp_ast * val );
-		virtual void visit( x::add_exp_ast * val );
-		virtual void visit( x::mul_exp_ast * val );
-		virtual void visit( x::as_exp_ast * val );
-		virtual void visit( x::is_exp_ast * val );
-		virtual void visit( x::sizeof_exp_ast * val );
-		virtual void visit( x::typeof_exp_ast * val );
-		virtual void visit( x::unary_exp_ast * val );
-		virtual void visit( x::postfix_exp_ast * val );
-		virtual void visit( x::index_exp_ast * val );
-		virtual void visit( x::invoke_exp_ast * val );
-		virtual void visit( x::member_exp_ast * val );
-		virtual void visit( x::identifier_exp_ast * val );
-		virtual void visit( x::closure_exp_ast * val );
-		virtual void visit( x::arguments_exp_ast * val );
-		virtual void visit( x::initializers_exp_ast * val );
-		virtual void visit( x::null_const_exp_ast * val );
-		virtual void visit( x::bool_const_exp_ast * val );
-		virtual void visit( x::int_const_exp_ast * val );
-		virtual void visit( x::float_const_exp_ast * val );
-		virtual void visit( x::string_const_exp_ast * val );
+		virtual void visit( x::assignment_expr_ast * val );
+		virtual void visit( x::logical_or_expr_ast * val );
+		virtual void visit( x::logical_and_expr_ast * val );
+		virtual void visit( x::or_expr_ast * val );
+		virtual void visit( x::xor_expr_ast * val );
+		virtual void visit( x::and_expr_ast * val );
+		virtual void visit( x::compare_expr_ast * val );
+		virtual void visit( x::shift_expr_ast * val );
+		virtual void visit( x::add_expr_ast * val );
+		virtual void visit( x::mul_expr_ast * val );
+		virtual void visit( x::as_expr_ast * val );
+		virtual void visit( x::is_expr_ast * val );
+		virtual void visit( x::sizeof_expr_ast * val );
+		virtual void visit( x::typeof_expr_ast * val );
+		virtual void visit( x::unary_expr_ast * val );
+		virtual void visit( x::postfix_expr_ast * val );
+		virtual void visit( x::index_expr_ast * val );
+		virtual void visit( x::invoke_expr_ast * val );
+		virtual void visit( x::member_expr_ast * val );
+		virtual void visit( x::identifier_expr_ast * val );
+		virtual void visit( x::closure_expr_ast * val );
+		virtual void visit( x::arguments_expr_ast * val );
+		virtual void visit( x::initializers_expr_ast * val );
+		virtual void visit( x::null_const_expr_ast * val );
+		virtual void visit( x::bool_const_expr_ast * val );
+		virtual void visit( x::int_const_expr_ast * val );
+		virtual void visit( x::float_const_expr_ast * val );
+		virtual void visit( x::string_const_expr_ast * val );
 	};
 
 	class scope_with_visitor : public x::visitor
@@ -100,8 +100,8 @@ namespace x
 
 	protected:
 		const x::symbols_ptr & symbols() const;
-		bool is_const_int( x::exp_stat_ast * val ) const;
-		x::type_symbol * get_expr_type( x::exp_stat_ast * val ) const;
+		bool is_const_int( x::expr_stat_ast * val ) const;
+		x::type_symbol * get_expr_type( x::expr_stat_ast * val ) const;
 		std::string template_type_name( x::temp_type_ast * val ) const;
 
 	private:
@@ -171,13 +171,13 @@ namespace x
 		void visit( x::return_stat_ast * val ) override;
 		void visit( x::continue_stat_ast * val ) override;
 
-		void visit( x::assignment_exp_ast * val ) override;
-		void visit( x::unary_exp_ast * val ) override;
-		void visit( x::postfix_exp_ast * val ) override;
-		void visit( x::index_exp_ast * val ) override;
-		void visit( x::invoke_exp_ast * val ) override;
-		void visit( x::member_exp_ast * val ) override;
-		void visit( x::identifier_exp_ast * val ) override;
+		void visit( x::assignment_expr_ast * val ) override;
+		void visit( x::unary_expr_ast * val ) override;
+		void visit( x::postfix_expr_ast * val ) override;
+		void visit( x::index_expr_ast * val ) override;
+		void visit( x::invoke_expr_ast * val ) override;
+		void visit( x::member_expr_ast * val ) override;
+		void visit( x::identifier_expr_ast * val ) override;
 	};
 
 	class module_scanner_visitor : public x::scope_with_visitor
@@ -241,42 +241,61 @@ namespace x
 		void visit( x::continue_stat_ast * val ) override;
 		void visit( x::local_stat_ast * val ) override;
 
-		void visit( x::assignment_exp_ast * val ) override;
-		void visit( x::logical_or_exp_ast * val ) override;
-		void visit( x::logical_and_exp_ast * val ) override;
-		void visit( x::or_exp_ast * val ) override;
-		void visit( x::xor_exp_ast * val ) override;
-		void visit( x::and_exp_ast * val ) override;
-		void visit( x::compare_exp_ast * val ) override;
-		void visit( x::shift_exp_ast * val ) override;
-		void visit( x::add_exp_ast * val ) override;
-		void visit( x::mul_exp_ast * val ) override;
-		void visit( x::as_exp_ast * val ) override;
-		void visit( x::is_exp_ast * val ) override;
-		void visit( x::sizeof_exp_ast * val ) override;
-		void visit( x::typeof_exp_ast * val ) override;
-		void visit( x::unary_exp_ast * val ) override;
-		void visit( x::postfix_exp_ast * val ) override;
-		void visit( x::index_exp_ast * val ) override;
-		void visit( x::invoke_exp_ast * val ) override;
-		void visit( x::member_exp_ast * val ) override;
-		void visit( x::identifier_exp_ast * val ) override;
-		void visit( x::closure_exp_ast * val ) override;
-		void visit( x::arguments_exp_ast * val ) override;
-		void visit( x::initializers_exp_ast * val ) override;
-		void visit( x::null_const_exp_ast * val ) override;
-		void visit( x::bool_const_exp_ast * val ) override;
-		void visit( x::int_const_exp_ast * val ) override;
-		void visit( x::float_const_exp_ast * val ) override;
-		void visit( x::string_const_exp_ast * val ) override;
+		void visit( x::assignment_expr_ast * val ) override;
+		void visit( x::logical_or_expr_ast * val ) override;
+		void visit( x::logical_and_expr_ast * val ) override;
+		void visit( x::or_expr_ast * val ) override;
+		void visit( x::xor_expr_ast * val ) override;
+		void visit( x::and_expr_ast * val ) override;
+		void visit( x::compare_expr_ast * val ) override;
+		void visit( x::shift_expr_ast * val ) override;
+		void visit( x::add_expr_ast * val ) override;
+		void visit( x::mul_expr_ast * val ) override;
+		void visit( x::as_expr_ast * val ) override;
+		void visit( x::is_expr_ast * val ) override;
+		void visit( x::sizeof_expr_ast * val ) override;
+		void visit( x::typeof_expr_ast * val ) override;
+		void visit( x::unary_expr_ast * val ) override;
+		void visit( x::postfix_expr_ast * val ) override;
+		void visit( x::index_expr_ast * val ) override;
+		void visit( x::invoke_expr_ast * val ) override;
+		void visit( x::member_expr_ast * val ) override;
+		void visit( x::identifier_expr_ast * val ) override;
+		void visit( x::closure_expr_ast * val ) override;
+		void visit( x::arguments_expr_ast * val ) override;
+		void visit( x::initializers_expr_ast * val ) override;
+		void visit( x::null_const_expr_ast * val ) override;
+		void visit( x::bool_const_expr_ast * val ) override;
+		void visit( x::int_const_expr_ast * val ) override;
+		void visit( x::float_const_expr_ast * val ) override;
+		void visit( x::string_const_expr_ast * val ) override;
 
 	private:
 		x::module_ptr _module;
 	};
 
-	class llvmir_generater_visitor
+	class llvmir_scanner_visitor : public x::scope_with_visitor
 	{
+	public:
+		using scope_with_visitor::visit;
 
+	public:
+		llvmir_scanner_visitor( const llvm::module_ptr & module, const x::symbols_ptr & symbols );
+
+	private:
+		llvm::module_ptr _module;
+	};
+
+	class llvmir_generater_visitor : public x::scope_with_visitor
+	{
+	public:
+		using scope_with_visitor::visit;
+
+	public:
+		llvmir_generater_visitor( const llvm::module_ptr & module, const x::symbols_ptr & symbols );
+
+	private:
+		llvm::module_ptr _module;
 	};
 
 	class interpreter_execute_visitor

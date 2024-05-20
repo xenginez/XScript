@@ -213,121 +213,121 @@ void x::visitor::visit( x::local_stat_ast * val )
 		val->init->accept( this );
 }
 
-void x::visitor::visit( x::assignment_exp_ast * val )
+void x::visitor::visit( x::assignment_expr_ast * val )
 {
 	val->left->accept( this );
 	val->right->accept( this );
 }
 
-void x::visitor::visit( x::logical_or_exp_ast * val )
+void x::visitor::visit( x::logical_or_expr_ast * val )
 {
 	val->left->accept( this );
 	val->right->accept( this );
 }
 
-void x::visitor::visit( x::logical_and_exp_ast * val )
+void x::visitor::visit( x::logical_and_expr_ast * val )
 {
 	val->left->accept( this );
 	val->right->accept( this );
 }
 
-void x::visitor::visit( x::or_exp_ast * val )
+void x::visitor::visit( x::or_expr_ast * val )
 {
 	val->left->accept( this );
 	val->right->accept( this );
 }
 
-void x::visitor::visit( x::xor_exp_ast * val )
+void x::visitor::visit( x::xor_expr_ast * val )
 {
 	val->left->accept( this );
 	val->right->accept( this );
 }
 
-void x::visitor::visit( x::and_exp_ast * val )
+void x::visitor::visit( x::and_expr_ast * val )
 {
 	val->left->accept( this );
 	val->right->accept( this );
 }
 
-void x::visitor::visit( x::compare_exp_ast * val )
+void x::visitor::visit( x::compare_expr_ast * val )
 {
 	val->left->accept( this );
 	val->right->accept( this );
 }
 
-void x::visitor::visit( x::shift_exp_ast * val )
+void x::visitor::visit( x::shift_expr_ast * val )
 {
 	val->left->accept( this );
 	val->right->accept( this );
 }
 
-void x::visitor::visit( x::add_exp_ast * val )
+void x::visitor::visit( x::add_expr_ast * val )
 {
 	val->left->accept( this );
 	val->right->accept( this );
 }
 
-void x::visitor::visit( x::mul_exp_ast * val )
+void x::visitor::visit( x::mul_expr_ast * val )
 {
 	val->left->accept( this );
 	val->right->accept( this );
 }
 
-void x::visitor::visit( x::as_exp_ast * val )
+void x::visitor::visit( x::as_expr_ast * val )
 {
 	val->cast_type->accept( this );
 	val->value->accept( this );
 }
 
-void x::visitor::visit( x::is_exp_ast * val )
+void x::visitor::visit( x::is_expr_ast * val )
 {
 	val->cast_type->accept( this );
 	val->value->accept( this );
 }
 
-void x::visitor::visit( x::sizeof_exp_ast * val )
+void x::visitor::visit( x::sizeof_expr_ast * val )
 {
 	val->value->accept( this );
 }
 
-void x::visitor::visit( x::typeof_exp_ast * val )
+void x::visitor::visit( x::typeof_expr_ast * val )
 {
 	val->value->accept( this );
 }
 
-void x::visitor::visit( x::unary_exp_ast * val )
+void x::visitor::visit( x::unary_expr_ast * val )
 {
 	val->exp->accept( this );
 }
 
-void x::visitor::visit( x::postfix_exp_ast * val )
+void x::visitor::visit( x::postfix_expr_ast * val )
 {
 	val->exp->accept( this );
 }
 
-void x::visitor::visit( x::index_exp_ast * val )
+void x::visitor::visit( x::index_expr_ast * val )
 {
 	val->left->accept( this );
 	val->right->accept( this );
 }
 
-void x::visitor::visit( x::invoke_exp_ast * val )
+void x::visitor::visit( x::invoke_expr_ast * val )
 {
 	val->left->accept( this );
 	val->right->accept( this );
 }
 
-void x::visitor::visit( x::member_exp_ast * val )
+void x::visitor::visit( x::member_expr_ast * val )
 {
 	val->left->accept( this );
 	val->right->accept( this );
 }
 
-void x::visitor::visit( x::identifier_exp_ast * val )
+void x::visitor::visit( x::identifier_expr_ast * val )
 {
 }
 
-void x::visitor::visit( x::closure_exp_ast * val )
+void x::visitor::visit( x::closure_expr_ast * val )
 {
 	for ( const auto & it : val->captures )
 		it->accept( this );
@@ -340,35 +340,35 @@ void x::visitor::visit( x::closure_exp_ast * val )
 	val->stat->accept( this );
 }
 
-void x::visitor::visit( x::arguments_exp_ast * val )
+void x::visitor::visit( x::arguments_expr_ast * val )
 {
 	for ( const auto & it : val->args )
 		it->accept( this );
 }
 
-void x::visitor::visit( x::initializers_exp_ast * val )
+void x::visitor::visit( x::initializers_expr_ast * val )
 {
 	for ( const auto & it : val->args )
 		it->accept( this );
 }
 
-void x::visitor::visit( x::null_const_exp_ast * val )
+void x::visitor::visit( x::null_const_expr_ast * val )
 {
 }
 
-void x::visitor::visit( x::bool_const_exp_ast * val )
+void x::visitor::visit( x::bool_const_expr_ast * val )
 {
 }
 
-void x::visitor::visit( x::int_const_exp_ast * val )
+void x::visitor::visit( x::int_const_expr_ast * val )
 {
 }
 
-void x::visitor::visit( x::float_const_exp_ast * val )
+void x::visitor::visit( x::float_const_expr_ast * val )
 {
 }
 
-void x::visitor::visit( x::string_const_exp_ast * val )
+void x::visitor::visit( x::string_const_expr_ast * val )
 {
 }
 
@@ -472,12 +472,12 @@ const x::symbols_ptr & x::scope_with_visitor::symbols() const
 	return _symbols;
 }
 
-bool x::scope_with_visitor::is_const_int( x::exp_stat_ast * val ) const
+bool x::scope_with_visitor::is_const_int( x::expr_stat_ast * val ) const
 {
 	return false;
 }
 
-x::type_symbol * x::scope_with_visitor::get_expr_type( x::exp_stat_ast * val ) const
+x::type_symbol * x::scope_with_visitor::get_expr_type( x::expr_stat_ast * val ) const
 {
 	return nullptr;
 }
@@ -681,7 +681,7 @@ void x::semantic_checker_visitor::visit( x::continue_stat_ast * val )
 	scope_with_visitor::visit( val );
 }
 
-void x::semantic_checker_visitor::visit( x::assignment_exp_ast * val )
+void x::semantic_checker_visitor::visit( x::assignment_expr_ast * val )
 {
 	switch ( val->token )
 	{
@@ -705,30 +705,30 @@ void x::semantic_checker_visitor::visit( x::assignment_exp_ast * val )
 	scope_with_visitor::visit( val );
 }
 
-void x::semantic_checker_visitor::visit( x::unary_exp_ast * val )
+void x::semantic_checker_visitor::visit( x::unary_expr_ast * val )
 {
 }
 
-void x::semantic_checker_visitor::visit( x::postfix_exp_ast * val )
+void x::semantic_checker_visitor::visit( x::postfix_expr_ast * val )
 {
 }
 
-void x::semantic_checker_visitor::visit( x::index_exp_ast * val )
+void x::semantic_checker_visitor::visit( x::index_expr_ast * val )
 {
 	ASSERT( is_const_int( val->right.get() ), "" );
 
 	scope_with_visitor::visit( val );
 }
 
-void x::semantic_checker_visitor::visit( x::invoke_exp_ast * val )
+void x::semantic_checker_visitor::visit( x::invoke_expr_ast * val )
 {
 }
 
-void x::semantic_checker_visitor::visit( x::member_exp_ast * val )
+void x::semantic_checker_visitor::visit( x::member_expr_ast * val )
 {
 }
 
-void x::semantic_checker_visitor::visit( x::identifier_exp_ast * val )
+void x::semantic_checker_visitor::visit( x::identifier_expr_ast * val )
 {
 }
 
@@ -771,6 +771,16 @@ void x::module_scanner_visitor::visit( x::template_decl_ast * val )
 }
 
 x::module_generater_visitor::module_generater_visitor( const x::module_ptr & module, const x::symbols_ptr & symbols )
+	: scope_with_visitor( symbols ), _module( module )
+{
+}
+
+x::llvmir_scanner_visitor::llvmir_scanner_visitor( const llvm::module_ptr & module, const x::symbols_ptr & symbols )
+	: scope_with_visitor( symbols ), _module( module )
+{
+}
+
+x::llvmir_generater_visitor::llvmir_generater_visitor( const llvm::module_ptr & module, const x::symbols_ptr & symbols )
 	: scope_with_visitor( symbols ), _module( module )
 {
 }
