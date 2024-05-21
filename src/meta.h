@@ -34,6 +34,7 @@ namespace x
 
 	public:
 		virtual x::uint64 size() const = 0;
+		virtual void construct( void * ptr ) const = 0;
 	};
 
 	class meta_enum : public meta_type
@@ -45,10 +46,13 @@ namespace x
 
 	public:
 		x::meta_t type() const override;
-		x::uint64 size() const override;
 		x::uint64 hashcode() const override;
 		x::static_string_view name() const override;
 		x::static_string_view fullname() const override;
+
+	public:
+		x::uint64 size() const override;
+		void construct( void * ptr ) const override;
 
 	public:
 		std::span<const x::meta_element_ptr> elements() const;
@@ -68,22 +72,22 @@ namespace x
 
 	public:
 		x::meta_t type() const override;
-		x::uint64 size() const override;
 		x::uint64 hashcode() const override;
 		x::static_string_view name() const override;
 		x::static_string_view fullname() const override;
+
+	public:
+		x::uint64 size() const override;
+		void construct( void * ptr ) const override;
 
 	public:
 		x::static_string_view base() const;
 		std::span<const x::meta_variable_ptr> variables() const;
 		std::span<const x::meta_function_ptr> functions() const;
 
-	public:
-		void construct( void * ptr ) const;
-
 	private:
 		x::uint64 _size = 0;
-		x::uint64 _construct;
+		x::uint64 _construct = 0;
 		x::static_string_view _base;
 		x::static_string_view _name;
 		x::static_string_view _fullname;
@@ -175,7 +179,7 @@ namespace x
 		bool _is_async = false;
 		bool _is_static = false;
 		x::access_t _access = x::access_t::PRIVATE;
-		x::uint64 _code;
+		x::uint64 _code = 0;
 		x::typedesc _result;
 		x::static_string_view _name;
 		x::static_string_view _fullname;

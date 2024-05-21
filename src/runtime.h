@@ -7,6 +7,8 @@ namespace x
 {
 	class runtime : public std::enable_shared_from_this<runtime>
 	{
+		friend class object;
+
 	private:
 		struct private_p;
 
@@ -30,9 +32,20 @@ namespace x
 		x::value & get_thread( x::uint64 idx );
 
 	public:
-		x::byte * alloc( x::uint64 size );
 		void add_root( x::object * root );
-		void add_write_barriers( x::object * obj );
+		void set_trigger_gc_size( x::uint64 size );
+
+	public:
+		x::object * alloc( x::uint64 size );
+
+	private:
+		x::byte * page_alloc( x::uint64 size );
+		x::byte * item_alloc( x::uint64 size );
+		x::byte * slot_alloc( x::uint64 size );
+
+	private:
+		void add_gray( x::object * gray );
+		void add_wbarriers( x::object * left, x::object * right );
 
 	private:
 		void gc();

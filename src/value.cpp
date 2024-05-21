@@ -21,6 +21,214 @@ x::value::~value()
 {
 }
 
+x::value::value( bool val )
+{
+	b = val;
+	_flags = x::value_t::BOOL;
+}
+
+x::value::value( x::int8 val )
+{
+	i8 = val;
+	_flags = x::value_t::INT8;
+}
+
+x::value::value( x::int16 val )
+{
+	i16 = val;
+	_flags = x::value_t::INT16;
+}
+
+x::value::value( x::int32 val )
+{
+	i32 = val;
+	_flags = x::value_t::INT32;
+}
+
+x::value::value( x::int64 val )
+{
+	i64 = val;
+	_flags = x::value_t::INT64;
+}
+
+x::value::value( x::uint8 val )
+{
+	u8 = val;
+	_flags = x::value_t::UINT8;
+}
+
+x::value::value( x::uint16 val )
+{
+	u16 = val;
+	_flags = x::value_t::UINT16;
+}
+
+x::value::value( x::uint32 val )
+{
+	u32 = val;
+	_flags = x::value_t::UINT32;
+}
+
+x::value::value( x::uint64 val )
+{
+	u64 = val;
+	_flags = x::value_t::UINT64;
+}
+
+x::value::value( x::float16 val )
+{
+	f16 = val;
+	_flags = x::value_t::FLOAT16;
+}
+
+x::value::value( x::float32 val )
+{
+	f32 = val;
+	_flags = x::value_t::FLOAT32;
+}
+
+x::value::value( x::float64 val )
+{
+	f64 = val;
+	_flags = x::value_t::FLOAT64;
+}
+
+x::value::value( x::string val )
+{
+	str = val;
+	_flags = x::value_t::STRING;
+}
+
+x::value::value( x::intptr val )
+{
+	ptr = val;
+	_flags = x::value_t::INTPTR;
+}
+
+x::value::value( x::object * val )
+{
+	obj = val;
+	_flags = x::value_t::OBJECT;
+}
+
+x::value::value( x::value * val )
+{
+	ref = val;
+	_flags = x::value_t::REF;
+}
+
+x::value & x::value::operator=( bool val )
+{
+	b = val;
+	_flags = x::value_t::BOOL;
+	return *this;
+}
+
+x::value & x::value::operator=( x::int8 val )
+{
+	i8 = val;
+	_flags = x::value_t::INT8;
+	return *this;
+}
+
+x::value & x::value::operator=( x::int16 val )
+{
+	i16 = val;
+	_flags = x::value_t::INT16;
+	return *this;
+}
+
+x::value & x::value::operator=( x::int32 val )
+{
+	i32 = val;
+	_flags = x::value_t::INT32;
+	return *this;
+}
+
+x::value & x::value::operator=( x::int64 val )
+{
+	i64 = val;
+	_flags = x::value_t::INT64;
+	return *this;
+}
+
+x::value & x::value::operator=( x::uint8 val )
+{
+	u8 = val;
+	_flags = x::value_t::UINT8;
+	return *this;
+}
+
+x::value & x::value::operator=( x::uint16 val )
+{
+	u16 = val;
+	_flags = x::value_t::UINT16;
+	return *this;
+}
+
+x::value & x::value::operator=( x::uint32 val )
+{
+	u32 = val;
+	_flags = x::value_t::UINT32;
+	return *this;
+}
+
+x::value & x::value::operator=( x::uint64 val )
+{
+	u64 = val;
+	_flags = x::value_t::UINT64;
+	return *this;
+}
+
+x::value & x::value::operator=( x::float16 val )
+{
+	f16 = val;
+	_flags = x::value_t::FLOAT16;
+	return *this;
+}
+
+x::value & x::value::operator=( x::float32 val )
+{
+	f32 = val;
+	_flags = x::value_t::FLOAT32;
+	return *this;
+}
+
+x::value & x::value::operator=( x::float64 val )
+{
+	f64 = val;
+	_flags = x::value_t::FLOAT64;
+	return *this;
+}
+
+x::value & x::value::operator=( x::string val )
+{
+	str = val;
+	_flags = x::value_t::STRING;
+	return *this;
+}
+
+x::value & x::value::operator=( x::intptr val )
+{
+	ptr = val;
+	_flags = x::value_t::INTPTR;
+	return *this;
+}
+
+x::value & x::value::operator=( x::object * val )
+{
+	obj = val;
+	_flags = x::value_t::OBJECT;
+	return *this;
+}
+
+x::value & x::value::operator=( x::value * val )
+{
+	ref = val;
+	_flags = x::value_t::REF;
+	return *this;
+}
+
 x::value_t x::value::type() const
 {
 	if ( to_reference()._flags == x::value_t::INVALID )
@@ -38,17 +246,12 @@ x::meta_type_ptr x::value::meta() const
 
 bool x::value::is_ref() const
 {
-	return _flags && x::value_t::REF_MASK;
+	return _flags && x::value_t::REF;
 }
 
 bool x::value::is_enum() const
 {
 	return to_reference()._flags && x::value_t::ENUM_MASK;
-}
-
-bool x::value::is_flag() const
-{
-	return to_reference()._flags && x::value_t::FLAG_MASK;
 }
 
 bool x::value::is_async() const

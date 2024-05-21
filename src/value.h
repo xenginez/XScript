@@ -13,13 +13,61 @@ namespace x
 		~value();
 
 	public:
+		value( bool val );
+		value( x::int8 val );
+		value( x::int16 val );
+		value( x::int32 val );
+		value( x::int64 val );
+		value( x::uint8 val );
+		value( x::uint16 val );
+		value( x::uint32 val );
+		value( x::uint64 val );
+		value( x::float16 val );
+		value( x::float32 val );
+		value( x::float64 val );
+		value( x::string val );
+		value( x::intptr val );
+		value( x::object * val );
+		value( x::value * val );
+		template<typename T, std::enable_if_t<std::is_enum_v<T>, int> = 0> value( T val )
+		{
+			i64 = (x::int64)val;
+			_flags = x::value_t::INT64;
+			_flags |= x::value_t::ENUM_MASK;
+		}
+
+	public:
+		value & operator=( bool val );
+		value & operator=( x::int8 val );
+		value & operator=( x::int16 val );
+		value & operator=( x::int32 val );
+		value & operator=( x::int64 val );
+		value & operator=( x::uint8 val );
+		value & operator=( x::uint16 val );
+		value & operator=( x::uint32 val );
+		value & operator=( x::uint64 val );
+		value & operator=( x::float16 val );
+		value & operator=( x::float32 val );
+		value & operator=( x::float64 val );
+		value & operator=( x::string val );
+		value & operator=( x::intptr val );
+		value & operator=( x::object * val );
+		value & operator=( x::value * val );
+		template<typename T, std::enable_if_t<std::is_enum_v<T>, int> = 0> value & operator=( T val )
+		{
+			i64 = (x::int64)val;
+			_flags = x::value_t::INT64;
+			_flags |= x::value_t::ENUM_MASK;
+			return *this;
+		}
+
+	public:
 		x::value_t type() const;
 		x::meta_type_ptr meta() const;
 
 	public:
 		bool is_ref() const;
 		bool is_enum() const;
-		bool is_flag() const;
 		bool is_async() const;
 		bool is_invalid() const;
 

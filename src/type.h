@@ -40,7 +40,7 @@ namespace x
     using float32 = float;
     using float64 = double;
     using string = const char *;
-    using intptr = std::intptr_t;
+    enum class intptr : std::intptr_t {};
 
     enum class ast_t : x::uint8
     {
@@ -274,6 +274,7 @@ namespace x
         STRING              = 1 << 13,
         OBJECT              = 1 << 14,
         INTPTR              = 1 << 15,
+        REF                 = 1 << 16,
 
         SIGNED_MASK         = 0x3C,
         UNSIGNED_MASK       = 0x3C0,
@@ -281,9 +282,7 @@ namespace x
         TYPE_MASK           = 0xFFFF,
 
         ENUM_MASK           = 1 << 27,
-        FLAG_MASK           = 1 << 28,
-        REF_MASK            = 1 << 29,
-        ASYN_MASK           = 1 << 30,
+        ASYN_MASK           = 1 << 28,
     };
 
     enum class access_t : x::uint8

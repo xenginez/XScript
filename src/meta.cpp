@@ -16,11 +16,6 @@ x::meta_t x::meta_enum::type() const
 	return x::meta_t::ENUM;
 }
 
-x::uint64 x::meta_enum::size() const
-{
-	return sizeof( x::int64 );
-}
-
 x::uint64 x::meta_enum::hashcode() const
 {
 	return x::hash( fullname() );
@@ -36,6 +31,16 @@ x::static_string_view x::meta_enum::fullname() const
 	return _fullname;
 }
 
+x::uint64 x::meta_enum::size() const
+{
+	return sizeof( x::int64 );
+}
+
+void x::meta_enum::construct( void * ptr ) const
+{
+	memset( ptr, 0, sizeof( x::int64 ) );
+}
+
 std::span<const x::meta_element_ptr> x::meta_enum::elements() const
 {
 	return _elements;
@@ -48,11 +53,6 @@ x::meta_class::meta_class()
 x::meta_t x::meta_class::type() const
 {
 	return x::meta_t::CLASS;
-}
-
-x::uint64 x::meta_class::size() const
-{
-	return _size;
 }
 
 x::uint64 x::meta_class::hashcode() const
@@ -70,6 +70,15 @@ x::static_string_view x::meta_class::fullname() const
 	return _fullname;
 }
 
+x::uint64 x::meta_class::size() const
+{
+	return _size;
+}
+
+void x::meta_class::construct( void * ptr ) const
+{
+}
+
 x::static_string_view x::meta_class::base() const
 {
 	return _base;
@@ -83,10 +92,6 @@ std::span<const x::meta_variable_ptr> x::meta_class::variables() const
 std::span<const x::meta_function_ptr> x::meta_class::functions() const
 {
 	return _functions;
-}
-
-void x::meta_class::construct( void * ptr ) const
-{
 }
 
 x::meta_element::meta_element()
