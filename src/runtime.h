@@ -11,6 +11,7 @@ namespace x
 
 	private:
 		struct private_p;
+		struct thread_runtime;
 
 	public:
 		runtime();
@@ -34,6 +35,8 @@ namespace x
 	public:
 		void add_root( x::object * root );
 		void set_trigger_gc_size( x::uint64 size );
+		thread_runtime * create_thread_runtime();
+		bool delete_thread_runtime( thread_runtime * rt );
 
 	public:
 		x::object * alloc( x::uint64 size );
@@ -46,6 +49,10 @@ namespace x
 	private:
 		void add_gray( x::object * gray );
 		void add_wbarriers( x::object * left, x::object * right );
+
+	private:
+		void add_thread_runtime( thread_runtime * rt );
+		void remove_thread_runtime( thread_runtime * rt );
 
 	private:
 		void gc();

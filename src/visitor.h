@@ -274,32 +274,57 @@ namespace x
 		x::module_ptr _module;
 	};
 
-	class llvmir_scanner_visitor : public x::scope_with_visitor
+	class llvm_scanner_visitor : public x::scope_with_visitor
 	{
 	public:
 		using scope_with_visitor::visit;
 
 	public:
-		llvmir_scanner_visitor( const llvm::module_ptr & module, const x::symbols_ptr & symbols );
+		llvm_scanner_visitor( const llvm::module_ptr & module, const x::symbols_ptr & symbols );
 
 	private:
 		llvm::module_ptr _module;
 	};
 
-	class llvmir_generater_visitor : public x::scope_with_visitor
+	class llvm_generater_visitor : public x::scope_with_visitor
 	{
 	public:
 		using scope_with_visitor::visit;
 
 	public:
-		llvmir_generater_visitor( const llvm::module_ptr & module, const x::symbols_ptr & symbols );
+		llvm_generater_visitor( const llvm::module_ptr & module, const x::symbols_ptr & symbols );
 
 	private:
 		llvm::module_ptr _module;
+	};
+
+	class spirv_scanner_visitor : public x::scope_with_visitor
+	{
+	public:
+		using scope_with_visitor::visit;
+
+	public:
+		spirv_scanner_visitor( const spirv::module_ptr & module, const x::symbols_ptr & symbols );
+
+	private:
+		spirv::module_ptr _module;
+	};
+
+	class spirv_generater_visitor : public x::scope_with_visitor
+	{
+	public:
+		using scope_with_visitor::visit;
+
+	public:
+		spirv_generater_visitor( const spirv::module_ptr & module, const x::symbols_ptr & symbols );
+
+	private:
+		spirv::module_ptr _module;
 	};
 
 	class interpreter_execute_visitor
 	{
 
 	};
+
 }

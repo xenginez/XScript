@@ -94,12 +94,15 @@ void x::compiler::genunit()
 {
 	genmodule();
 
+	for ( auto & it : _objects )
+		it->reset = false;
+
 	_logger( std::format( "gen object success" ) );
 }
 
 void x::compiler::linking()
 {
-	genmodule();
+	linkmodule();
 
 	_logger( std::format( "link all module success" ) );
 }
@@ -140,10 +143,7 @@ void x::compiler::load_source_file( std::filesystem::path file )
 	if ( it != _objects.end() )
 	{
 		if ( time != (*it)->time )
-		{
-			(*it)->ast = nullptr;
-			(*it)->module = nullptr;
-		}
+			( *it )->reset = true;
 
 		obj = *it;
 	}
@@ -151,12 +151,13 @@ void x::compiler::load_source_file( std::filesystem::path file )
 	{
 		obj = make_object();
 		obj->path = path;
+		obj->reset = true;
 		_objects.push_back( obj );
 	}
 
 	obj->time = time;
 
-	if ( obj->ast == nullptr )
+	if ( obj->reset )
 	{
 		std::ifstream ifs( path );
 		
@@ -222,52 +223,100 @@ x::compiler::object_ptr x::module_compiler::make_object()
 	return std::make_shared<x::module_compiler::object>();
 }
 
-x::llvmir_compiler::llvmir_compiler( const log_callback_t & callback )
+x::llvm_compiler::llvm_compiler( const log_callback_t & callback )
 	: compiler( callback )
 {
-	_context = nullptr;
-	_module = nullptr;
+	// _context = std::make_shared<llvm::context>();
 }
 
-x::llvmir_compiler::~llvmir_compiler()
+x::llvm_compiler::~llvm_compiler()
 {
 	// if ( _context ) delete _context;
 }
 
-llvm::module_ptr x::llvmir_compiler::module() const
+llvm::module_ptr x::llvm_compiler::module() const
 {
 	return _module;
 }
 
-void x::llvmir_compiler::genmodule()
+void x::llvm_compiler::genmodule()
 {
 	for ( auto & it : objects() )
 	{
-		auto obj = std::static_pointer_cast<x::llvmir_compiler::object>( it );
-		if ( obj->module == nullptr )
+		auto obj = std::static_pointer_cast<x::llvm_compiler::object>( it );
+		if ( obj->reset )
 		{
-			//obj->module = std::make_shared<llvm::Module>();
+			//obj->module = std::make_shared<llvm::module>( obj->path.string(), *_context );
 
-			x::llvmir_scanner_visitor scanner( obj->module, symbols() );
+			x::llvm_scanner_visitor scanner( obj->module, symbols() );
 			obj->ast->accept( &scanner );
 
-			x::llvmir_generater_visitor generater( obj->module, symbols() );
+			x::llvm_generater_visitor generater( obj->module, symbols() );
 			obj->ast->accept( &generater );
 		}
 	}
 }
 
-void x::llvmir_compiler::linkmodule()
+void x::llvm_compiler::linkmodule()
 {
-	//_module = std::make_shared<llvm::Module>();
+	// _module = std::make_shared<llvm::module>( "", *_context );
 
 	for ( auto & it : objects() )
 	{
-		// llvm::Linker::linkModules( *_module, it->module );
+		// llvm::Linker::linkModules( *_module, *it->module );
 	}
 }
 
-x::compiler::object_ptr x::llvmir_compiler::make_object()
+x::compiler::object_ptr x::llvm_compiler::make_object()
 {
-	return std::make_shared<x::llvmir_compiler::object>();
+	return std::make_shared<x::llvm_compiler::object>();
+}
+
+x::spirv_compiler::spirv_compiler( const log_callback_t & callback )
+	: compiler( callback )
+{
+	// _context = std::make_shared<spirv::context>();
+}
+
+x::spirv_compiler::~spirv_compiler()
+{
+	// if ( _context ) delete _context;
+}
+
+spirv::module_ptr x::spirv_compiler::module() const
+{
+	return _module;
+}
+
+void x::spirv_compiler::genmodule()
+{
+	for ( auto & it : objects() )
+	{
+		auto obj = std::static_pointer_cast<x::spirv_compiler::object>( it );
+		if ( obj->reset )
+		{
+			//obj->module = std::make_shared<spirv::module>( obj->path.string(), *_context );
+
+			x::spirv_scanner_visitor scanner( obj->module, symbols() );
+			obj->ast->accept( &scanner );
+
+			x::spirv_generater_visitor generater( obj->module, symbols() );
+			obj->ast->accept( &generater );
+		}
+	}
+}
+
+void x::spirv_compiler::linkmodule()
+{
+	// _module = std::make_shared<spirv::module>( "", *_context );
+
+	for ( auto & it : objects() )
+	{
+		// spirv::Linker::linkModules( *_module, *it->module );
+	}
+}
+
+x::compiler::object_ptr x::spirv_compiler::make_object()
+{
+	return std::make_shared<x::spirv_compiler::object>();
 }

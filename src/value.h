@@ -63,7 +63,6 @@ namespace x
 
 	public:
 		x::value_t type() const;
-		x::meta_type_ptr meta() const;
 
 	public:
 		bool is_ref() const;

@@ -775,12 +775,22 @@ x::module_generater_visitor::module_generater_visitor( const x::module_ptr & mod
 {
 }
 
-x::llvmir_scanner_visitor::llvmir_scanner_visitor( const llvm::module_ptr & module, const x::symbols_ptr & symbols )
+x::llvm_scanner_visitor::llvm_scanner_visitor( const llvm::module_ptr & module, const x::symbols_ptr & symbols )
 	: scope_with_visitor( symbols ), _module( module )
 {
 }
 
-x::llvmir_generater_visitor::llvmir_generater_visitor( const llvm::module_ptr & module, const x::symbols_ptr & symbols )
+x::llvm_generater_visitor::llvm_generater_visitor( const llvm::module_ptr & module, const x::symbols_ptr & symbols )
+	: scope_with_visitor( symbols ), _module( module )
+{
+}
+
+x::spirv_scanner_visitor::spirv_scanner_visitor( const spirv::module_ptr & module, const x::symbols_ptr & symbols )
+	: scope_with_visitor( symbols ), _module( module )
+{
+}
+
+x::spirv_generater_visitor::spirv_generater_visitor( const spirv::module_ptr & module, const x::symbols_ptr & symbols )
 	: scope_with_visitor( symbols ), _module( module )
 {
 }

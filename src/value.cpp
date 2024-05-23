@@ -114,7 +114,7 @@ x::value::value( x::object * val )
 x::value::value( x::value * val )
 {
 	ref = val;
-	_flags = x::value_t::REF;
+	_flags = x::value_t::REF_MASK;
 }
 
 x::value & x::value::operator=( bool val )
@@ -225,7 +225,7 @@ x::value & x::value::operator=( x::object * val )
 x::value & x::value::operator=( x::value * val )
 {
 	ref = val;
-	_flags = x::value_t::REF;
+	_flags = x::value_t::REF_MASK;
 	return *this;
 }
 
@@ -239,14 +239,9 @@ x::value_t x::value::type() const
 		return ( to_reference()._flags & x::value_t::TYPE_MASK ).value();
 }
 
-x::meta_type_ptr x::value::meta() const
-{
-	return nullptr;
-}
-
 bool x::value::is_ref() const
 {
-	return _flags && x::value_t::REF;
+	return _flags && x::value_t::REF_MASK;
 }
 
 bool x::value::is_enum() const

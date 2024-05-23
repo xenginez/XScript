@@ -14,8 +14,8 @@ namespace x
 	public:
 		struct object : public std::enable_shared_from_this<object>
 		{
+			bool reset = false;
 			x::unit_ast_ptr ast;
-			x::module_ptr module;
 			std::filesystem::path path;
 			std::filesystem::file_time_type time;
 		};
@@ -81,7 +81,7 @@ namespace x
 		x::module_ptr _module;
 	};
 
-	class llvmir_compiler : public compiler
+	class llvm_compiler : public compiler
 	{
 	public:
 		struct object : public x::compiler::object
@@ -90,8 +90,8 @@ namespace x
 		};
 
 	public:
-		llvmir_compiler( const log_callback_t & callback = nullptr );
-		~llvmir_compiler() override;
+		llvm_compiler( const log_callback_t & callback = nullptr );
+		~llvm_compiler() override;
 
 	public:
 		llvm::module_ptr module() const;
@@ -102,7 +102,31 @@ namespace x
 		x::compiler::object_ptr make_object() override;
 
 	private:
-		llvm::module_ptr _module = nullptr;
-		llvm::LLVMContext * _context = nullptr;
+		llvm::module_ptr _module;
+		llvm::context_ptr _context;
+	};
+
+	class spirv_compiler : public compiler
+	{
+	public:
+		struct object : public x::compiler::object
+		{
+			spirv::module_ptr module;
+		};
+
+	public:
+		spirv_compiler( const log_callback_t & callback = nullptr );
+		~spirv_compiler() override;
+
+	public:
+		spirv::module_ptr module() const;
+
+	protected:
+		void genmodule() override;
+		void linkmodule() override;
+		x::compiler::object_ptr make_object() override;
+
+	private:
+		spirv::module_ptr _module = nullptr;
 	};
 }

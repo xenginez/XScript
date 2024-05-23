@@ -33,6 +33,8 @@ add_executable (XScript
 "src/object.cpp"
 "src/runtime.h"
 "src/runtime.cpp"
+"src/allocator.h"
+"src/allocator.cpp"
 "src/interpreter.h"
 "src/interpreter.cpp"
 "src/virtual_machine.h"

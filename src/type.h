@@ -274,15 +274,15 @@ namespace x
         STRING              = 1 << 13,
         OBJECT              = 1 << 14,
         INTPTR              = 1 << 15,
-        REF                 = 1 << 16,
 
         SIGNED_MASK         = 0x3C,
         UNSIGNED_MASK       = 0x3C0,
         FLOATING_MASK       = 0x1C00,
         TYPE_MASK           = 0xFFFF,
-
-        ENUM_MASK           = 1 << 27,
-        ASYN_MASK           = 1 << 28,
+        
+        REF_MASK            = 1 << 27,
+        ENUM_MASK           = 1 << 28,
+        ASYN_MASK           = 1 << 29,
     };
 
     enum class access_t : x::uint8
@@ -404,6 +404,17 @@ namespace x
         WHITE,
         BLACK,
         GRAY
+    };
+
+    enum class vallocflag_t
+    {
+        READ                = 1 << 0,
+        WRITE               = 1 << 1,
+        EXECUTE             = 1 << 2,
+        READWRITE           = READ | WRITE,
+        EXECUTE_READ        = EXECUTE | READ,
+        EXECUTE_WRITE       = EXECUTE | WRITE,
+        EXECUTE_READWRITE   = EXECUTE | READWRITE,
     };
 
     using value_flags = flags<x::value_t>;
@@ -712,5 +723,16 @@ namespace llvm
     class Module;
     class LLVMContext;
 
-    using module_ptr = std::shared_ptr<Module>;
+    using module = llvm::Module;
+    using context = llvm::LLVMContext;
+
+    using module_ptr = std::shared_ptr<llvm::module>;
+    using context_ptr = std::shared_ptr<llvm::context>;
+}
+
+namespace spirv
+{
+    class module;
+
+    using module_ptr = std::shared_ptr<spirv::module>;
 }

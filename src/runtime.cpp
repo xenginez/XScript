@@ -13,13 +13,12 @@
 
 namespace
 {
-
 	static constexpr x::uint64 item_element_size = 64;
 	static constexpr x::uint64 page_element_size = 128;
-	static constexpr x::uint64 default_slot_size = 512 + 4 + 4 + 4; // data + bits.data + bits.count + slot.size
+	static constexpr x::uint64 default_slot_size = 512 + 4 + 4 + 4;
 	static constexpr x::uint64 default_item_size = default_slot_size * 4 + 4 + 4 + 4;
 	static constexpr x::uint64 default_page_size = default_item_size * 4 + 4 + 4 + 4;
-	static constexpr x::uint64 default_trigger_size = default_page_size * 1024;
+	static constexpr x::uint64 default_trigger_size = 8 * 1024 * 1024;
 	static constexpr std::array<x::uint64, 32> slot_element_sizes = { 16, 32, 48, 64, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224, 240, 256, 272, 288, 304, 320, 336, 352, 368, 384, 400, 416, 432, 448, 464, 480, 496, 512 };
 
 	struct bits
@@ -112,6 +111,33 @@ namespace
 	};
 }
 
+struct x::runtime::thread_runtime
+{
+	thread_runtime( x::runtime * rt )
+		: _rt( rt )
+	{
+		_rt->add_thread_runtime( this );
+	}
+	~thread_runtime()
+	{
+		_rt->remove_thread_runtime( this );
+	}
+
+	static thread_runtime * current_runtime()
+	{
+		return *current_runtime_ptr();
+	}
+	static thread_runtime ** current_runtime_ptr()
+	{
+		thread_local thread_runtime * runtime = nullptr;
+		return &runtime;
+	}
+
+	x::runtime * _rt;
+	std::deque<x::value> _stack;
+	std::vector<x::value> _global;
+};
+
 struct x::runtime::private_p
 {
 	private_p()
@@ -140,9 +166,8 @@ struct x::runtime::private_p
 	std::deque<x::object *> _gcgrays;
 	std::deque<x::object *> _gcbarriers;
 
-	std::deque<x::value> _stack;
 	std::vector<x::value> _global;
-	std::map<std::thread::id, std::vector<x::value>> _thread;
+	std::map<std::thread::id, thread_runtime *> _thread;
 };
 
 x::runtime::runtime()
@@ -172,34 +197,29 @@ x::runtime::~runtime()
 
 void x::runtime::push( const x::value & val )
 {
-	_p->_stack.push_back( val );
+	thread_runtime::current_runtime()->_stack.push_back( val );
 }
 
 x::value & x::runtime::top()
 {
-	return _p->_stack.back();
+	return thread_runtime::current_runtime()->_stack.back();
 }
 
 x::value x::runtime::pop()
 {
-	auto val = _p->_stack.back();
-	_p->_stack.pop_back();
+	auto val = thread_runtime::current_runtime()->_stack.back();
+	thread_runtime::current_runtime()->_stack.pop_back();
 	return val;
 }
 
 x::uint64 x::runtime::pushed()
 {
-	return _p->_stack.size();
+	return thread_runtime::current_runtime()->_stack.size();
 }
 
 void x::runtime::poped( x::uint64 val )
 {
-	for ( auto i = _p->_stack.size(); i > val; --i )
-	{
-		auto value = pop();
-
-		/* ... */
-	}
+	thread_runtime::current_runtime()->_stack.resize( val );
 }
 
 void x::runtime::resize_global( x::uint64 size )
@@ -209,7 +229,7 @@ void x::runtime::resize_global( x::uint64 size )
 
 void x::runtime::resize_thread( x::uint64 size )
 {
-	_p->_thread[std::this_thread::get_id()].resize( size );
+	thread_runtime::current_runtime()->_global.resize( size );
 }
 
 x::value & x::runtime::get_global( x::uint64 idx )
@@ -219,7 +239,7 @@ x::value & x::runtime::get_global( x::uint64 idx )
 
 x::value & x::runtime::get_thread( x::uint64 idx )
 {
-	return _p->_thread[std::this_thread::get_id()][idx];
+	return thread_runtime::current_runtime()->_global[idx];
 }
 
 void x::runtime::add_root( x::object * root )
@@ -239,6 +259,27 @@ void x::runtime::add_root( x::object * root )
 void x::runtime::set_trigger_gc_size( x::uint64 size )
 {
 	_p->_gctriggersize = size;
+}
+
+x::runtime::thread_runtime * x::runtime::create_thread_runtime()
+{
+	if ( thread_runtime::current_runtime() == nullptr )
+	{
+		*thread_runtime::current_runtime_ptr() = new thread_runtime( this );
+	}
+
+	return thread_runtime::current_runtime();
+}
+
+bool x::runtime::delete_thread_runtime( thread_runtime * rt )
+{
+	if ( thread_runtime::current_runtime() == rt )
+	{
+		delete rt;
+		return true;
+	}
+
+	return false;
 }
 
 x::object * x::runtime::alloc( x::uint64 size )
@@ -271,8 +312,8 @@ x::byte * x::runtime::page_alloc( x::uint64 size )
 
 	auto sz = std::max( ALIGN( size, page_element_size ), default_page_size );
 	auto ptr = (page *)::malloc( sz );
-	ptr->_size = sz;
-	ptr->_bits->_count = sz / item_element_size;
+	ptr->_size = static_cast<x::uint32>( sz );
+	ptr->_bits->_count = static_cast<x::uint32>( sz / item_element_size );
 	ptr->_data = reinterpret_cast<x::byte *>( ptr ) + sizeof( ptr->_size ) + bits::byte_size( ptr->_bits->_count );
 	_p->_pages.push_front( ptr );
 
@@ -289,8 +330,8 @@ x::byte * x::runtime::item_alloc( x::uint64 size )
 
 	auto sz = std::max( ALIGN( size, item_element_size ), default_item_size );
 	auto ptr = (item *)page_alloc( sz );
-	ptr->_size = sz;
-	ptr->_bits->_count = sz / item_element_size;
+	ptr->_size = static_cast<x::uint32>( sz );
+	ptr->_bits->_count = static_cast<x::uint32>( sz / item_element_size );
 	ptr->_data = reinterpret_cast<x::byte *>( ptr ) + sizeof( ptr->_size ) + bits::byte_size( ptr->_bits->_count );
 	_p->_items.push_front( ptr );
 
@@ -309,7 +350,7 @@ x::byte * x::runtime::slot_alloc( x::uint64 size )
 
 	auto ptr = (slot *)item_alloc( 1024 );
 	ptr->_size = 1024;
-	ptr->_bits->_count = 1024 / size;
+	ptr->_bits->_count = static_cast<x::uint32>( 1024 / size );
 	ptr->_data = reinterpret_cast<x::byte *>( ptr ) + sizeof( ptr->_size ) + bits::byte_size(ptr->_bits->_count);
 	list.push_front( ptr );
 
@@ -333,37 +374,46 @@ void x::runtime::add_wbarriers( x::object * left, x::object * right )
 
 void x::runtime::gc()
 {
-	std::unique_lock<std::shared_mutex> lock( _p->_gclock );
-
 	if ( _p->_gcstage == x::gcstage_t::NONE )
 	{
-		_p->_gcstage = x::gcstage_t::MARKING;
+		std::unique_lock<std::shared_mutex> lock( _p->_gclock );
 
-		_p->_gcgrays.clear();
-		_p->_gcbarriers.clear();
+		if ( _p->_gcstage == x::gcstage_t::NONE )
+		{
+			_p->_gcstage = x::gcstage_t::MARKING;
 
-		for ( auto & it : _p->_global )
-		{
-			if ( it.is_object() )
-				_p->_gcgrays.push_back( it.to_object() );
-		}
-		for ( auto & it : _p->_thread )
-		{
-			for ( auto & it2 : it.second )
+			_p->_gcgrays.clear();
+			_p->_gcbarriers.clear();
+
+			for ( auto & it : _p->_global )
 			{
-				if ( it2.is_object() )
-					_p->_gcgrays.push_back( it2.to_object() );
+				if ( it.is_object() )
+					_p->_gcgrays.push_back( it.to_object() );
 			}
-		}
-		_p->_gcgrays.insert( _p->_gcgrays.end(), _p->_gcroots.begin(), _p->_gcroots.end() );
+			for ( auto & it : _p->_thread )
+			{
+				for ( auto & it2 : it.second->_stack )
+				{
+					if ( it2.is_object() )
+						_p->_gcgrays.push_back( it2.to_object() );
+				}
+				for ( auto & it2 : it.second->_global )
+				{
+					if ( it2.is_object() )
+						_p->_gcgrays.push_back( it2.to_object() );
+				}
+			}
+			_p->_gcgrays.insert( _p->_gcgrays.end(), _p->_gcroots.begin(), _p->_gcroots.end() );
 
-		_p->_gcsemaphore.release();
+			_p->_gcsemaphore.release();
+		}
 	}
 }
 
 void x::runtime::gc_marking()
 {
 	x::object * obj = nullptr;
+
 	while ( _p->_gcgrays.empty() )
 	{
 		obj = _p->_gcgrays.back();
@@ -461,7 +511,7 @@ void x::runtime::gc_arrange()
 			if ( ( *list_it )->_bits->none() )
 			{
 				auto item_it = std::find_if( _p->_items.begin(), _p->_items.end(), [iter = reinterpret_cast<std::intptr_t>( *list_it )]( item * val )
-				{ return iter >= reinterpret_cast<std::intptr_t>( val ) && iter < ( reinterpret_cast<std::intptr_t>( iter ) + val->_size ); } );
+				{ return iter >= (std::intptr_t)( val ) && iter < ( (std::intptr_t)( iter ) + val->_size ); } );
 				if ( item_it != _p->_items.end() )
 				{
 					( *item_it )->free( ( *list_it ), ( *list_it )->_size );
@@ -481,7 +531,7 @@ void x::runtime::gc_arrange()
 		if ( ( *list_it )->_bits->none() )
 		{
 			auto page_it = std::find_if( _p->_pages.begin(), _p->_pages.end(), [iter = reinterpret_cast<std::intptr_t>( *list_it )]( page * val )
-			{ return iter >= reinterpret_cast<std::intptr_t>( val ) && iter < ( reinterpret_cast<std::intptr_t>( iter ) + val->_size ); } );
+			{ return iter >= (std::intptr_t)( val ) && iter < ( (std::intptr_t)( iter ) + val->_size ); } );
 			if ( page_it != _p->_pages.end() )
 			{
 				_p->_gcusesize -= ( *list_it )->_size;
@@ -511,5 +561,17 @@ void x::runtime::gc_arrange()
 		}
 	}
 
+	_p->_gctriggersize = _p->_gcusesize + x::uint64( _p->_gcusesize * 0.2f );
+
 	_p->_gcstage = x::gcstage_t::NONE;
+}
+
+void x::runtime::add_thread_runtime( thread_runtime * rt )
+{
+	_p->_thread[std::this_thread::get_id()] = rt;
+}
+
+void x::runtime::remove_thread_runtime( thread_runtime * rt )
+{
+	_p->_thread.erase( _p->_thread.find( std::this_thread::get_id() ) );
 }
