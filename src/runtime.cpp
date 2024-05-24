@@ -11,131 +11,34 @@
 #include <forward_list>
 #include <shared_mutex>
 
-namespace
+#include "allocator.h"
+
+struct x::runtime::tld
 {
-	static constexpr x::uint64 item_element_size = 64;
-	static constexpr x::uint64 page_element_size = 128;
-	static constexpr x::uint64 default_slot_size = 512 + 4 + 4 + 4;
-	static constexpr x::uint64 default_item_size = default_slot_size * 4 + 4 + 4 + 4;
-	static constexpr x::uint64 default_page_size = default_item_size * 4 + 4 + 4 + 4;
-	static constexpr x::uint64 default_trigger_size = 8 * 1024 * 1024;
-	static constexpr std::array<x::uint64, 32> slot_element_sizes = { 16, 32, 48, 64, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224, 240, 256, 272, 288, 304, 320, 336, 352, 368, 384, 400, 416, 432, 448, 464, 480, 496, 512 };
-
-	struct bits
-	{
-		using type = x::uint32;
-		static constexpr int BITS_PERWORD = 32;
-
-		x::uint32 _count;
-		x::uint32 _data[1];
-
-		static inline constexpr x::uint64 byte_size( x::uint64 bitcount )
-		{
-			return ( sizeof( _count ) + ( sizeof( bits::type ) * ( ( ( bitcount - 1 ) / bits::BITS_PERWORD ) + 1 ) ) );
-		}
-
-		bool all() const
-		{
-			bool _No_padding = _count % BITS_PERWORD == 0;
-			for ( size_t _Wpos = 0; _Wpos < ( ( size_t( _count - 1 ) / BITS_PERWORD ) ) + _No_padding; ++_Wpos )
-			{
-				if ( _data[_Wpos] != ~type( 0 ) )
-				{
-					return false;
-				}
-			}
-
-			return _No_padding || _data[size_t( _count - 1 ) / BITS_PERWORD] == ( type( 1 ) << ( _count % BITS_PERWORD ) ) - 1;
-		}
-		bool any() const noexcept
-		{
-			for ( size_t i = 0; i <= ( size_t( _count - 1 ) / BITS_PERWORD ); ++i )
-			{
-				if ( _data[i] != 0 )
-				{
-					return true;
-				}
-			}
-
-			return false;
-		}
-		bool none() const
-		{
-			return !any();
-		}
-		bool get( x::uint64 idx ) const
-		{
-			return ( _data[idx / BITS_PERWORD] & ( type{ 1 } << idx % BITS_PERWORD ) ) != 0;
-		}
-		void set( x::uint64 idx, bool val )
-		{
-			auto & _Selected_word = _data[idx / BITS_PERWORD];
-			const auto _Bit = type{ 1 } << idx % BITS_PERWORD;
-			if ( val )
-				_Selected_word |= _Bit;
-			else
-				_Selected_word &= ~_Bit;
-		}
-		x::uint64 next_true( x::uint64 offset ) const;
-		x::uint64 next_false( x::uint64 offset ) const;
-	};
-
-	struct slot
-	{
-		x::uint32 _size;
-		bits *    _bits;
-		x::byte * _data;
-
-		x::byte * alloc();
-		void free( void * ptr );
-	};
-
-	struct item
-	{
-		x::uint32 _size;
-		bits *    _bits;
-		x::byte * _data;
-
-		x::byte * alloc( x::uint64 size );
-		void free( void * ptr, x::uint64 size );
-	};
-
-	struct page
-	{
-		x::uint32 _size;
-		bits *    _bits;
-		x::byte * _data;
-
-		x::byte * alloc( x::uint64 size );
-		void free( void * ptr, x::uint64 size );
-	};
-}
-
-struct x::runtime::thread_runtime
-{
-	thread_runtime( x::runtime * rt )
+	tld( x::runtime * rt )
 		: _rt( rt )
 	{
 		_rt->add_thread_runtime( this );
 	}
-	~thread_runtime()
+	~tld()
 	{
 		_rt->remove_thread_runtime( this );
 	}
 
-	static thread_runtime * current_runtime()
+	static tld * current_data()
 	{
-		return *current_runtime_ptr();
+		return *current_data_ptr();
 	}
-	static thread_runtime ** current_runtime_ptr()
+	static tld ** current_data_ptr()
 	{
-		thread_local thread_runtime * runtime = nullptr;
+		thread_local tld * runtime = nullptr;
 		return &runtime;
 	}
 
 	x::runtime * _rt;
-	std::deque<x::value> _stack;
-	std::vector<x::value> _global;
+	std::vector<x::value> _thread;
+	std::deque<x::value> _valstack;
+	std::array<x::byte, 1 * MB> _memstack;
 };
 
 struct x::runtime::private_p
@@ -151,23 +54,19 @@ struct x::runtime::private_p
 		_gcsemaphore.release();
 	}
 	
-	std::forward_list<page *> _pages;
-	std::forward_list<item *> _items;
-	std::array<std::forward_list<slot *>, 32> _slots;
-
 	std::jthread _gcthread;
 	std::binary_semaphore _gcsemaphore;
 
 	x::gcstage_t _gcstage = gcstage_t::NONE;
 	x::uint64 _gcusesize = 0;
-	x::uint64 _gctriggersize = default_trigger_size;
+	x::uint64 _gctriggersize = 0;
 	std::shared_mutex _gclock;
 	std::deque<x::object *> _gcroots;
 	std::deque<x::object *> _gcgrays;
 	std::deque<x::object *> _gcbarriers;
 
 	std::vector<x::value> _global;
-	std::map<std::thread::id, thread_runtime *> _thread;
+	std::map<std::thread::id, tld *> _threads;
 };
 
 x::runtime::runtime()
@@ -185,7 +84,7 @@ x::runtime::runtime()
 			gc_marking();
 			gc_tracking();
 			gc_clearing();
-			gc_arrange();
+			gc_collect();
 		}
 	} );
 }
@@ -197,29 +96,29 @@ x::runtime::~runtime()
 
 void x::runtime::push( const x::value & val )
 {
-	thread_runtime::current_runtime()->_stack.push_back( val );
+	tld::current_data()->_valstack.push_back( val );
 }
 
 x::value & x::runtime::top()
 {
-	return thread_runtime::current_runtime()->_stack.back();
+	return tld::current_data()->_valstack.back();
 }
 
 x::value x::runtime::pop()
 {
-	auto val = thread_runtime::current_runtime()->_stack.back();
-	thread_runtime::current_runtime()->_stack.pop_back();
+	auto val = tld::current_data()->_valstack.back();
+	tld::current_data()->_valstack.pop_back();
 	return val;
 }
 
 x::uint64 x::runtime::pushed()
 {
-	return thread_runtime::current_runtime()->_stack.size();
+	return tld::current_data()->_valstack.size();
 }
 
 void x::runtime::poped( x::uint64 val )
 {
-	thread_runtime::current_runtime()->_stack.resize( val );
+	tld::current_data()->_valstack.resize( val );
 }
 
 void x::runtime::resize_global( x::uint64 size )
@@ -229,7 +128,7 @@ void x::runtime::resize_global( x::uint64 size )
 
 void x::runtime::resize_thread( x::uint64 size )
 {
-	thread_runtime::current_runtime()->_global.resize( size );
+	tld::current_data()->_thread.resize( size );
 }
 
 x::value & x::runtime::get_global( x::uint64 idx )
@@ -239,7 +138,7 @@ x::value & x::runtime::get_global( x::uint64 idx )
 
 x::value & x::runtime::get_thread( x::uint64 idx )
 {
-	return thread_runtime::current_runtime()->_global[idx];
+	return tld::current_data()->_thread[idx];
 }
 
 void x::runtime::add_root( x::object * root )
@@ -261,19 +160,19 @@ void x::runtime::set_trigger_gc_size( x::uint64 size )
 	_p->_gctriggersize = size;
 }
 
-x::runtime::thread_runtime * x::runtime::create_thread_runtime()
+x::runtime::tld * x::runtime::create_tld()
 {
-	if ( thread_runtime::current_runtime() == nullptr )
+	if ( tld::current_data() == nullptr )
 	{
-		*thread_runtime::current_runtime_ptr() = new thread_runtime( this );
+		*tld::current_data_ptr() = new tld( this );
 	}
 
-	return thread_runtime::current_runtime();
+	return tld::current_data();
 }
 
-bool x::runtime::delete_thread_runtime( thread_runtime * rt )
+bool x::runtime::delete_tld( tld * rt )
 {
-	if ( thread_runtime::current_runtime() == rt )
+	if ( tld::current_data() == rt )
 	{
 		delete rt;
 		return true;
@@ -286,75 +185,7 @@ x::object * x::runtime::alloc( x::uint64 size )
 {
 	if ( _p->_gcusesize > _p->_gctriggersize && _p->_gcstage == x::gcstage_t::NONE ) gc();
 
-	size = ALIGN( size, 8 );
-
-	std::shared_lock<std::shared_mutex> lock( _p->_gclock );
-
-	x::byte * ptr = nullptr;
-
-	if ( size <= 512 )
-		ptr = slot_alloc( size );
-	else
-		ptr = item_alloc( size );
-
-	memset( ptr, 0, size );
-
-	return new ( ptr ) x::object();
-}
-
-x::byte * x::runtime::page_alloc( x::uint64 size )
-{
-	for ( auto it : _p->_pages )
-	{
-		if ( auto ptr = it->alloc( size ) )
-			return ptr;
-	}
-
-	auto sz = std::max( ALIGN( size, page_element_size ), default_page_size );
-	auto ptr = (page *)::malloc( sz );
-	ptr->_size = static_cast<x::uint32>( sz );
-	ptr->_bits->_count = static_cast<x::uint32>( sz / item_element_size );
-	ptr->_data = reinterpret_cast<x::byte *>( ptr ) + sizeof( ptr->_size ) + bits::byte_size( ptr->_bits->_count );
-	_p->_pages.push_front( ptr );
-
-	return ptr->alloc( size );
-}
-
-x::byte * x::runtime::item_alloc( x::uint64 size )
-{
-	for ( auto it : _p->_items )
-	{
-		if ( auto ptr = it->alloc( size ) )
-			return ptr;
-	}
-
-	auto sz = std::max( ALIGN( size, item_element_size ), default_item_size );
-	auto ptr = (item *)page_alloc( sz );
-	ptr->_size = static_cast<x::uint32>( sz );
-	ptr->_bits->_count = static_cast<x::uint32>( sz / item_element_size );
-	ptr->_data = reinterpret_cast<x::byte *>( ptr ) + sizeof( ptr->_size ) + bits::byte_size( ptr->_bits->_count );
-	_p->_items.push_front( ptr );
-
-	return ptr->alloc( size );
-}
-
-x::byte * x::runtime::slot_alloc( x::uint64 size )
-{
-	auto & list = _p->_slots[size / 16 - 1];
-
-	for ( auto it : list )
-	{
-		if ( auto ptr = it->alloc() )
-			return ptr;
-	}
-
-	auto ptr = (slot *)item_alloc( 1024 );
-	ptr->_size = 1024;
-	ptr->_bits->_count = static_cast<x::uint32>( 1024 / size );
-	ptr->_data = reinterpret_cast<x::byte *>( ptr ) + sizeof( ptr->_size ) + bits::byte_size(ptr->_bits->_count);
-	list.push_front( ptr );
-
-	return ptr->alloc();
+	return new ( allocator::malloc( ALIGN( size, 8 ) ) ) x::object();
 }
 
 void x::runtime::add_gray( x::object * gray )
@@ -390,14 +221,14 @@ void x::runtime::gc()
 				if ( it.is_object() )
 					_p->_gcgrays.push_back( it.to_object() );
 			}
-			for ( auto & it : _p->_thread )
+			for ( auto & it : _p->_threads )
 			{
-				for ( auto & it2 : it.second->_stack )
+				for ( auto & it2 : it.second->_valstack )
 				{
 					if ( it2.is_object() )
 						_p->_gcgrays.push_back( it2.to_object() );
 				}
-				for ( auto & it2 : it.second->_global )
+				for ( auto & it2 : it.second->_thread )
 				{
 					if ( it2.is_object() )
 						_p->_gcgrays.push_back( it2.to_object() );
@@ -444,134 +275,28 @@ void x::runtime::gc_tracking()
 
 void x::runtime::gc_clearing()
 {
-	for ( x::uint64 i = 0; i < _p->_slots.size(); i++ )
-	{
-		x::uint64 size = ( i + 1 ) * 16;
+	
 
-		for ( auto it : _p->_slots[i] )
-		{
-			for ( x::uint64 j = 0; j < it->_bits->_count; j++ )
-			{
-				if ( it->_bits->get( j ) )
-				{
-					auto obj = (x::object *)( it->_data + ( size * j ) );
-
-					if ( obj->status == x::gcstatus_t::BLACK )
-					{
-						obj->status = x::gcstatus_t::WHITE;
-					}
-					else if ( obj->status == x::gcstatus_t::WHITE )
-					{
-						obj->finalize();
-						it->_bits->set( j, false );
-					}
-					else
-					{
-						ASSERT( obj->status == x::gcstatus_t::GRAY, "" );
-					}
-				}
-			}
-		}
-	}
-	for( auto it : _p->_items )
-	{
-		for ( x::uint64 j = it->_bits->next_true( 0 ); j < it->_bits->_count; j = it->_bits->next_true( j ) )
-		{
-			auto obj = (x::object *)( it->_data + ( 8 * j ) );
-
-			j += obj->size() / 8;
-
-			if ( obj->status == x::gcstatus_t::BLACK )
-			{
-				obj->status = x::gcstatus_t::WHITE;
-			}
-			else if ( obj->status == x::gcstatus_t::WHITE )
-			{
-				obj->finalize();
-				it->_bits->set( j, false );
-			}
-			else
-			{
-				ASSERT( obj->status == x::gcstatus_t::GRAY, "" );
-			}
-		}
-	}
-
-	_p->_gcstage = x::gcstage_t::ARRANGE;
+	_p->_gcstage = x::gcstage_t::COLLECT;
 }
 
-void x::runtime::gc_arrange()
+void x::runtime::gc_collect()
 {
 	std::unique_lock<std::shared_mutex> lock( _p->_gclock );
 
-	for ( size_t i = 0; i < _p->_slots.size(); i++ )
-	{
-		for ( auto list_it = _p->_slots[i].begin(); list_it != _p->_slots[i].end(); )
-		{
-			if ( ( *list_it )->_bits->none() )
-			{
-				auto item_it = std::find_if( _p->_items.begin(), _p->_items.end(), [iter = reinterpret_cast<std::intptr_t>( *list_it )]( item * val )
-				{ return iter >= (std::intptr_t)( val ) && iter < ( (std::intptr_t)( iter ) + val->_size ); } );
-				if ( item_it != _p->_items.end() )
-				{
-					( *item_it )->free( ( *list_it ), ( *list_it )->_size );
-
-					list_it = _p->_slots[i].erase_after( list_it );
-
-					continue;
-				}
-			}
-
-			++list_it;
-		}
-	}
-
-	for ( auto list_it = _p->_items.begin(); list_it != _p->_items.end(); )
-	{
-		if ( ( *list_it )->_bits->none() )
-		{
-			auto page_it = std::find_if( _p->_pages.begin(), _p->_pages.end(), [iter = reinterpret_cast<std::intptr_t>( *list_it )]( page * val )
-			{ return iter >= (std::intptr_t)( val ) && iter < ( (std::intptr_t)( iter ) + val->_size ); } );
-			if ( page_it != _p->_pages.end() )
-			{
-				_p->_gcusesize -= ( *list_it )->_size;
-
-				( *page_it )->free( ( *list_it ), ( *list_it )->_size );
-
-				list_it = _p->_items.erase_after( list_it );
-			}
-			else
-			{
-				++list_it;
-			}
-		}
-	}
-
-	for ( auto list_it = _p->_pages.begin(); list_it != _p->_pages.end(); )
-	{
-		if ( ( *list_it )->_bits->none() )
-		{
-			::free( ( *list_it ) );
-
-			list_it = _p->_pages.erase_after( list_it );
-		}
-		else
-		{
-			++list_it;
-		}
-	}
+	allocator::instance()->free_collect();
 
 	_p->_gctriggersize = _p->_gcusesize + x::uint64( _p->_gcusesize * 0.2f );
 
 	_p->_gcstage = x::gcstage_t::NONE;
 }
 
-void x::runtime::add_thread_runtime( thread_runtime * rt )
+void x::runtime::add_thread_runtime( tld * rt )
 {
-	_p->_thread[std::this_thread::get_id()] = rt;
+	_p->_threads[std::this_thread::get_id()] = rt;
 }
 
-void x::runtime::remove_thread_runtime( thread_runtime * rt )
+void x::runtime::remove_thread_runtime( tld * rt )
 {
-	_p->_thread.erase( _p->_thread.find( std::this_thread::get_id() ) );
+	_p->_threads.erase( _p->_threads.find( std::this_thread::get_id() ) );
 }

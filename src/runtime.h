@@ -10,8 +10,8 @@ namespace x
 		friend class object;
 
 	private:
+		struct tld;
 		struct private_p;
-		struct thread_runtime;
 
 	public:
 		runtime();
@@ -35,31 +35,26 @@ namespace x
 	public:
 		void add_root( x::object * root );
 		void set_trigger_gc_size( x::uint64 size );
-		thread_runtime * create_thread_runtime();
-		bool delete_thread_runtime( thread_runtime * rt );
+		tld * create_tld();
+		bool delete_tld( tld * rt );
 
 	public:
 		x::object * alloc( x::uint64 size );
-
-	private:
-		x::byte * page_alloc( x::uint64 size );
-		x::byte * item_alloc( x::uint64 size );
-		x::byte * slot_alloc( x::uint64 size );
 
 	private:
 		void add_gray( x::object * gray );
 		void add_wbarriers( x::object * left, x::object * right );
 
 	private:
-		void add_thread_runtime( thread_runtime * rt );
-		void remove_thread_runtime( thread_runtime * rt );
+		void add_thread_runtime( tld * rt );
+		void remove_thread_runtime( tld * rt );
 
 	private:
 		void gc();
 		void gc_marking();
 		void gc_tracking();
 		void gc_clearing();
-		void gc_arrange();
+		void gc_collect();
 
 	private:
 		private_p * _p;

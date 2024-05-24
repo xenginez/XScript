@@ -12,7 +12,10 @@
 #include "float16.h"
 #include "static_string_view.hpp"
 
+#define KB ( 1024 )
+#define MB ( 1024 * 1024 )
 #define ALIGN(size, align) ( ( (size) + (align) - 1 ) & ~( (align) - 1 ) )
+
 #ifdef _DEBUG
 #define ASSERT( a, s ) assert( ( a ) && s );
 #else
@@ -396,7 +399,7 @@ namespace x
         MARKING,
         TRACKING,
         CLEARING,
-        ARRANGE,
+        COLLECT,
     };
 
     enum class gcstatus_t
@@ -404,6 +407,14 @@ namespace x
         WHITE,
         BLACK,
         GRAY
+    };
+
+    enum class page_kind_t
+    {
+        SMALL,
+        MEDIUM,
+        LARGE,
+        HUGE,
     };
 
     enum class vallocflag_t
