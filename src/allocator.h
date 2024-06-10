@@ -1,8 +1,6 @@
 #pragma once
 
 #include "type.h"
-
-#include <functional>
 #include <memory_resource>
 
 namespace x
@@ -35,9 +33,6 @@ namespace x
 		static void vfree( void * ptr, x::uint64 size );
 
 	private:
-		static void foreach_used( std::function<void( void * )> && callback );
-
-	private:
 		static heap * get_default_heap();
 		static page * get_page( void * ptr );
 		static segment * get_segment( void * ptr );
@@ -45,13 +40,26 @@ namespace x
 
 	private:
 		void free_collect();
+
+	private:
 		void * heap_malloc( heap * h, x::uint64 size );
 		void * heap_malloc_small( heap * h, x::uint64 size );
 		void * heap_malloc_generic( heap * h, x::uint64 size );
 
 	private:
-		void free_page( page * p );
+		page * hege_page_alloc();
+		page * find_free_page();
 
+	private:
+		page * segment_page_alloc();
+		page * segment_small_page_alloc();
+		page * segment_large_page_alloc();
+		page * segment_huge_page_alloc();
+
+	private:
+		segment * find_free_segment();
+		segment * segment_alloc();
+		
 	private:
 		private_p * _p;
 	};
