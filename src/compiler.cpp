@@ -39,11 +39,11 @@ void x::compiler::add_search_path( const std::filesystem::path & path )
 
 bool x::compiler::compile( const std::filesystem::path & file )
 {
-	_symbols = std::make_shared<x::scanner>();
+	_symbols = std::make_shared<x::symbols>();
 
 	try
 	{
-		load_source_file( file );
+		loading( file );
 
 		scanner();
 
@@ -97,27 +97,27 @@ void x::compiler::genunit()
 	for ( auto & it : _objects )
 		it->reset = false;
 
-	_logger( std::format( "gen object success" ) );
+	logger( std::format( "gen object success" ) );
 }
 
 void x::compiler::linking()
 {
 	linkmodule();
 
-	_logger( std::format( "link all module success" ) );
+	logger( std::format( "link all module success" ) );
 }
 
-void x::compiler::load_source_file( std::filesystem::path file )
+void x::compiler::loading( const std::filesystem::path & file )
 {
 	std::filesystem::path path;
 	
 	if ( std::filesystem::exists( file ) )
 	{
-		path = file.make_preferred();
+		path = file;
 	}
 	else if ( file.is_relative() )
 	{
-		auto tmp = ( _relative_paths.back() / file ).make_preferred();
+		auto tmp = ( _relative_paths.back() / file );
 		if ( std::filesystem::exists( tmp ) )
 			path = tmp;
 	}
@@ -128,11 +128,13 @@ void x::compiler::load_source_file( std::filesystem::path file )
 			auto tmp = it / file;
 			if ( std::filesystem::exists( tmp ) )
 			{
-				path = tmp.make_preferred();
+				path = tmp;
 				break;
 			}
 		}
 	}
+
+	path.make_preferred();
 
 	ASSERT( path.empty(), "" );
 
@@ -165,15 +167,20 @@ void x::compiler::load_source_file( std::filesystem::path file )
 
 		obj->ast = x::grammar( ifs, path.string() ).unit();
 
-		_logger( std::format( "loading script {}", path.string() ) );
+		logger( std::format( "loading script {}", path.string() ) );
 	}
 
 	_relative_paths.push_back( path.parent_path() );
 	for ( const auto & it : obj->ast->imports )
 	{
-		load_source_file( it->path );
+		loading( it->path );
 	}
 	_relative_paths.pop_back();
+}
+
+void x::compiler::logger( std::string_view val ) const
+{
+	_logger( val );
 }
 
 x::module_compiler::module_compiler( const log_callback_t & callback )
@@ -204,6 +211,8 @@ void x::module_compiler::genmodule()
 
 			x::module_generater_visitor generater( obj->module, symbols() );
 			obj->ast->accept( &generater );
+
+			logger( std::format( "gen module: {}", obj->path.string() ) );
 		}
 	}
 }
@@ -215,6 +224,8 @@ void x::module_compiler::linkmodule()
 	for ( auto & it : objects() )
 	{
 		_module->merge( std::static_pointer_cast<x::module_compiler::object>( it )->module );
+
+		logger( std::format( "link module: {}", it->path.string() ) );
 	}
 }
 
@@ -275,12 +286,10 @@ x::compiler::object_ptr x::llvm_compiler::make_object()
 x::spirv_compiler::spirv_compiler( const log_callback_t & callback )
 	: compiler( callback )
 {
-	// _context = std::make_shared<spirv::context>();
 }
 
 x::spirv_compiler::~spirv_compiler()
 {
-	// if ( _context ) delete _context;
 }
 
 spirv::module_ptr x::spirv_compiler::module() const

@@ -10,11 +10,12 @@
 
 #include "flags.hpp"
 #include "float16.h"
-#include "static_string_view.hpp"
 
 #define KB ( 1024 )
 #define MB ( 1024 * 1024 )
-#define ALIGN(size, align) ( ( (size) + (align) - 1 ) & ~( (align) - 1 ) )
+#define WSIZE( size ) ( ( size + sizeof( std::uintptr_t ) - 1 ) / sizeof( std::uintptr_t ) )
+#define ALIGN( size, align ) ( ( ( size ) + ( align ) - 1 ) & ~( (align) - 1 ) )
+#define PALIGN( size ) ( ( ( size ) + ( sizeof( std::uintptr_t ) ) - 1 ) & ~( ( sizeof( std::uintptr_t ) ) - 1 ) )
 
 #ifdef _DEBUG
 #define ASSERT( a, s ) assert( ( a ) && s );
@@ -40,6 +41,7 @@ namespace x
     using uint16 = std::uint16_t;
     using uint32 = std::uint32_t;
     using uint64 = std::uint64_t;
+    // float16
     using float32 = float;
     using float64 = double;
     using string = const char *;
@@ -378,6 +380,13 @@ namespace x
         OP_IDSTRUCT,      // idstruct(dr_0)     REGID(1BYTE)/DIFF(4BYTE) OFFSET(2BYTE)   4-7 byte
     };
 
+    enum class valloc_t
+    {
+        READ                = 1 << 0,
+        WRITE               = 1 << 1,
+        EXECUTE             = 1 << 2,
+    };
+
     enum class section_t : x::uint8
     {
         TYPE,
@@ -409,7 +418,7 @@ namespace x
         GRAY
     };
 
-    enum class page_kind_t
+    enum class pagekind_t
     {
         SMALL,
         MEDIUM,
@@ -417,18 +426,8 @@ namespace x
         HUGE,
     };
 
-    enum class vallocflag_t
-    {
-        READ                = 1 << 0,
-        WRITE               = 1 << 1,
-        EXECUTE             = 1 << 2,
-        READWRITE           = READ | WRITE,
-        EXECUTE_READ        = EXECUTE | READ,
-        EXECUTE_WRITE       = EXECUTE | WRITE,
-        EXECUTE_READWRITE   = EXECUTE | READWRITE,
-    };
-
     using value_flags = flags<x::value_t>;
+    using valloc_flags = flags<x::valloc_t>;
 
     class value;
     class object;
@@ -543,7 +542,7 @@ namespace x
     class meta_attribute; using meta_attribute_ptr = std::shared_ptr<meta_attribute>;
 
     class module; using module_ptr = std::shared_ptr<module>;
-    class scanner; using symbols_ptr = std::shared_ptr<scanner>;
+    class symbols; using symbols_ptr = std::shared_ptr<symbols>;
     class context; using context_ptr = std::shared_ptr<context>;
     class runtime; using runtime_ptr = std::shared_ptr<runtime>;
     class interpreter; using interpreter_ptr = std::shared_ptr<interpreter>;
@@ -586,15 +585,11 @@ namespace x
 
         return value;
     }
-    inline constexpr x::uint64 hash( x::static_string_view str )
+    inline constexpr x::uint64 hash( std::string_view str )
     {
         return hash( str.data(), str.size() );
     }
     inline constexpr x::uint64 hash( const std::string & str )
-    {
-        return hash( str.data(), str.size() );
-    }
-    inline constexpr x::uint64 hash( std::string_view str )
     {
         return hash( str.data(), str.size() );
     }

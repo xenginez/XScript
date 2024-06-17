@@ -1,6 +1,6 @@
 #include "meta.h"
 
-x::static_string_view x::meta::attribute( std::string_view key ) const
+std::string_view x::meta::attribute( std::string_view key ) const
 {
 	if ( _attribute )
 		return _attribute->find( key );
@@ -21,12 +21,12 @@ x::uint64 x::meta_enum::hashcode() const
 	return x::hash( fullname() );
 }
 
-x::static_string_view x::meta_enum::name() const
+std::string_view x::meta_enum::name() const
 {
 	return _name;
 }
 
-x::static_string_view x::meta_enum::fullname() const
+std::string_view x::meta_enum::fullname() const
 {
 	return _fullname;
 }
@@ -60,12 +60,12 @@ x::uint64 x::meta_class::hashcode() const
 	return x::hash( fullname() );
 }
 
-x::static_string_view x::meta_class::name() const
+std::string_view x::meta_class::name() const
 {
 	return _name;
 }
 
-x::static_string_view x::meta_class::fullname() const
+std::string_view x::meta_class::fullname() const
 {
 	return _fullname;
 }
@@ -79,7 +79,7 @@ void x::meta_class::construct( void * ptr ) const
 {
 }
 
-x::static_string_view x::meta_class::base() const
+std::string_view x::meta_class::base() const
 {
 	return _base;
 }
@@ -108,12 +108,12 @@ x::uint64 x::meta_element::hashcode() const
 	return x::hash( fullname() );
 }
 
-x::static_string_view x::meta_element::name() const
+std::string_view x::meta_element::name() const
 {
 	return _name;
 }
 
-x::static_string_view x::meta_element::fullname() const
+std::string_view x::meta_element::fullname() const
 {
 	return _fullname;
 }
@@ -137,12 +137,12 @@ x::uint64 x::meta_variable::hashcode() const
 	return x::hash( fullname() );
 }
 
-x::static_string_view x::meta_variable::name() const
+std::string_view x::meta_variable::name() const
 {
 	return _name;
 }
 
-x::static_string_view x::meta_variable::fullname() const
+std::string_view x::meta_variable::fullname() const
 {
 	return _fullname;
 }
@@ -189,12 +189,12 @@ x::uint64 x::meta_function::hashcode() const
 	return x::hash( fullname() );
 }
 
-x::static_string_view x::meta_function::name() const
+std::string_view x::meta_function::name() const
 {
 	return _name;
 }
 
-x::static_string_view x::meta_function::fullname() const
+std::string_view x::meta_function::fullname() const
 {
 	return _fullname;
 }
@@ -247,12 +247,12 @@ x::uint64 x::meta_parameter::hashcode() const
 	return x::hash( fullname() );
 }
 
-x::static_string_view x::meta_parameter::name() const
+std::string_view x::meta_parameter::name() const
 {
 	return _name;
 }
 
-x::static_string_view x::meta_parameter::fullname() const
+std::string_view x::meta_parameter::fullname() const
 {
 	return _fullname;
 }
@@ -276,12 +276,12 @@ x::uint64 x::meta_namespace::hashcode() const
 	return x::hash( fullname() );
 }
 
-x::static_string_view x::meta_namespace::name() const
+std::string_view x::meta_namespace::name() const
 {
 	return _name;
 }
 
-x::static_string_view x::meta_namespace::fullname() const
+std::string_view x::meta_namespace::fullname() const
 {
 	return _fullname;
 }
@@ -291,7 +291,7 @@ std::span<const x::meta_type_ptr> x::meta_namespace::members() const
 	return _members;
 }
 
-x::static_string_view x::meta_attribute::find( std::string_view key ) const
+std::string_view x::meta_attribute::find( std::string_view key ) const
 {
 	auto it = _map.find( key );
 	if ( it != _map.end() )

@@ -201,7 +201,7 @@ namespace x
         void save( std::ostream & out ) const;
 
 	public:
-        void merge( const x::module_ptr & other );
+        bool merge( const x::module_ptr & other );
 		
     public:
         x::range transfer( std::string_view str );

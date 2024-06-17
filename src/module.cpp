@@ -116,8 +116,9 @@ x::module::module()
 {
 }
 
-void x::module::merge( const x::module_ptr & other )
+bool x::module::merge( const x::module_ptr & other )
 {
+    return false;
 }
 
 void x::module::load( std::istream & in )

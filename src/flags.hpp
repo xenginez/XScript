@@ -34,6 +34,13 @@ namespace x
 
         }
 
+        flags( std::initializer_list<enum_type> val )
+            :_value( 0 )
+        {
+            for ( auto it : val )
+                _value |= static_cast<std::uint64_t>( it );
+        }
+
         flags & operator=( enum_type val )
         {
             _value = static_cast<std::uint64_t>( val );

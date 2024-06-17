@@ -42,7 +42,10 @@ namespace x
 		void checker();
 		void genunit();
 		void linking();
-		void load_source_file( std::filesystem::path file );
+		void loading( const std::filesystem::path & file );
+
+	protected:
+		void logger( std::string_view val ) const;
 
 	protected:
 		virtual void genmodule() = 0;

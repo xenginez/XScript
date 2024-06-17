@@ -514,7 +514,7 @@ x::element_decl_ast_ptr x::element_symbol::cast_ast() const
 	return std::static_pointer_cast<x::element_decl_ast>( ast );
 }
 
-x::scanner::scanner()
+x::symbols::symbols()
 {
 	auto val = new namespace_symbol;
 	_symbolmap[""] = val;
@@ -545,20 +545,20 @@ x::scanner::scanner()
 	}
 }
 
-x::scanner::~scanner()
+x::symbols::~symbols()
 {
 	for ( auto it : _symbolmap )
 		delete it.second;
 }
 
-void x::scanner::push_scope( std::string_view name )
+void x::symbols::push_scope( std::string_view name )
 {
 	auto sym = current_scope()->find_child( name );
 	ASSERT( sym && sym->is_scope(), "" );
 	_scope.push_back( sym->cast_scope() );
 }
 
-x::unit_symbol * x::scanner::add_unit( x::unit_ast * ast )
+x::unit_symbol * x::symbols::add_unit( x::unit_ast * ast )
 {
 	std::string fullname = { ast->location.file.data(), ast->location.file.size() };
 
@@ -575,7 +575,7 @@ x::unit_symbol * x::scanner::add_unit( x::unit_ast * ast )
 	return sym;
 }
 
-x::enum_symbol * x::scanner::add_enum( x::enum_decl_ast * ast )
+x::enum_symbol * x::symbols::add_enum( x::enum_decl_ast * ast )
 {
 	std::string fullname = calc_fullname( ast->name );
 
@@ -592,7 +592,7 @@ x::enum_symbol * x::scanner::add_enum( x::enum_decl_ast * ast )
 	return sym;
 }
 
-x::alias_symbol * x::scanner::add_alias( x::using_decl_ast * ast )
+x::alias_symbol * x::symbols::add_alias( x::using_decl_ast * ast )
 {
 	std::string fullname = calc_fullname( ast->name );
 
@@ -609,7 +609,7 @@ x::alias_symbol * x::scanner::add_alias( x::using_decl_ast * ast )
 	return sym;
 }
 
-x::class_symbol * x::scanner::add_class( x::class_decl_ast * ast )
+x::class_symbol * x::symbols::add_class( x::class_decl_ast * ast )
 {
 	std::string fullname = calc_fullname( ast->name );
 
@@ -626,7 +626,7 @@ x::class_symbol * x::scanner::add_class( x::class_decl_ast * ast )
 	return sym;
 }
 
-x::block_symbol * x::scanner::add_block( x::compound_stat_ast * ast )
+x::block_symbol * x::symbols::add_block( x::compound_stat_ast * ast )
 {
 	std::string fullname = std::format( "block_{}_{}_{}", ast->location.file, ast->location.line, ast->location.column );
 
@@ -643,7 +643,7 @@ x::block_symbol * x::scanner::add_block( x::compound_stat_ast * ast )
 	return sym;
 }
 
-x::cycle_symbol * x::scanner::add_cycle( x::cycle_stat_ast * ast )
+x::cycle_symbol * x::symbols::add_cycle( x::cycle_stat_ast * ast )
 {
 	std::string fullname = std::format( "cycle_{}_{}_{}", ast->location.file, ast->location.line, ast->location.column );
 
@@ -660,7 +660,7 @@ x::cycle_symbol * x::scanner::add_cycle( x::cycle_stat_ast * ast )
 	return sym;
 }
 
-x::local_symbol * x::scanner::add_local( x::local_stat_ast * ast )
+x::local_symbol * x::symbols::add_local( x::local_stat_ast * ast )
 {
 	std::string fullname = calc_fullname( ast->name );
 
@@ -677,7 +677,7 @@ x::local_symbol * x::scanner::add_local( x::local_stat_ast * ast )
 	return sym;
 }
 
-x::param_symbol * x::scanner::add_param( x::parameter_decl_ast * ast )
+x::param_symbol * x::symbols::add_param( x::parameter_decl_ast * ast )
 {
 	std::string fullname = calc_fullname( ast->name );
 
@@ -694,7 +694,7 @@ x::param_symbol * x::scanner::add_param( x::parameter_decl_ast * ast )
 	return sym;
 }
 
-x::element_symbol * x::scanner::add_element( x::element_decl_ast * ast )
+x::element_symbol * x::symbols::add_element( x::element_decl_ast * ast )
 {
 	std::string fullname = calc_fullname( ast->name );
 
@@ -711,7 +711,7 @@ x::element_symbol * x::scanner::add_element( x::element_decl_ast * ast )
 	return sym;
 }
 
-x::function_symbol * x::scanner::add_function( x::function_decl_ast * ast )
+x::function_symbol * x::symbols::add_function( x::function_decl_ast * ast )
 {
 	std::string fullname = calc_fullname( ast->name );
 
@@ -728,7 +728,7 @@ x::function_symbol * x::scanner::add_function( x::function_decl_ast * ast )
 	return sym;
 }
 
-x::variable_symbol * x::scanner::add_variable( x::variable_decl_ast * ast )
+x::variable_symbol * x::symbols::add_variable( x::variable_decl_ast * ast )
 {
 	std::string fullname = calc_fullname( ast->name );
 
@@ -745,7 +745,7 @@ x::variable_symbol * x::scanner::add_variable( x::variable_decl_ast * ast )
 	return sym;
 }
 
-x::template_symbol * x::scanner::add_template( x::template_decl_ast * ast )
+x::template_symbol * x::symbols::add_template( x::template_decl_ast * ast )
 {
 	std::string fullname = calc_fullname( ast->name );
 
@@ -762,7 +762,7 @@ x::template_symbol * x::scanner::add_template( x::template_decl_ast * ast )
 	return sym;
 }
 
-x::namespace_symbol * x::scanner::add_namespace( x::namespace_decl_ast * ast )
+x::namespace_symbol * x::symbols::add_namespace( x::namespace_decl_ast * ast )
 {
 	std::string fullname = calc_fullname( ast->name );
 
@@ -779,28 +779,28 @@ x::namespace_symbol * x::scanner::add_namespace( x::namespace_decl_ast * ast )
 	return sym;
 }
 
-x::type_symbol * x::scanner::find_type_symbol( std::string_view name ) const
+x::type_symbol * x::symbols::find_type_symbol( std::string_view name ) const
 {
 	auto sym = find_symbol( name );
 	ASSERT( sym != nullptr && sym->is_type(), "" );
 	return sym->cast_type();
 }
 
-x::scope_symbol * x::scanner::find_scope_symbol( std::string_view name ) const
+x::scope_symbol * x::symbols::find_scope_symbol( std::string_view name ) const
 {
 	auto sym = find_symbol( name );
 	ASSERT( sym != nullptr && sym->is_scope(), "" );
 	return sym->cast_scope();
 }
 
-x::class_symbol * x::scanner::find_class_symbol( std::string_view name ) const
+x::class_symbol * x::symbols::find_class_symbol( std::string_view name ) const
 {
 	auto sym = find_symbol( name );
 	ASSERT( sym != nullptr && sym->type == x::symbol_t::CLASS, "" );
 	return reinterpret_cast<x::class_symbol *>( sym );
 }
 
-std::vector<x::template_symbol *> x::scanner::find_template_symbols( std::string_view name ) const
+std::vector<x::template_symbol *> x::symbols::find_template_symbols( std::string_view name ) const
 {
 	std::vector<x::template_symbol *> result;
 
@@ -813,7 +813,7 @@ std::vector<x::template_symbol *> x::scanner::find_template_symbols( std::string
 	return result;
 }
 
-x::symbol * x::scanner::find_symbol( std::string_view name, x::scope_symbol * scope ) const
+x::symbol * x::symbols::find_symbol( std::string_view name, x::scope_symbol * scope ) const
 {
 	if ( scope == nullptr )
 		scope = current_scope();
@@ -832,7 +832,7 @@ x::symbol * x::scanner::find_symbol( std::string_view name, x::scope_symbol * sc
 	return nullptr;
 }
 
-x::symbol * x::scanner::up_find_symbol_from_type( x::symbol_t type ) const
+x::symbol * x::symbols::up_find_symbol_from_type( x::symbol_t type ) const
 {
 	auto scope = current_scope();
 
@@ -851,7 +851,7 @@ x::symbol * x::scanner::up_find_symbol_from_type( x::symbol_t type ) const
 	return nullptr;
 }
 
-x::symbol * x::scanner::up_find_symbol( std::string_view name, x::scope_symbol * scope ) const
+x::symbol * x::symbols::up_find_symbol( std::string_view name, x::scope_symbol * scope ) const
 {
 	auto beg = name_beg( name );
 	auto end = name_end( name );
@@ -875,7 +875,7 @@ x::symbol * x::scanner::up_find_symbol( std::string_view name, x::scope_symbol *
 	return nullptr;
 }
 
-x::symbol * x::scanner::down_find_symbol( std::string_view name, x::scope_symbol * scope ) const
+x::symbol * x::symbols::down_find_symbol( std::string_view name, x::scope_symbol * scope ) const
 {
 	auto beg = name_beg( name );
 	auto end = name_end( name );
@@ -892,22 +892,22 @@ x::symbol * x::scanner::down_find_symbol( std::string_view name, x::scope_symbol
 	return nullptr;
 }
 
-x::scope_symbol * x::scanner::current_scope() const
+x::scope_symbol * x::symbols::current_scope() const
 {
 	return _scope.back();
 }
 
-void x::scanner::pop_scope()
+void x::symbols::pop_scope()
 {
 	_scope.pop_back();
 }
 
-x::namespace_symbol * x::scanner::global_namespace() const
+x::namespace_symbol * x::symbols::global_namespace() const
 {
 	return reinterpret_cast<x::namespace_symbol *>( _symbolmap.at( "" ) );
 }
 
-std::string x::scanner::calc_fullname( std::string_view name ) const
+std::string x::symbols::calc_fullname( std::string_view name ) const
 {
 	std::string fullname;
 
@@ -922,32 +922,32 @@ std::string x::scanner::calc_fullname( std::string_view name ) const
 	return fullname;
 }
 
-x::symbol * x::scanner::find_symbol_from_ast( const x::ast_ptr & ast ) const
+x::symbol * x::symbols::find_symbol_from_ast( const x::ast_ptr & ast ) const
 {
 	auto it = _astmap.find( ast );
 	return it != _astmap.end() ? it->second : nullptr;
 }
 
-x::symbol * x::scanner::find_symbol_from_fullname( std::string_view fullname ) const
+x::symbol * x::symbols::find_symbol_from_fullname( std::string_view fullname ) const
 {
 	auto it = _symbolmap.find( { fullname.begin(), fullname.end() } );
 
 	return it != _symbolmap.end() ? it->second : nullptr;
 }
 
-void x::scanner::add_reference( std::string_view name, x::symbol * val )
+void x::symbols::add_reference( std::string_view name, x::symbol * val )
 {
 	_referencemap.emplace( name, val );
 }
 
-x::symbol * x::scanner::find_reference( std::string_view name ) const
+x::symbol * x::symbols::find_reference( std::string_view name ) const
 {
 	auto it = _referencemap.find( { name.begin(), name.end() } );
 	
 	return it != _referencemap.end() ? it->second : nullptr;
 }
 
-void x::scanner::add_symbol( x::symbol * val )
+void x::symbols::add_symbol( x::symbol * val )
 {
 	val->parent = current_scope()->cast_symbol();
 
