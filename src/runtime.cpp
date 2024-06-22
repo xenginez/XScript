@@ -6,9 +6,7 @@
 #include <deque>
 #include <bitset>
 #include <thread>
-#include <thread>
 #include <semaphore>
-#include <forward_list>
 #include <shared_mutex>
 
 #include "allocator.h"
@@ -18,7 +16,7 @@ struct x::runtime::tld
 	tld( x::runtime * rt )
 		: _rt( rt )
 	{
-		_rt->add_thread_runtime( this );
+		_rt->insert_thread_runtime( this );
 	}
 	~tld()
 	{
@@ -131,12 +129,12 @@ void x::runtime::resize_thread( x::uint64 size )
 	tld::current_data()->_thread.resize( size );
 }
 
-x::value & x::runtime::get_global( x::uint64 idx )
+x::value x::runtime::get_global( x::uint64 idx )
 {
 	return _p->_global[idx];
 }
 
-x::value & x::runtime::get_thread( x::uint64 idx )
+x::value x::runtime::get_thread( x::uint64 idx )
 {
 	return tld::current_data()->_thread[idx];
 }
@@ -170,11 +168,11 @@ x::runtime::tld * x::runtime::create_tld()
 	return tld::current_data();
 }
 
-bool x::runtime::delete_tld( tld * rt )
+bool x::runtime::delete_tld( tld * val )
 {
-	if ( tld::current_data() == rt )
+	if ( tld::current_data() == val )
 	{
-		delete rt;
+		delete val;
 		return true;
 	}
 
@@ -188,18 +186,18 @@ x::object * x::runtime::alloc( x::uint64 size )
 	return new ( allocator::malloc( ALIGN( size, 8 ) ) ) x::object();
 }
 
-void x::runtime::add_gray( x::object * gray )
+void x::runtime::add_gray_object( x::object * gray )
 {
 	if ( _p->_gcstage == x::gcstage_t::MARKING )
 		_p->_gcgrays.push_back( gray );
 }
 
-void x::runtime::add_wbarriers( x::object * left, x::object * right )
+void x::runtime::add_write_barrier( x::object * owner, x::object * val )
 {
 	if ( _p->_gcstage == x::gcstage_t::MARKING )
 	{
-		left->status = x::gcstatus_t::GRAY;
-		_p->_gcbarriers.push_back( left );
+		owner->set_gcstatus( x::gcstatus_t::GRAY );
+		_p->_gcbarriers.push_back( owner );
 	}
 }
 
@@ -250,7 +248,7 @@ void x::runtime::gc_marking()
 		obj = _p->_gcgrays.back();
 		_p->_gcgrays.pop_back();
 		obj->mark( this );
-		obj->status = x::gcstatus_t::BLACK;
+		obj->set_gcstatus( x::gcstatus_t::BLACK );
 	}
 
 	_p->_gcstage = x::gcstage_t::TRACKING;
@@ -267,7 +265,7 @@ void x::runtime::gc_tracking()
 		obj = _p->_gcbarriers.back();
 		_p->_gcbarriers.pop_back();
 		obj->mark( this );
-		obj->status = x::gcstatus_t::BLACK;
+		obj->set_gcstatus( x::gcstatus_t::BLACK );
 	}
 
 	_p->_gcstage = x::gcstage_t::CLEARING;
@@ -291,12 +289,14 @@ void x::runtime::gc_collect()
 	_p->_gcstage = x::gcstage_t::NONE;
 }
 
-void x::runtime::add_thread_runtime( tld * rt )
+void x::runtime::insert_thread_runtime( tld * rt )
 {
 	_p->_threads[std::this_thread::get_id()] = rt;
 }
 
 void x::runtime::remove_thread_runtime( tld * rt )
 {
-	_p->_threads.erase( _p->_threads.find( std::this_thread::get_id() ) );
+	auto it = _p->_threads.find( std::this_thread::get_id() );
+	if ( it != _p->_threads.end() )
+		_p->_threads.erase( it );
 }

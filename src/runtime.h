@@ -29,24 +29,26 @@ namespace x
 	public:
 		void resize_global( x::uint64 size );
 		void resize_thread( x::uint64 size );
-		x::value & get_global( x::uint64 idx );
-		x::value & get_thread( x::uint64 idx );
+		x::value get_global( x::uint64 idx );
+		x::value get_thread( x::uint64 idx );
 
 	public:
 		void add_root( x::object * root );
 		void set_trigger_gc_size( x::uint64 size );
+
+	public:
 		tld * create_tld();
-		bool delete_tld( tld * rt );
+		bool delete_tld( tld * val );
 
 	public:
 		x::object * alloc( x::uint64 size );
 
 	private:
-		void add_gray( x::object * gray );
-		void add_wbarriers( x::object * left, x::object * right );
+		void add_gray_object( x::object * gray );
+		void add_write_barrier( x::object * owner, x::object * val );
 
 	private:
-		void add_thread_runtime( tld * rt );
+		void insert_thread_runtime( tld * rt );
 		void remove_thread_runtime( tld * rt );
 
 	private:

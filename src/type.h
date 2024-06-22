@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <span>
 #include <memory>
 #include <vector>
 #include <string>
@@ -181,6 +182,7 @@ namespace x
         TK_LARG,                 // >
         TK_LESS_OR_EQUAL,        // <=
         TK_LARG_OR_EQUAL,        // >=
+        TK_COMPARE,              // <=>
         TK_TYPECAST,             // :
         TK_MEMBER_POINT,         // .
         TK_QUESTION,             // ?
@@ -307,12 +309,14 @@ namespace x
         CYCLE,
         LOCAL,
         PARAM,
-        BUILTIN,
         ELEMENT,
         FUNCTION,
         VARIABLE,
         TEMPLATE,
         NAMESPACE,
+        FOUNDATION,
+        NATIVEFUNC,
+        BUILTINFUNC,
     };
 
     enum class opcode_t : x::uint8
@@ -431,9 +435,20 @@ namespace x
 
     class value;
     class object;
-    class visitor;
+
+    class meta;
+    class meta_type;
+    class meta_enum;
+    class meta_class;
+    class meta_element;
+    class meta_variable;
+    class meta_function;
+    class meta_parameter;
+    class meta_namespace;
+    class meta_attribute;
 
     class symbol;
+    class ast_symbol;
     class type_symbol;
     class scope_symbol;
     class unit_symbol;
@@ -449,6 +464,18 @@ namespace x
     class variable_symbol;
     class template_symbol;
     class namespace_symbol;
+    class foundation_symbol;
+    class nativefunc_symbol;
+    class builtinfunc_symbol;
+
+    class module; using module_ptr = std::shared_ptr<module>;
+    class visitor; using visitor_ptr = std::shared_ptr<visitor>;
+    class builtin; using builtin_ptr = std::shared_ptr<builtin>;
+    class symbols; using symbols_ptr = std::shared_ptr<symbols>;
+    class context; using context_ptr = std::shared_ptr<context>;
+    class runtime; using runtime_ptr = std::shared_ptr<runtime>;
+    class interpreter; using interpreter_ptr = std::shared_ptr<interpreter>;
+    class virtual_machine; using virtual_machine_ptr = std::shared_ptr<virtual_machine>;
 
     class ast; using ast_ptr = std::shared_ptr<ast>;
     class unit_ast; using unit_ast_ptr = std::shared_ptr<unit_ast>;
@@ -529,31 +556,6 @@ namespace x
     class float32_const_expr_ast; using float32_const_expr_ast_ptr = std::shared_ptr<float32_const_expr_ast>;
     class float64_const_expr_ast; using float64_const_expr_ast_ptr = std::shared_ptr<float64_const_expr_ast>;
     class string_const_expr_ast; using string_const_expr_ast_ptr = std::shared_ptr<string_const_expr_ast>;
-
-    class meta; using meta_ptr = std::shared_ptr<meta>;
-    class meta_type; using meta_type_ptr = std::shared_ptr<meta_type>;
-    class meta_enum; using meta_enum_ptr = std::shared_ptr<meta_enum>;
-    class meta_class; using meta_class_ptr = std::shared_ptr<meta_class>;
-    class meta_element; using meta_element_ptr = std::shared_ptr<meta_element>;
-    class meta_variable; using meta_variable_ptr = std::shared_ptr<meta_variable>;
-    class meta_function; using meta_function_ptr = std::shared_ptr<meta_function>;
-    class meta_parameter; using meta_parameter_ptr = std::shared_ptr<meta_parameter>;
-    class meta_namespace; using meta_namespace_ptr = std::shared_ptr<meta_namespace>;
-    class meta_attribute; using meta_attribute_ptr = std::shared_ptr<meta_attribute>;
-
-    class module; using module_ptr = std::shared_ptr<module>;
-    class symbols; using symbols_ptr = std::shared_ptr<symbols>;
-    class context; using context_ptr = std::shared_ptr<context>;
-    class runtime; using runtime_ptr = std::shared_ptr<runtime>;
-    class interpreter; using interpreter_ptr = std::shared_ptr<interpreter>;
-    class virtual_machine; using virtual_machine_ptr = std::shared_ptr<virtual_machine>;
-
-    struct typedesc
-    {
-        int array = 0;
-        bool is_const = false;
-        std::string name;
-    };
 
     struct location
     {
@@ -646,6 +648,7 @@ namespace x
         { (const char *)u8">", x::token_t::TK_LARG },
         { (const char *)u8"<=", x::token_t::TK_LESS_OR_EQUAL },
         { (const char *)u8">=", x::token_t::TK_LARG_OR_EQUAL },
+        { (const char *)u8"<=>", x::token_t::TK_COMPARE },
         { (const char *)u8":", x::token_t::TK_TYPECAST },
         { (const char *)u8".", x::token_t::TK_MEMBER_POINT },
         { (const char *)u8"?", x::token_t::TK_QUESTION },

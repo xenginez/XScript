@@ -597,22 +597,27 @@ void x::symbol_scanner_visitor::visit( x::local_stat_ast * val )
 	scope_with_visitor::visit( val );
 }
 
-x::instantiate_visitor::instantiate_visitor( const x::symbols_ptr & val )
+x::instantiate_class_visitor::instantiate_class_visitor( const x::symbols_ptr & val )
 	: scope_with_visitor( val )
 {
 }
 
-void x::instantiate_visitor::visit( x::temp_type_ast * val )
+void x::instantiate_class_visitor::visit( x::temp_type_ast * val )
 {
 	//symbols()->find_template_symbols()
 }
 
-bool x::instantiate_visitor::matching( x::template_decl_ast * temp, x::temp_type_ast * type ) const
+bool x::instantiate_class_visitor::matching( x::template_decl_ast * temp, x::temp_type_ast * type ) const
 {
 	return false;
 }
 
-x::class_decl_ast_ptr x::instantiate_visitor::instantiate( x::template_decl_ast * temp, x::temp_type_ast * type ) const
+x::class_decl_ast_ptr x::instantiate_class_visitor::instantiate( x::closure_expr_ast * closure ) const
+{
+	return x::class_decl_ast_ptr();
+}
+
+x::class_decl_ast_ptr x::instantiate_class_visitor::instantiate( x::template_decl_ast * temp, x::temp_type_ast * type ) const
 {
 	return x::class_decl_ast_ptr();
 }

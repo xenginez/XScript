@@ -13,12 +13,14 @@ add_executable (XScript
 "src/ast.cpp"
 "src/meta.h"
 "src/meta.cpp"
-"src/visitor.h"
-"src/visitor.cpp"
 "src/module.h"
 "src/module.cpp"
 "src/grammar.h"
 "src/grammar.cpp"
+"src/visitor.h"
+"src/visitor.cpp"
+"src/builtin.h"
+"src/builtin.cpp"
 "src/symbols.h"
 "src/symbols.cpp"
 "src/context.h"
@@ -38,7 +40,8 @@ add_executable (XScript
 "src/interpreter.h"
 "src/interpreter.cpp"
 "src/virtual_machine.h"
-"src/virtual_machine.cpp")
+"src/virtual_machine.cpp"
+"src/lib/x_lib.h")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET XScript PROPERTY CXX_STANDARD 20)

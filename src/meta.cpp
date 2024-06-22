@@ -41,7 +41,7 @@ void x::meta_enum::construct( void * ptr ) const
 	memset( ptr, 0, sizeof( x::int64 ) );
 }
 
-std::span<const x::meta_element_ptr> x::meta_enum::elements() const
+std::span<const x::meta_element * const> x::meta_enum::elements() const
 {
 	return _elements;
 }
@@ -79,17 +79,17 @@ void x::meta_class::construct( void * ptr ) const
 {
 }
 
-std::string_view x::meta_class::base() const
+const x::meta_class * x::meta_class::base() const
 {
 	return _base;
 }
 
-std::span<const x::meta_variable_ptr> x::meta_class::variables() const
+std::span<const x::meta_variable * const> x::meta_class::variables() const
 {
 	return _variables;
 }
 
-std::span<const x::meta_function_ptr> x::meta_class::functions() const
+std::span<const x::meta_function * const> x::meta_class::functions() const
 {
 	return _functions;
 }
@@ -162,17 +162,19 @@ x::access_t x::meta_variable::access() const
 	return _access;
 }
 
-x::typedesc x::meta_variable::value() const
+const x::meta_type * x::meta_variable::value_type() const
 {
-	return _value;
+	return _valuetype;
 }
 
-void x::meta_variable::get( const x::value & obj ) const
+bool x::meta_variable::get( const x::value & obj, x::value & val ) const
 {
+	return false;
 }
 
-void x::meta_variable::set( const x::value & obj ) const
+bool x::meta_variable::set( const x::value & obj, const x::value & val ) const
 {
+	return false;
 }
 
 x::meta_function::meta_function()
@@ -219,12 +221,12 @@ x::access_t x::meta_function::access() const
 	return _access;
 }
 
-x::typedesc x::meta_function::result() const
+const x::meta_type * x::meta_function::result_type() const
 {
 	return _result;
 }
 
-std::span<const x::meta_parameter_ptr> x::meta_function::parameters() const
+std::span<const x::meta_parameter * const> x::meta_function::parameters() const
 {
 	return _parameter_types;
 }
@@ -257,9 +259,9 @@ std::string_view x::meta_parameter::fullname() const
 	return _fullname;
 }
 
-const x::typedesc & x::meta_parameter::desc() const
+const x::meta_type * x::meta_parameter::value_type() const
 {
-	return _type;
+	return _valuetype;
 }
 
 x::meta_namespace::meta_namespace()
@@ -286,7 +288,7 @@ std::string_view x::meta_namespace::fullname() const
 	return _fullname;
 }
 
-std::span<const x::meta_type_ptr> x::meta_namespace::members() const
+std::span<const x::meta_type * const> x::meta_namespace::members() const
 {
 	return _members;
 }

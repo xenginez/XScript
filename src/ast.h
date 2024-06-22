@@ -1,7 +1,5 @@
 #pragma once
 
-#include <map>
-
 #include "type.h"
 
 namespace x
@@ -141,7 +139,7 @@ namespace x
 
 	public:
 		x::type_ast_ptr base;
-		x::expr_stat_ast_ptr where;
+		x::stat_ast_ptr where;
 		std::vector<x::type_ast_ptr> elements;
 		std::vector<x::using_decl_ast_ptr> usings;
 		std::vector<x::variable_decl_ast_ptr> variables;

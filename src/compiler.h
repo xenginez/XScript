@@ -1,6 +1,5 @@
 #pragma once
 
-#include <span>
 #include <deque>
 #include <filesystem>
 #include <functional>
@@ -50,6 +49,7 @@ namespace x
 	protected:
 		virtual void genmodule() = 0;
 		virtual void linkmodule() = 0;
+		virtual x::symbols_ptr make_symbols() = 0;
 		virtual x::compiler::object_ptr make_object() = 0;
 
 	private:
@@ -78,6 +78,7 @@ namespace x
 	protected:
 		void genmodule() override;
 		void linkmodule() override;
+		x::symbols_ptr make_symbols() override;
 		x::compiler::object_ptr make_object() override;
 
 	private:
@@ -102,6 +103,7 @@ namespace x
 	protected:
 		void genmodule() override;
 		void linkmodule() override;
+		x::symbols_ptr make_symbols() override;
 		x::compiler::object_ptr make_object() override;
 
 	private:
@@ -127,6 +129,7 @@ namespace x
 	protected:
 		void genmodule() override;
 		void linkmodule() override;
+		x::symbols_ptr make_symbols() override;
 		x::compiler::object_ptr make_object() override;
 
 	private:

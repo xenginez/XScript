@@ -3,10 +3,12 @@
 #include <fstream>
 #include <iostream>
 
+#include "value.h"
 #include "module.h"
 #include "grammar.h"
-#include "symbols.h"
 #include "visitor.h"
+#include "builtin.h"
+#include "symbols.h"
 #include "exception.h"
 
 x::compiler::compiler( const log_callback_t & callback )
@@ -39,7 +41,7 @@ void x::compiler::add_search_path( const std::filesystem::path & path )
 
 bool x::compiler::compile( const std::filesystem::path & file )
 {
-	_symbols = std::make_shared<x::symbols>();
+	_symbols = make_symbols();
 
 	try
 	{
@@ -76,7 +78,7 @@ void x::compiler::scanner()
 
 void x::compiler::instant()
 {
-	x::instantiate_visitor instant( _symbols );
+	x::instantiate_class_visitor instant( _symbols );
 	
 	for ( const auto & it : _objects )
 		it->ast->accept( &instant );
@@ -97,7 +99,7 @@ void x::compiler::genunit()
 	for ( auto & it : _objects )
 		it->reset = false;
 
-	logger( std::format( "gen object success" ) );
+	logger( std::format( "gen all object success" ) );
 }
 
 void x::compiler::linking()
@@ -229,6 +231,75 @@ void x::module_compiler::linkmodule()
 	}
 }
 
+x::symbols_ptr x::module_compiler::make_symbols()
+{
+	auto syms = std::make_shared<x::symbols>();
+
+	// foundation
+	{
+#define BEG( TYPE ) { auto sym = syms->add_foundation( #TYPE, sizeof( TYPE ) ); syms->push_scope( sym->name );
+#define END() syms->pop_scope(); }
+
+		syms->add_foundation( "void", 0 );
+
+		// any
+		{
+			auto sym = syms->add_foundation( "any", sizeof( x::value ) );
+			syms->push_scope( sym->name );
+			syms->pop_scope();
+		}
+
+		BEG( bool );
+		END();
+		BEG( byte );
+		END();
+		BEG( int8 );
+		END();
+		BEG( int16 );
+		END();
+		BEG( int32 );
+		END();
+		BEG( int64 );
+		END();
+		BEG( uint8 );
+		END();
+		BEG( uint16 );
+		END();
+		BEG( uint32 );
+		END();
+		BEG( uint64 );
+		END();
+		BEG( float16 );
+		END();
+		BEG( float32 );
+		END();
+		BEG( float64 );
+		END();
+		BEG( string );
+		END();
+		BEG( intptr );
+		END();
+
+#undef BEG
+#undef END
+	}
+
+	// native function
+	{
+
+	}
+
+	// builtin function
+	{
+		// is_base_of
+		{
+			auto sym = syms->add_builtinfunc( "is_base_of", std::make_shared<x::builtin_is_base_of>() );
+		}
+	}
+
+	return syms;
+}
+
 x::compiler::object_ptr x::module_compiler::make_object()
 {
 	return std::make_shared<x::module_compiler::object>();
@@ -278,6 +349,13 @@ void x::llvm_compiler::linkmodule()
 	}
 }
 
+x::symbols_ptr x::llvm_compiler::make_symbols()
+{
+	auto sym = std::make_shared<x::symbols>();
+
+	return sym;
+}
+
 x::compiler::object_ptr x::llvm_compiler::make_object()
 {
 	return std::make_shared<x::llvm_compiler::object>();
@@ -323,6 +401,13 @@ void x::spirv_compiler::linkmodule()
 	{
 		// spirv::Linker::linkModules( *_module, *it->module );
 	}
+}
+
+x::symbols_ptr x::spirv_compiler::make_symbols()
+{
+	auto sym = std::make_shared<x::symbols>();
+
+	return sym;
 }
 
 x::compiler::object_ptr x::spirv_compiler::make_object()

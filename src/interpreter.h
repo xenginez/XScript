@@ -1,15 +1,13 @@
 #pragma once
 
-#include <span>
-
-#include "runtime.h"
+#include "type.h"
 
 namespace x
 {
 	class interpreter : public std::enable_shared_from_this<interpreter>
 	{
 	public:
-		bool eval( const x::runtime_ptr & rt, std::string_view input, x::value & result );
+		bool eval( const x::runtime_ptr & rt, std::string_view code, x::value & result );
 		bool invoke( const x::runtime_ptr & rt, std::string_view fullname, x::value & result, std::span<x::value> parameters );
 
 	public:

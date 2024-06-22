@@ -1,8 +1,5 @@
 #pragma once
 
-#include <map>
-#include <span>
-
 #include "type.h"
 
 namespace x
@@ -24,7 +21,7 @@ namespace x
 		std::string_view attribute( std::string_view key ) const;
 
 	private:
-		x::meta_attribute_ptr _attribute;
+		x::meta_attribute * _attribute;
 	};
 
 	class meta_type : public meta
@@ -54,12 +51,12 @@ namespace x
 		void construct( void * ptr ) const override;
 
 	public:
-		std::span<const x::meta_element_ptr> elements() const;
+		std::span<const x::meta_element * const> elements() const;
 
 	private:
 		std::string_view _name;
 		std::string_view _fullname;
-		std::vector<x::meta_element_ptr> _elements;
+		std::vector<const x::meta_element *> _elements;
 	};
 
 	class meta_class : public meta_type
@@ -80,18 +77,18 @@ namespace x
 		void construct( void * ptr ) const override;
 
 	public:
-		std::string_view base() const;
-		std::span<const x::meta_variable_ptr> variables() const;
-		std::span<const x::meta_function_ptr> functions() const;
+		const x::meta_class * base() const;
+		std::span<const x::meta_variable * const> variables() const;
+		std::span<const x::meta_function * const> functions() const;
 
 	private:
 		x::uint64 _size = 0;
 		x::uint64 _construct = 0;
-		std::string_view _base;
 		std::string_view _name;
 		std::string_view _fullname;
-		std::vector<x::meta_variable_ptr> _variables;
-		std::vector<x::meta_function_ptr> _functions;
+		const x::meta_class * _base;
+		std::vector<const x::meta_variable *> _variables;
+		std::vector<const x::meta_function *> _functions;
 	};
 
 	class meta_element : public meta
@@ -133,20 +130,20 @@ namespace x
 		bool is_static() const;
 		bool is_thread() const;
 		x::access_t access() const;
-		x::typedesc value() const;
+		const x::meta_type * value_type() const;
 
 	public:
-		void get( const x::value & obj ) const;
-		void set( const x::value & obj ) const;
+		bool get( const x::value & obj, x::value & val ) const;
+		bool set( const x::value & obj, const x::value & val ) const;
 
 	private:
 		bool _is_static = false;
 		bool _is_thread = false;
 		x::uint64 _idx = 0;
 		x::access_t _access = x::access_t::PRIVATE;
-		x::typedesc _value;
 		std::string_view _name;
 		std::string_view _fullname;
+		const x::meta_type * _valuetype;
 	};
 
 	class meta_function : public meta
@@ -167,8 +164,8 @@ namespace x
 		bool is_async() const;
 		bool is_static() const;
 		x::access_t access() const;
-		x::typedesc result() const;
-		std::span<const x::meta_parameter_ptr> parameters() const;
+		const x::meta_type * result_type() const;
+		std::span<const x::meta_parameter * const> parameters() const;
 
 	public:
 		void invoke() const;
@@ -179,10 +176,10 @@ namespace x
 		bool _is_static = false;
 		x::access_t _access = x::access_t::PRIVATE;
 		x::uint64 _code = 0;
-		x::typedesc _result;
 		std::string_view _name;
 		std::string_view _fullname;
-		std::vector<x::meta_parameter_ptr> _parameter_types;
+		const x::meta_type * _result;
+		std::vector<const x::meta_parameter *> _parameter_types;
 	};
 
 	class meta_parameter : public meta
@@ -199,12 +196,12 @@ namespace x
 		std::string_view fullname() const override;
 
 	public:
-		const x::typedesc & desc() const;
+		const x::meta_type * value_type() const;
 
 	private:
-		x::typedesc _type;
 		std::string_view _name;
 		std::string_view _fullname;
+		const x::meta_type * _valuetype;
 	};
 
 	class meta_namespace : public meta
@@ -221,12 +218,12 @@ namespace x
 		std::string_view fullname() const override;
 
 	public:
-		std::span<const x::meta_type_ptr> members() const;
+		std::span<const x::meta_type * const> members() const;
 
 	private:
 		std::string_view _name;
 		std::string_view _fullname;
-		std::vector<x::meta_type_ptr> _members;
+		std::vector<const x::meta_type *> _members;
 	};
 
 	class meta_attribute : public std::enable_shared_from_this<meta_attribute>

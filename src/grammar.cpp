@@ -1,7 +1,6 @@
 #include "grammar.h"
 
 #include <bit>
-#include <map>
 #include <regex>
 
 x::grammar::grammar( std::istream & stream, std::string_view name, const std::map<std::string, x::token_t> tokens )
@@ -65,9 +64,11 @@ x::type_ast_ptr x::grammar::type()
 
     auto name = type_name();
 
-    if ( verify( x::token_t::TK_LESS ) )
+    if ( verify( x::token_t::TK_QUESTION ) )
     {
         auto temp_type = std::make_shared<x::temp_type_ast>();
+        
+        validity( x::token_t::TK_LESS );
 
         while ( !verify( x::token_t::TK_LARG ) )
         {
@@ -278,7 +279,7 @@ x::template_decl_ast_ptr x::grammar::template_decl()
     }
 
     if ( verify( x::token_t::TK_WHERE ) )
-        ast->where = expr_stat();
+        ast->where = stat();
 
     if ( verify( x::token_t::TK_TYPECAST ) )
         ast->base = type();

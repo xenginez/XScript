@@ -18,6 +18,9 @@
 #define SMALL_PAGE_SIZE ( 64 * KB )
 #define LARGE_PAGE_SIZE ( 512 * KB )
 #define HUGE_PAGE_SIZE ( 4 * MB )
+#define SMALL_PAGE_COUNT ( 64 )
+#define LARGE_PAGE_COUNT ( 8 )
+#define HUGE_PAGE_COUNT ( 1 )
 
 #define SMALL_MAX_SIZE ( 16 * KB )
 #define MEDIUM_MAX_SIZE ( 128 * KB )
@@ -54,32 +57,6 @@ struct x::allocator::block
 {
 	x::allocator::block *			next = nullptr;
 };
-struct x::allocator::tld
-{
-	tld()
-	{
-		tid = std::this_thread::get_id();
-	}
-
-	~tld()
-	{
-		if ( heap != nullptr ) heap->detach = true;
-	}
-
-	std::thread::id					tid = {};
-	x::allocator::heap *			heap = nullptr;
-};
-struct x::allocator::heap
-{
-	x::allocator::heap *			prev = nullptr;
-	x::allocator::heap *			next = nullptr;
-	std::thread::id					tid = {};
-	bool							detach = false;
-	x::allocator::block *			used_block = nullptr;
-	x::allocator::page *			direct[PAGE_DIRECT_SIZE] = { nullptr };
-	queue<x::allocator::page *>		pages[FULL_PAGE_INDEX + 1] = {};
-	queue<x::allocator::segment *>	segments = {};
-};
 struct x::allocator::page
 {
 	x::allocator::page *			prev = nullptr;
@@ -101,6 +78,32 @@ struct x::allocator::segment
 	x::uint16						pused = 0;
 	x::uint64						shift = 0;
 	x::allocator::page				pages[1] = {};
+};
+struct x::allocator::heap
+{
+	x::allocator::heap * prev = nullptr;
+	x::allocator::heap * next = nullptr;
+	std::thread::id					tid = {};
+	bool							detach = false;
+	x::allocator::block * used_block = nullptr;
+	x::allocator::page * direct[PAGE_DIRECT_SIZE] = { nullptr };
+	queue<x::allocator::page *>		pages[FULL_PAGE_INDEX + 1] = {};
+	queue<x::allocator::segment *>	segments = {};
+};
+struct x::allocator::tld
+{
+	tld()
+	{
+		tid = std::this_thread::get_id();
+	}
+
+	~tld()
+	{
+		if ( heap != nullptr ) heap->detach = true;
+	}
+
+	std::thread::id					tid = {};
+	x::allocator::heap * heap = nullptr;
 };
 
 struct x::allocator::private_p
@@ -161,7 +164,7 @@ void x::allocator::free_collect()
 x::allocator::page * x::allocator::get_page( void * ptr )
 {
 	auto seg = get_segment( ptr );
-	return &seg->pages[( ( (std::uintptr_t)ptr ) - ( ( (std::uintptr_t)seg ) ) >> seg->shift )];
+	return &seg->pages[( ( (std::uintptr_t)ptr ) - ( (std::uint64_t)seg >> seg->shift ) )];
 }
 
 x::allocator::segment * x::allocator::get_segment( void * ptr )
@@ -308,7 +311,7 @@ x::allocator::page * x::allocator::segment_alloc_page_small( x::allocator::heap 
 				for ( size_t i = 0; i < ss->psize; i++ )
 				{
 					if ( ss->pages[i].used == 0 )
-						return;
+						return &ss->pages[i];
 				}
 			}
 		}
@@ -318,17 +321,92 @@ x::allocator::page * x::allocator::segment_alloc_page_small( x::allocator::heap 
 
 	auto ns = segment_alloc( h, DEFULAT_SEGMENT_SIZE );
 
+	for ( x::uint8 i = 0; i < SMALL_PAGE_COUNT; i++ )
+	{
+		auto p = &ns->pages[i];
 
+		p->index = i;
+		if ( i == 0 )
+		{
+			p->size = SMALL_PAGE_SIZE - ( sizeof( page ) * SMALL_PAGE_COUNT );
+			p->free = reinterpret_cast<block *>( reinterpret_cast<x::uint8 *>( p ) + ( sizeof( page ) * SMALL_PAGE_COUNT ) );
+		}
+		else
+		{
+			p->size = SMALL_PAGE_SIZE;
+			p->free = reinterpret_cast<block *>( reinterpret_cast<x::uint8 *>( ns->pages ) + ( SMALL_PAGE_SIZE * i ) );
 
-	return nullptr;
+			p->prev = &ns->pages[i - 1];
+			p->prev->next = p;
+		}
+	}
+
+	return ns->pages;
 }
 
 x::allocator::page * x::allocator::segment_alloc_page_large( x::allocator::heap * h, x::allocator::segment * s )
 {
-	return nullptr;
+	x::allocator::segment * ss = s;
+
+	while ( ss != nullptr )
+	{
+		if ( ss->kind == x::pagekind_t::LARGE )
+		{
+			if ( ss->pused - ss->psize > 0 )
+			{
+				for ( size_t i = 0; i < ss->psize; i++ )
+				{
+					if ( ss->pages[i].used == 0 )
+						return &ss->pages[i];
+				}
+			}
+		}
+
+		ss = ss->next;
+	}
+
+	auto ns = segment_alloc( h, DEFULAT_SEGMENT_SIZE );
+
+	for ( x::uint8 i = 0; i < LARGE_PAGE_COUNT; i++ )
+	{
+		auto p = &ns->pages[i];
+
+		p->index = i;
+		if ( i == 0 )
+		{
+			p->size = LARGE_PAGE_SIZE - ( sizeof( page ) * LARGE_PAGE_COUNT );
+			p->free = reinterpret_cast<block *>( reinterpret_cast<x::uint8 *>( p ) + ( sizeof( page ) * LARGE_PAGE_COUNT ) );
+		}
+		else
+		{
+			p->size = LARGE_PAGE_SIZE;
+			p->free = reinterpret_cast<block *>( reinterpret_cast<x::uint8 *>( ns->pages ) + ( LARGE_PAGE_SIZE * i ) );
+
+			p->prev = &ns->pages[i - 1];
+			p->prev->next = p;
+		}
+	}
+
+	return ns->pages;
 }
 
 x::allocator::page * x::allocator::segment_alloc_page_huge( x::allocator::heap * h, x::allocator::segment * s, x::uint64 size )
 {
-	return nullptr;
+	x::allocator::page * p = h->pages[HUGE_PAGE_INDEX].head;
+	while ( p != nullptr )
+	{
+		if ( p->used == 0 && p->size > size )
+			return p;
+
+		p = p->next;
+	}
+
+	auto ns = segment_alloc( h, size + sizeof( segment ) );
+
+	p = ns->pages;
+	p->index = 0;
+	p->size = size;
+	p->free = reinterpret_cast<block *>( reinterpret_cast<x::uint8 *>( ns ) + sizeof( segment ) );
+
+	return p;
 }

@@ -4,7 +4,7 @@
 
 namespace x
 {
-	class visitor
+	class visitor : public std::enable_shared_from_this<visitor>
 	{
 	public:
 		virtual ~visitor() = default;
@@ -135,19 +135,20 @@ namespace x
 		void visit( x::local_stat_ast * val ) override;
 	};
 
-	class instantiate_visitor : public x::scope_with_visitor
+	class instantiate_class_visitor : public x::scope_with_visitor
 	{
 	public:
 		using scope_with_visitor::visit;
 
 	public:
-		instantiate_visitor( const x::symbols_ptr & val );
+		instantiate_class_visitor( const x::symbols_ptr & val );
 
 	public:
 		void visit( x::temp_type_ast * val ) override;
 
 	private:
 		bool matching( x::template_decl_ast * temp, x::temp_type_ast * type ) const;
+		x::class_decl_ast_ptr instantiate( x::closure_expr_ast * closure ) const;
 		x::class_decl_ast_ptr instantiate( x::template_decl_ast * temp, x::temp_type_ast * type ) const;
 	};
 
@@ -322,8 +323,16 @@ namespace x
 		spirv::module_ptr _module;
 	};
 
-	class interpreter_execute_visitor
+	class interpreter_execute_visitor : public x::visitor
 	{
+	public:
+		using visitor::visit;
 
+	public:
+		interpreter_execute_visitor( const x::runtime_ptr & rt, const x::symbols_ptr & sym );
+
+	private:
+		x::runtime_ptr & _runtime;
+		x::symbols_ptr & _symbols;
 	};
 }
