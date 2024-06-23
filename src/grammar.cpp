@@ -3,6 +3,8 @@
 #include <bit>
 #include <regex>
 
+#include "exception.h"
+
 x::grammar::grammar( std::istream & stream, std::string_view name, const std::map<std::string, x::token_t> tokens )
     : _stream( stream.rdbuf() ), _tokenmap( tokens )
 {
@@ -235,7 +237,7 @@ x::class_decl_ast_ptr x::grammar::class_decl()
             next();
             break;
         default:
-            ASSERT( true, "" );
+            XTHROW( x::syntax_exception, true, "", _location );
             break;
         }
 
@@ -320,7 +322,7 @@ x::template_decl_ast_ptr x::grammar::template_decl()
             next();
             break;
         default:
-            ASSERT( true, "" );
+            XTHROW( x::syntax_exception, true, "", _location );
             break;
         }
 
@@ -481,7 +483,7 @@ x::namespace_decl_ast_ptr x::grammar::namespace_decl()
             next();
             break;
         default:
-            ASSERT( true, "" );
+            XTHROW( x::syntax_exception, true, "", _location );
             break;
         }
 
@@ -1279,7 +1281,7 @@ x::identifier_expr_ast_ptr x::grammar::identifier_exp()
         ast->ident = next().str;
         break;
     default:
-        ASSERT( false, "" );
+        XTHROW( x::syntax_exception, false, "", _location );
         break;
     }
     
@@ -1562,7 +1564,7 @@ x::token x::grammar::next()
             c = peek();
             while ( std::isdigit( c ) || c == '.' )
             {
-                ASSERT( tk.str.find( '.' ) != std::string::npos && c == '.', "" );
+                XTHROW( x::syntax_exception, tk.str.find( '.' ) != std::string::npos && c == '.', "", _location );
 
                 push( tk.str, get() );
 
@@ -1620,7 +1622,7 @@ x::token x::grammar::next()
                 c = peek();
                 while ( std::isdigit( c ) || c == '.' )
                 {
-                    ASSERT( tk.str.find( '.' ) != std::string::npos && c == '.', "" );
+                    XTHROW( x::syntax_exception, tk.str.find( '.' ) != std::string::npos && c == '.', "", _location );
 
                     push( tk.str, get() );
 
@@ -1741,14 +1743,14 @@ x::token x::grammar::next()
                 push( tk.str, get() );
 
             auto it = _tokenmap.find( tk.str );
-            ASSERT( it == _tokenmap.end(), "" );
+            XTHROW( x::syntax_exception, it == _tokenmap.end(), "", _location );
             tk.type = it->second;
 
             break;
         }
         else
         {
-            ASSERT( true, "" );
+            XTHROW( x::lexical_exception, true, "", _location );
         }
     }
 
@@ -1793,7 +1795,7 @@ x::token x::grammar::verify( std::initializer_list<x::token_t> list )
 
 x::token x::grammar::validity( x::token_t k )
 {
-    ASSERT( lookup().type != k, "" );
+    XTHROW( x::lexical_exception, lookup().type != k, "", _location );
     return next();
 }
 

@@ -1,5 +1,7 @@
 #include "value.h"
 
+#include "exception.h"
+
 x::value::value()
 {
 	obj = nullptr;
@@ -356,105 +358,105 @@ bool x::value::is_object() const
 
 bool x::value::to_bool() const
 {
-	ASSERT( is_bool(), "" );
+	XTHROW( x::bad_value_access, is_bool(), "" );
 
 	return to_reference().b;
 }
 
 x::int8 x::value::to_int8() const
 {
-	ASSERT( is_int8(), "" );
+	XTHROW( x::bad_value_access, is_int8(), "" );
 
 	return to_reference().i8;
 }
 
 x::int16 x::value::to_int16() const
 {
-	ASSERT( is_int16(), "" );
+	XTHROW( x::bad_value_access, is_int16(), "" );
 
 	return to_reference().i16;
 }
 
 x::int32 x::value::to_int32() const
 {
-	ASSERT( is_int32(), "" );
+	XTHROW( x::bad_value_access, is_int32(), "" );
 
 	return to_reference().i32;
 }
 
 x::int64 x::value::to_int64() const
 {
-	ASSERT( is_int64(), "" );
+	XTHROW( x::bad_value_access, is_int64(), "" );
 
 	return to_reference().i64;
 }
 
 x::uint8 x::value::to_uint8() const
 {
-	ASSERT( is_uint8(), "" );
+	XTHROW( x::bad_value_access, is_uint8(), "" );
 
 	return to_reference().u8;
 }
 
 x::uint16 x::value::to_uint16() const
 {
-	ASSERT( is_uint16(), "" );
+	XTHROW( x::bad_value_access, is_uint16(), "" );
 
 	return to_reference().u16;
 }
 
 x::uint32 x::value::to_uint32() const
 {
-	ASSERT( is_uint32(), "" );
+	XTHROW( x::bad_value_access, is_uint32(), "" );
 
 	return to_reference().u32;
 }
 
 x::uint64 x::value::to_uint64() const
 {
-	ASSERT( is_uint64(), "" );
+	XTHROW( x::bad_value_access, is_uint64(), "" );
 
 	return to_reference().u64;
 }
 
 x::float16 x::value::to_float16() const
 {
-	ASSERT( is_float16(), "" );
+	XTHROW( x::bad_value_access, is_float16(), "" );
 
 	return to_reference().f16;
 }
 
 x::float32 x::value::to_float32() const
 {
-	ASSERT( is_float32(), "" );
+	XTHROW( x::bad_value_access, is_float32(), "" );
 
 	return to_reference().f32;
 }
 
 x::float64 x::value::to_float64() const
 {
-	ASSERT( is_float64(), "" );
+	XTHROW( x::bad_value_access, is_float64(), "" );
 
 	return to_reference().f64;
 }
 
 x::intptr x::value::to_intptr() const
 {
-	ASSERT( is_intptr(), "" );
+	XTHROW( x::bad_value_access, is_intptr(), "" );
 
 	return to_reference().ptr;
 }
 
 x::string x::value::to_string() const
 {
-	ASSERT( is_string(), "" );
+	XTHROW( x::bad_value_access, is_string(), "" );
 
 	return to_reference().str;
 }
 
 x::object * x::value::to_object() const
 {
-	ASSERT( is_object(), "" );
+	XTHROW( x::bad_value_access, is_object(), "" );
 
 	return to_reference().obj;
 }

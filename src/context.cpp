@@ -2,6 +2,7 @@
 
 #include "meta.h"
 #include "module.h"
+#include "exception.h"
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -167,7 +168,7 @@ void x::context::dlclose()
 	{
 		if ( it.second.handle != nullptr )
 		{
-			ASSERT( dll_close( it.second.handle ), "" );
+			XTHROW( x::runtime_exception, dll_close( it.second.handle ), "" );
 		}
 	}
 

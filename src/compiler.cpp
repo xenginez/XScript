@@ -6,9 +6,10 @@
 #include "value.h"
 #include "module.h"
 #include "grammar.h"
-#include "visitor.h"
 #include "builtin.h"
 #include "symbols.h"
+#include "codegen.h"
+#include "semantic.h"
 #include "exception.h"
 
 x::compiler::compiler( const log_callback_t & callback )
@@ -138,7 +139,7 @@ void x::compiler::loading( const std::filesystem::path & file )
 
 	path.make_preferred();
 
-	ASSERT( path.empty(), "" );
+	XTHROW( x::compile_exception, path.empty(), "" );
 
 	object_ptr obj = nullptr;
 	auto time = std::filesystem::last_write_time( path );
@@ -165,7 +166,7 @@ void x::compiler::loading( const std::filesystem::path & file )
 	{
 		std::ifstream ifs( path );
 		
-		ASSERT( ifs.is_open(), "" );
+		XTHROW( x::compile_exception, ifs.is_open(), "" );
 
 		obj->ast = x::grammar( ifs, path.string() ).unit();
 
@@ -291,10 +292,16 @@ x::symbols_ptr x::module_compiler::make_symbols()
 
 	// builtin function
 	{
-		// is_base_of
-		{
-			auto sym = syms->add_builtinfunc( "is_base_of", std::make_shared<x::builtin_is_base_of>() );
-		}
+#define BUILTIN( TYPE ) syms->add_builtinfunc( #TYPE, std::make_shared<TYPE>() )
+
+		BUILTIN( builtin_sizeof );
+		BUILTIN( builtin_typeof );
+		BUILTIN( builtin_is_enum );
+		BUILTIN( builtin_is_class );
+		BUILTIN( builtin_is_base_of );
+		BUILTIN( builtin_conditional );
+
+#undef BUILTIN
 	}
 
 	return syms;

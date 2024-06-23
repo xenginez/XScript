@@ -5,6 +5,7 @@
 #include "ast.h"
 #include "value.h"
 #include "builtin.h"
+#include "exception.h"
 
 namespace
 {
@@ -94,21 +95,21 @@ bool x::symbol::is_function() const
 
 x::ast_symbol * x::symbol::cast_ast()
 {
-	ASSERT( is_ast(), "" );
+	XTHROW( x::semantic_exception, is_ast(), "" );
 
 	return reinterpret_cast<x::ast_symbol *>( this );
 }
 
 x::type_symbol * x::symbol::cast_type()
 {
-	ASSERT( is_type(), "" );
+	XTHROW( x::semantic_exception, is_type(), "" );
 
 	return reinterpret_cast<x::type_symbol *>( this );
 }
 
 x::scope_symbol * x::symbol::cast_scope()
 {
-	ASSERT( is_scope(), "" );
+	XTHROW( x::semantic_exception, is_scope(), "" );
 
 	return reinterpret_cast<x::scope_symbol *>( this );
 }
@@ -204,7 +205,7 @@ x::uint64 x::enum_symbol::size() const
 
 void x::enum_symbol::add_child( x::symbol * val )
 {
-	ASSERT( val->type == x::symbol_t::ELEMENT, "" );
+	XTHROW( x::semantic_exception, val->type == x::symbol_t::ELEMENT, "" );
 
 	elements.push_back( static_cast<x::element_symbol *>( val ) );
 }
@@ -300,7 +301,7 @@ void x::class_symbol::add_child( x::symbol * val )
 		variables.push_back( static_cast<x::variable_symbol *>( val ) );
 		break;
 	default:
-		ASSERT( false, "" );
+		XTHROW( x::semantic_exception, false, "" );
 		break;
 	}
 }
@@ -498,7 +499,7 @@ x::function_decl_ast_ptr x::function_symbol::cast_ast() const
 
 void x::function_symbol::add_child( x::symbol * val )
 {
-	ASSERT( val->type == x::symbol_t::PARAM, "" );
+	XTHROW( x::semantic_exception, val->type == x::symbol_t::PARAM, "" );
 
 	parameters.push_back( static_cast<x::param_symbol *>( val ) );
 }
@@ -566,7 +567,7 @@ void x::template_symbol::add_child( x::symbol * val )
 		functions.push_back( static_cast<x::function_symbol *>( val ) );
 		break;
 	default:
-		ASSERT( false, "" );
+		XTHROW( x::semantic_exception, false, "" );
 		break;
 	}
 }
@@ -609,7 +610,7 @@ x::namespace_decl_ast_ptr x::namespace_symbol::cast_ast() const
 
 void x::namespace_symbol::add_child( x::symbol * val )
 {
-	ASSERT( val->is_type(), "" );
+	XTHROW( x::semantic_exception, val->is_type(), "" );
 
 	children.push_back( val->cast_type() );
 }
@@ -645,7 +646,7 @@ void x::foundation_symbol::add_child( x::symbol * val )
 		variables.push_back( static_cast<x::variable_symbol *>( val ) );
 		break;
 	default:
-		ASSERT( false, "" );
+		XTHROW( x::semantic_exception, false, "" );
 		break;
 	}
 }
@@ -703,7 +704,7 @@ x::unit_symbol * x::symbols::add_unit( x::unit_ast * ast )
 {
 	std::string fullname = { ast->location.file.data(), ast->location.file.size() };
 
-	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
+	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new unit_symbol;
 
@@ -720,7 +721,7 @@ x::enum_symbol * x::symbols::add_enum( x::enum_decl_ast * ast )
 {
 	std::string fullname = calc_fullname( ast->name );
 
-	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
+	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new enum_symbol;
 
@@ -737,7 +738,7 @@ x::alias_symbol * x::symbols::add_alias( x::using_decl_ast * ast )
 {
 	std::string fullname = calc_fullname( ast->name );
 
-	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
+	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new alias_symbol;
 
@@ -754,7 +755,7 @@ x::class_symbol * x::symbols::add_class( x::class_decl_ast * ast )
 {
 	std::string fullname = calc_fullname( ast->name );
 
-	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
+	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new class_symbol;
 
@@ -771,7 +772,7 @@ x::block_symbol * x::symbols::add_block( x::compound_stat_ast * ast )
 {
 	std::string fullname = std::format( "block_{}_{}_{}", ast->location.file, ast->location.line, ast->location.column );
 
-	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
+	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new block_symbol;
 
@@ -788,7 +789,7 @@ x::cycle_symbol * x::symbols::add_cycle( x::cycle_stat_ast * ast )
 {
 	std::string fullname = std::format( "cycle_{}_{}_{}", ast->location.file, ast->location.line, ast->location.column );
 
-	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
+	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new cycle_symbol;
 
@@ -805,7 +806,7 @@ x::local_symbol * x::symbols::add_local( x::local_stat_ast * ast )
 {
 	std::string fullname = calc_fullname( ast->name );
 
-	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
+	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new local_symbol;
 
@@ -822,7 +823,7 @@ x::param_symbol * x::symbols::add_param( x::parameter_decl_ast * ast )
 {
 	std::string fullname = calc_fullname( ast->name );
 
-	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
+	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new param_symbol;
 
@@ -839,7 +840,7 @@ x::element_symbol * x::symbols::add_element( x::element_decl_ast * ast )
 {
 	std::string fullname = calc_fullname( ast->name );
 
-	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
+	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new element_symbol;
 
@@ -856,7 +857,7 @@ x::function_symbol * x::symbols::add_function( x::function_decl_ast * ast )
 {
 	std::string fullname = calc_fullname( ast->name );
 
-	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
+	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new function_symbol;
 
@@ -873,7 +874,7 @@ x::variable_symbol * x::symbols::add_variable( x::variable_decl_ast * ast )
 {
 	std::string fullname = calc_fullname( ast->name );
 
-	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
+	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new variable_symbol;
 
@@ -890,7 +891,7 @@ x::template_symbol * x::symbols::add_template( x::template_decl_ast * ast )
 {
 	std::string fullname = calc_fullname( ast->name );
 
-	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
+	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new template_symbol;
 
@@ -907,7 +908,7 @@ x::namespace_symbol * x::symbols::add_namespace( x::namespace_decl_ast * ast )
 {
 	std::string fullname = calc_fullname( ast->name );
 
-	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
+	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new namespace_symbol;
 
@@ -924,7 +925,7 @@ x::foundation_symbol * x::symbols::add_foundation( std::string_view name, x::uin
 {
 	std::string fullname = calc_fullname( name );
 
-	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
+	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new x::foundation_symbol;
 
@@ -941,7 +942,7 @@ x::nativefunc_symbol * x::symbols::add_nativefunc( std::string_view name, void *
 {
 	std::string fullname = calc_fullname( name );
 
-	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
+	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new x::nativefunc_symbol;
 
@@ -959,7 +960,7 @@ x::builtinfunc_symbol * x::symbols::add_builtinfunc( std::string_view name, x::b
 {
 	std::string fullname = calc_fullname( name );
 
-	ASSERT( _symbolmap.find( fullname ) != _symbolmap.end(), "" );
+	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = new x::builtinfunc_symbol;
 
@@ -976,12 +977,12 @@ x::builtinfunc_symbol * x::symbols::add_builtinfunc( std::string_view name, x::b
 
 void x::symbols::push_scope( std::string_view name )
 {
-	auto sym = current_scope()->find_child( name );
-	ASSERT( sym && sym->is_scope(), "" );
+	auto sym = cur_scope()->find_child( name );
+	XTHROW( x::semantic_exception, sym && sym->is_scope(), "" );
 	_scope.push_back( sym->cast_scope() );
 }
 
-x::scope_symbol * x::symbols::current_scope() const
+x::scope_symbol * x::symbols::cur_scope() const
 {
 	return _scope.back();
 }
@@ -994,21 +995,21 @@ void x::symbols::pop_scope()
 x::type_symbol * x::symbols::find_type_symbol( std::string_view name ) const
 {
 	auto sym = find_symbol( name );
-	ASSERT( sym != nullptr && sym->is_type(), "" );
+	XTHROW( x::semantic_exception, sym != nullptr && sym->is_type(), "" );
 	return sym->cast_type();
 }
 
 x::scope_symbol * x::symbols::find_scope_symbol( std::string_view name ) const
 {
 	auto sym = find_symbol( name );
-	ASSERT( sym != nullptr && sym->is_scope(), "" );
+	XTHROW( x::semantic_exception, sym != nullptr && sym->is_scope(), "" );
 	return sym->cast_scope();
 }
 
 x::class_symbol * x::symbols::find_class_symbol( std::string_view name ) const
 {
 	auto sym = find_symbol( name );
-	ASSERT( sym != nullptr && sym->type == x::symbol_t::CLASS, "" );
+	XTHROW( x::semantic_exception, sym != nullptr && sym->type == x::symbol_t::CLASS, "" );
 	return reinterpret_cast<x::class_symbol *>( sym );
 }
 
@@ -1028,7 +1029,7 @@ std::vector<x::template_symbol *> x::symbols::find_template_symbols( std::string
 x::symbol * x::symbols::find_symbol( std::string_view name, x::scope_symbol * scope ) const
 {
 	if ( scope == nullptr )
-		scope = current_scope();
+		scope = cur_scope();
 
 	if ( name.empty() )
 		return scope->cast_symbol();
@@ -1046,7 +1047,7 @@ x::symbol * x::symbols::find_symbol( std::string_view name, x::scope_symbol * sc
 
 x::symbol * x::symbols::up_find_symbol_from_type( x::symbol_t type ) const
 {
-	auto scope = current_scope();
+	auto scope = cur_scope();
 
 	while ( scope )
 	{
@@ -1113,7 +1114,7 @@ std::string x::symbols::calc_fullname( std::string_view name ) const
 {
 	std::string fullname;
 
-	if ( auto sym = current_scope()->cast_symbol() )
+	if ( auto sym = cur_scope()->cast_symbol() )
 	{
 		if ( sym->type == x::symbol_t::UNIT || ( sym->type == x::symbol_t::NAMESPACE && sym->name.empty() ) )
 			fullname = name;
@@ -1151,7 +1152,7 @@ x::symbol * x::symbols::find_reference( std::string_view name ) const
 
 void x::symbols::add_symbol( x::symbol * val )
 {
-	val->parent = current_scope()->cast_symbol();
+	val->parent = cur_scope()->cast_symbol();
 
 	_symbolmap[val->fullname] = val;
 
@@ -1161,5 +1162,5 @@ void x::symbols::add_symbol( x::symbol * val )
 	if ( val->type == x::symbol_t::TEMPLATE )
 		_templatemap.emplace( val->fullname, static_cast<x::template_symbol *>( val ) );
 
-	current_scope()->add_child( val );
+	cur_scope()->add_child( val );
 }

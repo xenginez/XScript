@@ -25,9 +25,11 @@
 #endif // _DEBUG
 
 #ifdef _DEBUG
-#define XTHROW( EX, COND, MSG ) assert( ( a ) && s );
+#define _STR_(s) s
+#define _STR(s) _STR_(#s)
+#define XTHROW( EX, COND, ... ) assert( ( COND ) && _STR( EX##(##__VA_ARGS__##) ) )
 #else
-#define XTHROW( EX, COND, MSG ) if( !( COND ) ) throw EX( MSG );
+#define XTHROW( EX, COND, ... ) if( !( COND ) ) throw EX( __VA_ARGS__ );
 #endif // _DEBUG
 
 
@@ -47,7 +49,7 @@ namespace x
     using float64 = double;
     using string = const char *;
     enum class intptr : std::intptr_t {};
-
+    
     enum class ast_t : x::uint8
     {
         UNIT,
@@ -213,6 +215,7 @@ namespace x
         TK_FLOAT64,              // float64
         TK_STRING,               // string
         TK_IMPORT,               // import
+        TK_ASSERT,               // assert
         TK_TEMPLATE,             // template
         TK_NAMESPACE,            // namespace
         TK_ATTRIBUTE,            // attribute
@@ -679,6 +682,7 @@ namespace x
         { (const char *)u8"float64", x::token_t::TK_FLOAT64 },
         { (const char *)u8"string", x::token_t::TK_STRING },
         { (const char *)u8"import", x::token_t::TK_IMPORT },
+        { (const char *)u8"assert", x::token_t::TK_ASSERT },
         { (const char *)u8"template", x::token_t::TK_TEMPLATE },
         { (const char *)u8"namespace", x::token_t::TK_NAMESPACE },
         { (const char *)u8"attribute", x::token_t::TK_ATTRIBUTE },

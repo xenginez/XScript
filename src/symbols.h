@@ -366,7 +366,7 @@ namespace x
 
 	public:
 		void push_scope( std::string_view name );
-		x::scope_symbol * current_scope() const;
+		x::scope_symbol * cur_scope() const;
 		void pop_scope();
 
 	public:
