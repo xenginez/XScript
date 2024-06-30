@@ -157,6 +157,16 @@ void * x::allocator::malloc( x::uint64 size )
 	return instance()->heap_malloc( instance()->get_default_heap(), size );
 }
 
+x::string x::allocator::transform( std::string_view str )
+{
+	return x::string();
+}
+
+std::string_view x::allocator::transform( x::string str )
+{
+	return std::string_view();
+}
+
 void x::allocator::free_collect()
 {
 }

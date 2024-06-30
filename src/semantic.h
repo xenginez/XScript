@@ -31,23 +31,6 @@ namespace x
 		void visit( x::local_stat_ast * val ) override;
 	};
 
-	class instantiate_class_visitor : public x::scope_with_visitor
-	{
-	public:
-		using scope_with_visitor::visit;
-
-	public:
-		instantiate_class_visitor( const x::symbols_ptr & val );
-
-	public:
-		void visit( x::temp_type_ast * val ) override;
-
-	private:
-		bool matching( x::template_decl_ast * temp, x::temp_type_ast * type ) const;
-		x::class_decl_ast_ptr instantiate( x::closure_expr_ast * closure ) const;
-		x::class_decl_ast_ptr instantiate( x::template_decl_ast * temp, x::temp_type_ast * type ) const;
-	};
-
 	class semantic_checker_visitor : public x::scope_with_visitor
 	{
 	public:
@@ -58,9 +41,9 @@ namespace x
 
 	public:
 		void visit( x::type_ast * val ) override;
-		void visit( x::temp_type_ast * val ) override;
 		void visit( x::func_type_ast * val ) override;
-		void visit( x::array_type_ast * val ) override;
+		void visit( x::temp_type_ast * val ) override;
+		void visit( x::list_type_ast * val ) override;
 
 		void visit( x::element_decl_ast * val ) override;
 
@@ -71,9 +54,141 @@ namespace x
 		void visit( x::assignment_expr_ast * val ) override;
 		void visit( x::unary_expr_ast * val ) override;
 		void visit( x::postfix_expr_ast * val ) override;
-		void visit( x::index_expr_ast * val ) override;
 		void visit( x::invoke_expr_ast * val ) override;
 		void visit( x::member_expr_ast * val ) override;
 		void visit( x::identifier_expr_ast * val ) override;
+	};
+
+	class instantiation_visitor : public x::scope_with_visitor
+	{
+	public:
+		using scope_with_visitor::visit;
+
+	public:
+		instantiation_visitor( const x::symbols_ptr & val );
+
+	public:
+		void visit( x::temp_type_ast * val ) override;
+		void visit( x::function_decl_ast * val ) override;
+		void visit( x::closure_expr_ast * val ) override;
+	};
+
+	class expr_type_solver_visitor : public x::scope_with_visitor
+	{
+	public:
+		using scope_with_visitor::visit;
+
+	public:
+		expr_type_solver_visitor( const x::symbols_ptr & val );
+
+	public:
+		x::type_ast_ptr solver( x::expr_stat_ast * expr );
+
+	public:
+		void visit( x::assignment_expr_ast * val ) override;
+		void visit( x::logical_or_expr_ast * val ) override;
+		void visit( x::logical_and_expr_ast * val ) override;
+		void visit( x::or_expr_ast * val ) override;
+		void visit( x::xor_expr_ast * val ) override;
+		void visit( x::and_expr_ast * val ) override;
+		void visit( x::compare_expr_ast * val ) override;
+		void visit( x::shift_expr_ast * val ) override;
+		void visit( x::add_expr_ast * val ) override;
+		void visit( x::mul_expr_ast * val ) override;
+		void visit( x::as_expr_ast * val ) override;
+		void visit( x::is_expr_ast * val ) override;
+		void visit( x::sizeof_expr_ast * val ) override;
+		void visit( x::typeof_expr_ast * val ) override;
+		void visit( x::unary_expr_ast * val ) override;
+		void visit( x::postfix_expr_ast * val ) override;
+		void visit( x::invoke_expr_ast * val ) override;
+		void visit( x::member_expr_ast * val ) override;
+		void visit( x::identifier_expr_ast * val ) override;
+		void visit( x::closure_expr_ast * val ) override;
+		void visit( x::arguments_expr_ast * val ) override;
+		void visit( x::initializers_expr_ast * val ) override;
+		void visit( x::null_const_expr_ast * val ) override;
+		void visit( x::bool_const_expr_ast * val ) override;
+		void visit( x::int_const_expr_ast * val ) override;
+		void visit( x::float_const_expr_ast * val ) override;
+		void visit( x::string_const_expr_ast * val ) override;
+
+	private:
+		void push( const x::type_ast_ptr & type );
+		x::type_ast_ptr pop();
+		x::type_ast_ptr calc( x::token_t op, const x::type_ast_ptr & type );
+		x::type_ast_ptr calc( x::token_t op, const x::type_ast_ptr & lefttype, const x::type_ast_ptr & righttype );
+
+	private:
+		std::deque<x::type_ast_ptr> _types;
+	};
+
+	class expr_value_solver_visitor : public x::scope_with_visitor
+	{
+	public:
+		using scope_with_visitor::visit;
+
+	public:
+		expr_value_solver_visitor( const x::symbols_ptr & val );
+
+	public:
+		x::ast_ptr solver( x::expr_stat_ast * expr );
+	};
+
+	class const_expr_solver_visitor : public x::scope_with_visitor
+	{
+	public:
+		using scope_with_visitor::visit;
+
+	public:
+		const_expr_solver_visitor( const x::symbols_ptr & val );
+
+	public:
+		x::const_expr_ast_ptr solver( x::expr_stat_ast * expr );
+	};
+
+	class instantiated_closure_visitor : public x::scope_with_visitor
+	{
+	public:
+		using scope_with_visitor::visit;
+
+	public:
+		instantiated_closure_visitor( const x::symbols_ptr & val );
+
+	public:
+		x::class_decl_ast_ptr instantiate( x::closure_expr_ast * val );
+
+	public:
+		void visit( x::closure_expr_ast * val ) override;
+	};
+
+	class instantiated_template_visitor : public x::scope_with_visitor
+	{
+	public:
+		using scope_with_visitor::visit;
+
+	public:
+		instantiated_template_visitor( const x::symbols_ptr & val );
+
+	public:
+		x::class_decl_ast_ptr instantiate( x::template_decl_ast * decl, x::temp_type_ast * type );
+
+	public:
+		void visit( x::temp_type_ast * val ) override;
+	};
+
+	class instantiated_asyncfunc_visitor : public x::scope_with_visitor
+	{
+	public:
+		using scope_with_visitor::visit;
+
+	public:
+		instantiated_asyncfunc_visitor( const x::symbols_ptr & val );
+
+	public:
+		x::class_decl_ast_ptr instantiate( x::function_decl_ast * val );
+
+	public:
+		void visit( x::function_decl_ast * val ) override;
 	};
 }

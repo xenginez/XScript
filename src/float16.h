@@ -44,6 +44,8 @@ namespace x
 	public:
 		float to_float() const;
 		void from_float( float val );
+		std::uint16_t to_uint16() const;
+		void from_uint16( std::uint16_t val );
 
 	private:
 		union

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <deque>
+
 #include "ast.h"
 
 namespace x
@@ -15,9 +17,9 @@ namespace x
 		virtual void visit( x::attribute_ast * val );
 
 		virtual void visit( x::type_ast * val );
-		virtual void visit( x::temp_type_ast * val );
 		virtual void visit( x::func_type_ast * val );
-		virtual void visit( x::array_type_ast * val );
+		virtual void visit( x::temp_type_ast * val );
+		virtual void visit( x::list_type_ast * val );
 
 		virtual void visit( x::enum_decl_ast * val );
 		virtual void visit( x::class_decl_ast * val );
@@ -63,7 +65,6 @@ namespace x
 		virtual void visit( x::typeof_expr_ast * val );
 		virtual void visit( x::unary_expr_ast * val );
 		virtual void visit( x::postfix_expr_ast * val );
-		virtual void visit( x::index_expr_ast * val );
 		virtual void visit( x::invoke_expr_ast * val );
 		virtual void visit( x::member_expr_ast * val );
 		virtual void visit( x::identifier_expr_ast * val );
@@ -90,7 +91,6 @@ namespace x
 		void visit( x::enum_decl_ast * val ) override;
 		void visit( x::class_decl_ast * val ) override;
 		void visit( x::function_decl_ast * val ) override;
-		void visit( x::template_decl_ast * val ) override;
 		void visit( x::namespace_decl_ast * val ) override;
 
 		void visit( x::compound_stat_ast * val ) override;
@@ -103,41 +103,5 @@ namespace x
 
 	private:
 		x::symbols_ptr _symbols;
-	};
-
-	class expr_type_solver_visitor : public x::scope_with_visitor
-	{
-	public:
-		using scope_with_visitor::visit;
-
-	public:
-		expr_type_solver_visitor( const x::symbols_ptr & val );
-
-	public:
-		x::type_ast_ptr solver( x::expr_stat_ast * expr );
-	};
-
-	class expr_value_solver_visitor : public x::scope_with_visitor
-	{
-	public:
-		using scope_with_visitor::visit;
-
-	public:
-		expr_value_solver_visitor( const x::symbols_ptr & val );
-
-	public:
-		x::ast_ptr solver( x::expr_stat_ast * expr );
-	};
-
-	class const_expr_solver_visitor : public x::scope_with_visitor
-	{
-	public:
-		using scope_with_visitor::visit;
-
-	public:
-		const_expr_solver_visitor( const x::symbols_ptr & val );
-
-	public:
-		x::const_expr_ast_ptr solver( x::expr_stat_ast * expr );
 	};
 }

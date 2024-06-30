@@ -29,6 +29,8 @@ namespace x
 
 	public:
 		static void * malloc( x::uint64 size );
+		static x::string transform( std::string_view str );
+		static std::string_view transform( x::string str );
 
 	public:
 		static void free_collect();

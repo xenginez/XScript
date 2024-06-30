@@ -18,19 +18,27 @@ x::uint64 x::object::hashcode() const
 	return x::uint64();
 }
 
+x::string x::object::to_string() const
+{
+	return {};
+}
+
+void x::object::from_string( x::string str )
+{
+}
+
 const x::meta_type * x::object::type() const
 {
 	return nullptr;
 }
 
-std::string_view x::object::to_string() const
-{
-	return std::string_view();
-}
-
 int x::object::compare( x::object * other ) const
 {
 	return 0;
+}
+
+void x::object::on_event( x::uint32 event, x::int64 val )
+{
 }
 
 void x::object::mark( x::runtime * rt )

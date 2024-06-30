@@ -227,6 +227,16 @@ void x::float16::from_float( float val )
 	}
 }
 
+std::uint16_t x::float16::to_uint16() const
+{
+	return encode;
+}
+
+void x::float16::from_uint16( std::uint16_t val )
+{
+	encode = val;
+}
+
 x::float16 operator+( float left, x::float16 right )
 {
 	return x::float16( left ) + right;

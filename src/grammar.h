@@ -62,7 +62,6 @@ namespace x
 		x::expr_stat_ast_ptr typeof_exp();
 		x::expr_stat_ast_ptr unary_exp();
 		x::expr_stat_ast_ptr postfix_exp();
-		x::expr_stat_ast_ptr index_exp();
 		x::expr_stat_ast_ptr invoke_exp();
 		x::expr_stat_ast_ptr member_exp();
 		x::expr_stat_ast_ptr primary_exp();
@@ -89,6 +88,26 @@ namespace x
 		bool verify( x::token_t k );
 		x::token verify( std::initializer_list<x::token_t> list );
 		x::token validity( x::token_t k );
+		template<typename F> void verify_list( x::token_t beg, x::token_t end, x::token_t step, F && callback )
+		{
+			validity( beg );
+			if ( !verify( end ) )
+			{
+				do
+				{
+					if constexpr ( std::is_same_v< std::invoke_result_t<F>, bool > )
+					{
+						if ( callback() )
+							break;
+					}
+					else
+						callback();
+
+				} while ( verify( step ) );
+
+				validity( end );
+			}
+		}
 
 	private:
 		int get();

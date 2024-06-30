@@ -119,6 +119,12 @@ x::value::value( x::value * val )
 	_flags = x::value_t::REF_MASK;
 }
 
+x::value::value( x::value_flags val )
+	: _flags( val )
+{
+	obj = nullptr;
+}
+
 x::value & x::value::operator=( bool val )
 {
 	b = val;
@@ -239,6 +245,11 @@ x::value_t x::value::type() const
 		return x::value_t::NIL;
 	else
 		return ( to_reference()._flags & x::value_t::TYPE_MASK ).value();
+}
+
+x::value_flags x::value::flags() const
+{
+	return _flags;
 }
 
 bool x::value::is_ref() const

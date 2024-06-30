@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 
+#include "xlib.h"
 #include "value.h"
 #include "module.h"
 #include "grammar.h"
@@ -11,6 +12,11 @@
 #include "codegen.h"
 #include "semantic.h"
 #include "exception.h"
+
+namespace
+{
+	using any = x::value;
+}
 
 x::compiler::compiler( const log_callback_t & callback )
 {
@@ -71,15 +77,15 @@ bool x::compiler::compile( const std::filesystem::path & file )
 
 void x::compiler::scanner()
 {
-	x::symbol_scanner_visitor scaner( _symbols );
+	x::symbol_scanner_visitor scanner( _symbols );
 
 	for ( const auto & it : _objects )
-		it->ast->accept( &scaner );
+		it->ast->accept( &scanner );
 }
 
 void x::compiler::instant()
 {
-	x::instantiate_class_visitor instant( _symbols );
+	x::instantiation_visitor instant( _symbols );
 	
 	for ( const auto & it : _objects )
 		it->ast->accept( &instant );
@@ -234,77 +240,89 @@ void x::module_compiler::linkmodule()
 
 x::symbols_ptr x::module_compiler::make_symbols()
 {
-	auto syms = std::make_shared<x::symbols>();
+	auto symbols = std::make_shared<x::symbols>();
 
-	// foundation
-	{
-#define BEG( TYPE ) { auto sym = syms->add_foundation( #TYPE, sizeof( TYPE ) ); syms->push_scope( sym->name );
-#define END() syms->pop_scope(); }
+	//////////////////////////////////// foundation ////////////////////////////////////
+#define BEG( TYPE ) auto TYPE##_type = symbols->add_foundation( #TYPE, sizeof( TYPE ) ); symbols->push_scope( TYPE##_type ); {
+#define END() } symbols->pop_scope();
 
-		syms->add_foundation( "void", 0 );
-
-		// any
-		{
-			auto sym = syms->add_foundation( "any", sizeof( x::value ) );
-			syms->push_scope( sym->name );
-			syms->pop_scope();
-		}
-
-		BEG( bool );
-		END();
-		BEG( byte );
-		END();
-		BEG( int8 );
-		END();
-		BEG( int16 );
-		END();
-		BEG( int32 );
-		END();
-		BEG( int64 );
-		END();
-		BEG( uint8 );
-		END();
-		BEG( uint16 );
-		END();
-		BEG( uint32 );
-		END();
-		BEG( uint64 );
-		END();
-		BEG( float16 );
-		END();
-		BEG( float32 );
-		END();
-		BEG( float64 );
-		END();
-		BEG( string );
-		END();
-		BEG( intptr );
-		END();
+	auto void_type = symbols->add_foundation( "void", 0 );
+	
+	BEG( any );
+	END();
+	BEG( bool );
+	END();
+	BEG( byte );
+	END();
+	BEG( int8 );
+	END();
+	BEG( int16 );
+	END();
+	BEG( int32 );
+	END();
+	BEG( int64 );
+	END();
+	BEG( uint8 );
+	END();
+	BEG( uint16 );
+	END();
+	BEG( uint32 );
+	END();
+	BEG( uint64 );
+	END();
+	BEG( float16 );
+	END();
+	BEG( float32 );
+	END();
+	BEG( float64 );
+	END();
+	BEG( string );
+	END();
+	BEG( intptr );
+	END();
 
 #undef BEG
 #undef END
-	}
+	//////////////////////////////////// foundation ////////////////////////////////////
 
-	// native function
-	{
 
-	}
+	//////////////////////////////////// native function ////////////////////////////////////
+#define BEG( TYPE ) auto TYPE##_func = symbols->add_nativefunc( #TYPE, TYPE ); symbols->push_scope( TYPE##_func ); {
+#define END() } symbols->pop_scope();
 
-	// builtin function
-	{
-#define BUILTIN( TYPE ) syms->add_builtinfunc( #TYPE, std::make_shared<TYPE>() )
+#undef BEG
+#undef END
+	//////////////////////////////////// native function ////////////////////////////////////
 
-		BUILTIN( builtin_sizeof );
-		BUILTIN( builtin_typeof );
-		BUILTIN( builtin_is_enum );
-		BUILTIN( builtin_is_class );
-		BUILTIN( builtin_is_base_of );
-		BUILTIN( builtin_conditional );
 
-#undef BUILTIN
-	}
+	//////////////////////////////////// builtin function ////////////////////////////////////
+#define BEG( TYPE ) auto TYPE##_builtin = symbols->add_builtinfunc( #TYPE, std::make_shared<TYPE>() ); symbols->push_scope( TYPE##_builtin ); {
+#define END() } symbols->pop_scope();
 
-	return syms;
+	BEG( builtin_sizeof );
+	END();
+	BEG( builtin_typeof );
+	END();
+	BEG( builtin_list_typeof );
+	END();
+	BEG( builtin_is_same );
+	END();
+	BEG( builtin_is_enum );
+	END();
+	BEG( builtin_is_class );
+	END();
+	BEG( builtin_is_base_of );
+	END();
+	BEG( builtin_is_template_of );
+	END();
+	BEG( builtin_conditional );
+	END();
+
+#undef BEG
+#undef END
+	//////////////////////////////////// builtin function ////////////////////////////////////
+
+	return symbols;
 }
 
 x::compiler::object_ptr x::module_compiler::make_object()

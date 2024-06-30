@@ -23,20 +23,20 @@ struct x::runtime::tld
 		_rt->remove_thread_runtime( this );
 	}
 
-	static tld * current_data()
+	static tld * current()
 	{
-		return *current_data_ptr();
+		return *current_ptr();
 	}
-	static tld ** current_data_ptr()
+	static tld ** current_ptr()
 	{
-		thread_local tld * runtime = nullptr;
-		return &runtime;
+		thread_local tld * data = nullptr;
+		return &data;
 	}
 
-	x::runtime * _rt;
+	x::runtime * _rt = nullptr;
 	std::vector<x::value> _thread;
 	std::deque<x::value> _valstack;
-	std::array<x::byte, 1 * MB> _memstack;
+	std::array<x::byte, 1 * MB> _memstack = {};
 };
 
 struct x::runtime::private_p
@@ -92,31 +92,38 @@ x::runtime::~runtime()
 	delete _p;
 }
 
+x::runtime * x::runtime::thread_owner_runtime()
+{
+	if ( tld::current() != nullptr )
+		return tld::current()->_rt;
+	return nullptr;
+}
+
 void x::runtime::push( const x::value & val )
 {
-	tld::current_data()->_valstack.push_back( val );
+	tld::current()->_valstack.push_back( val );
 }
 
 x::value & x::runtime::top()
 {
-	return tld::current_data()->_valstack.back();
+	return tld::current()->_valstack.back();
 }
 
 x::value x::runtime::pop()
 {
-	auto val = tld::current_data()->_valstack.back();
-	tld::current_data()->_valstack.pop_back();
+	auto val = tld::current()->_valstack.back();
+	tld::current()->_valstack.pop_back();
 	return val;
 }
 
 x::uint64 x::runtime::pushed()
 {
-	return tld::current_data()->_valstack.size();
+	return tld::current()->_valstack.size();
 }
 
 void x::runtime::poped( x::uint64 val )
 {
-	tld::current_data()->_valstack.resize( val );
+	tld::current()->_valstack.resize( val );
 }
 
 void x::runtime::resize_global( x::uint64 size )
@@ -126,7 +133,7 @@ void x::runtime::resize_global( x::uint64 size )
 
 void x::runtime::resize_thread( x::uint64 size )
 {
-	tld::current_data()->_thread.resize( size );
+	tld::current()->_thread.resize( size );
 }
 
 x::value x::runtime::get_global( x::uint64 idx )
@@ -136,7 +143,7 @@ x::value x::runtime::get_global( x::uint64 idx )
 
 x::value x::runtime::get_thread( x::uint64 idx )
 {
-	return tld::current_data()->_thread[idx];
+	return tld::current()->_thread[idx];
 }
 
 void x::runtime::add_root( x::object * root )
@@ -160,17 +167,17 @@ void x::runtime::set_trigger_gc_size( x::uint64 size )
 
 x::runtime::tld * x::runtime::create_tld()
 {
-	if ( tld::current_data() == nullptr )
+	if ( tld::current() == nullptr )
 	{
-		*tld::current_data_ptr() = new tld( this );
+		*tld::current_ptr() = new tld( this );
 	}
 
-	return tld::current_data();
+	return tld::current();
 }
 
 bool x::runtime::delete_tld( tld * val )
 {
-	if ( tld::current_data() == val )
+	if ( tld::current() == val )
 	{
 		delete val;
 		return true;

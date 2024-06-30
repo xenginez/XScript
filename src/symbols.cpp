@@ -45,7 +45,6 @@ bool x::symbol::is_type() const
 	case x::symbol_t::ENUM:
 	case x::symbol_t::ALIAS:
 	case x::symbol_t::CLASS:
-	case x::symbol_t::TEMPLATE:
 	case x::symbol_t::FOUNDATION:
 		return true;
 	}
@@ -70,6 +69,63 @@ bool x::symbol::is_scope() const
 	return false;
 }
 
+bool x::symbol::is_unit() const
+{
+	return type == x::symbol_t::UNIT;
+}
+
+bool x::symbol::is_enum() const
+{
+	return type == x::symbol_t::ENUM;
+}
+
+bool x::symbol::is_alias() const
+{
+	return type == x::symbol_t::ALIAS;
+}
+
+bool x::symbol::is_class() const
+{
+	return type == x::symbol_t::CLASS;
+}
+
+bool x::symbol::is_block() const
+{
+	return type == x::symbol_t::BLOCK;
+}
+
+bool x::symbol::is_cycle() const
+{
+	return type == x::symbol_t::CYCLE;
+}
+
+bool x::symbol::is_local() const
+{
+	return type == x::symbol_t::LOCAL;
+}
+
+bool x::symbol::is_param() const
+{
+	return type == x::symbol_t::PARAM;
+}
+
+bool x::symbol::is_element() const
+{
+	return type == x::symbol_t::ELEMENT;
+}
+
+bool x::symbol::is_function() const
+{
+	switch ( type )
+	{
+	case x::symbol_t::FUNCTION:
+	case x::symbol_t::NATIVEFUNC:
+	case x::symbol_t::BUILTINFUNC:
+		return true;
+	}
+	return false;
+}
+
 bool x::symbol::is_variable() const
 {
 	switch ( type )
@@ -82,15 +138,29 @@ bool x::symbol::is_variable() const
 	return false;
 }
 
-bool x::symbol::is_function() const
+bool x::symbol::is_template() const
 {
-	switch ( type )
-	{
-	case x::symbol_t::BUILTINFUNC:
-	case x::symbol_t::FUNCTION:
-		return true;
-	}
-	return false;
+	return type == x::symbol_t::TEMPLATE;
+}
+
+bool x::symbol::is_namespace() const
+{
+	return type == x::symbol_t::NAMESPACE;
+}
+
+bool x::symbol::is_foundation() const
+{
+	return type == x::symbol_t::FOUNDATION;
+}
+
+bool x::symbol::is_nativefunc() const
+{
+	return type == x::symbol_t::NATIVEFUNC;
+}
+
+bool x::symbol::is_builtinfunc() const
+{
+	return type == x::symbol_t::BUILTINFUNC;
 }
 
 x::ast_symbol * x::symbol::cast_ast()
@@ -114,24 +184,116 @@ x::scope_symbol * x::symbol::cast_scope()
 	return reinterpret_cast<x::scope_symbol *>( this );
 }
 
+x::unit_symbol * x::symbol::cast_unit()
+{
+	XTHROW( x::semantic_exception, is_unit(), "" );
+
+	return dynamic_cast<x::unit_symbol *>( this );
+}
+
+x::enum_symbol * x::symbol::cast_enum()
+{
+	XTHROW( x::semantic_exception, is_enum(), "" );
+
+	return dynamic_cast<x::enum_symbol *>( this );
+}
+
+x::alias_symbol * x::symbol::cast_alias()
+{
+	XTHROW( x::semantic_exception, is_alias(), "" );
+
+	return dynamic_cast<x::alias_symbol *>( this );
+}
+
+x::class_symbol * x::symbol::cast_class()
+{
+	XTHROW( x::semantic_exception, is_class(), "" );
+
+	return dynamic_cast<x::class_symbol *>( this );
+}
+
+x::block_symbol * x::symbol::cast_block()
+{
+	XTHROW( x::semantic_exception, is_block(), "" );
+
+	return dynamic_cast<x::block_symbol *>( this );
+}
+
+x::cycle_symbol * x::symbol::cast_cycle()
+{
+	XTHROW( x::semantic_exception, is_cycle(), "" );
+
+	return dynamic_cast<x::cycle_symbol *>( this );
+}
+
 x::local_symbol * x::symbol::cast_local()
 {
+	XTHROW( x::semantic_exception, is_local(), "" );
+
 	return dynamic_cast<x::local_symbol *>( this );
 }
 
 x::param_symbol * x::symbol::cast_param()
 {
+	XTHROW( x::semantic_exception, is_param(), "" );
+
 	return dynamic_cast<x::param_symbol *>( this );
 }
 
-x::variable_symbol * x::symbol::cast_variable()
+x::element_symbol * x::symbol::cast_element()
 {
-	return dynamic_cast<x::variable_symbol *>( this );
+	XTHROW( x::semantic_exception, is_element(), "" );
+
+	return dynamic_cast<x::element_symbol *>( this );
 }
 
 x::function_symbol * x::symbol::cast_function()
 {
+	XTHROW( x::semantic_exception, is_function(), "" );
+
 	return dynamic_cast<x::function_symbol *>( this );
+}
+
+x::variable_symbol * x::symbol::cast_variable()
+{
+	XTHROW( x::semantic_exception, is_variable(), "" );
+
+	return dynamic_cast<x::variable_symbol *>( this );
+}
+
+x::template_symbol * x::symbol::cast_template()
+{
+	XTHROW( x::semantic_exception, is_template(), "" );
+
+	return dynamic_cast<x::template_symbol *>( this );
+}
+
+x::namespace_symbol * x::symbol::cast_namespace()
+{
+	XTHROW( x::semantic_exception, is_namespace(), "" );
+
+	return dynamic_cast<x::namespace_symbol *>( this );
+}
+
+x::foundation_symbol * x::symbol::cast_foundation()
+{
+	XTHROW( x::semantic_exception, is_foundation(), "" );
+
+	return dynamic_cast<x::foundation_symbol *>( this );
+}
+
+x::nativefunc_symbol * x::symbol::cast_nativefunc()
+{
+	XTHROW( x::semantic_exception, is_nativefunc(), "" );
+
+	return dynamic_cast<x::nativefunc_symbol *>( this );
+}
+
+x::builtinfunc_symbol * x::symbol::cast_builtinfunc()
+{
+	XTHROW( x::semantic_exception, is_builtinfunc(), "" );
+
+	return dynamic_cast<x::builtinfunc_symbol *>( this );
 }
 
 x::symbol * x::ast_symbol::cast_symbol()
@@ -682,9 +844,9 @@ x::builtinfunc_symbol::~builtinfunc_symbol()
 {
 }
 
-x::ast_ptr x::builtinfunc_symbol::transferred( const x::ast_ptr & val ) const
+x::ast_ptr x::builtinfunc_symbol::transferred( const x::symbols_ptr & symbols, const x::ast_ptr & val ) const
 {
-	return built->transferred( symbols->shared_from_this(), val );
+	return built->transferred( symbols, val );
 }
 
 x::symbols::symbols()
@@ -968,7 +1130,6 @@ x::builtinfunc_symbol * x::symbols::add_builtinfunc( std::string_view name, x::b
 	sym->fullname = fullname;
 
 	sym->built = builtin;
-	sym->symbols = this;
 
 	add_symbol( sym );
 
@@ -980,6 +1141,11 @@ void x::symbols::push_scope( std::string_view name )
 	auto sym = cur_scope()->find_child( name );
 	XTHROW( x::semantic_exception, sym && sym->is_scope(), "" );
 	_scope.push_back( sym->cast_scope() );
+}
+
+void x::symbols::push_scope( x::scope_symbol * symbol )
+{
+	_scope.push_back( symbol );
 }
 
 x::scope_symbol * x::symbols::cur_scope() const
@@ -1138,16 +1304,21 @@ x::symbol * x::symbols::find_symbol_from_fullname( std::string_view fullname ) c
 	return it != _symbolmap.end() ? it->second : nullptr;
 }
 
-void x::symbols::add_reference( std::string_view name, x::symbol * val )
+void x::symbols::add_reference( x::ast * ast, std::string_view name, x::symbol * val )
 {
-	_referencemap.emplace( name, val );
+	_referencemap[ast].emplace( name, val );
 }
 
-x::symbol * x::symbols::find_reference( std::string_view name ) const
+x::symbol * x::symbols::find_reference( x::ast * ast, std::string_view name ) const
 {
-	auto it = _referencemap.find( { name.begin(), name.end() } );
-	
-	return it != _referencemap.end() ? it->second : nullptr;
+	auto it = _referencemap.find( ast );
+	if ( it != _referencemap.end() )
+	{
+		auto it2 = it->second.find( { name.begin(), name.end() } );
+		if ( it2 != it->second.end() )
+			return it2->second;
+	}
+	return nullptr;
 }
 
 void x::symbols::add_symbol( x::symbol * val )

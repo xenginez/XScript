@@ -35,9 +35,9 @@ namespace x
 		void visit( x::attribute_ast * val ) override;
 
 		void visit( x::type_ast * val ) override;
-		void visit( x::temp_type_ast * val ) override;
 		void visit( x::func_type_ast * val ) override;
-		void visit( x::array_type_ast * val ) override;
+		void visit( x::temp_type_ast * val ) override;
+		void visit( x::list_type_ast * val ) override;
 
 		void visit( x::enum_decl_ast * val ) override;
 		void visit( x::class_decl_ast * val ) override;
@@ -81,7 +81,6 @@ namespace x
 		void visit( x::typeof_expr_ast * val ) override;
 		void visit( x::unary_expr_ast * val ) override;
 		void visit( x::postfix_expr_ast * val ) override;
-		void visit( x::index_expr_ast * val ) override;
 		void visit( x::invoke_expr_ast * val ) override;
 		void visit( x::member_expr_ast * val ) override;
 		void visit( x::identifier_expr_ast * val ) override;

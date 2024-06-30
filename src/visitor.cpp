@@ -23,19 +23,19 @@ void x::visitor::visit( x::type_ast * val )
 {
 }
 
-void x::visitor::visit( x::temp_type_ast * val )
-{
-	for ( const auto & it : val->elements )
-		it->accept( this );
-}
-
 void x::visitor::visit( x::func_type_ast * val )
 {
 	for ( const auto & it : val->parameters )
 		it->accept( this );
 }
 
-void x::visitor::visit( x::array_type_ast * val )
+void x::visitor::visit( x::temp_type_ast * val )
+{
+	for ( const auto & it : val->elements )
+		it->accept( this );
+}
+
+void x::visitor::visit( x::list_type_ast * val )
 {
 }
 
@@ -68,19 +68,19 @@ void x::visitor::visit( x::element_decl_ast * val )
 
 void x::visitor::visit( x::template_decl_ast * val )
 {
-	if ( val->base )
-		val->base->accept( this );
-	if ( val->where )
-		val->where->accept( this );
-
-	for ( const auto & it : val->elements )
-		it->accept( this );
-	for ( const auto & it : val->usings )
-		it->accept( this );
-	for ( const auto & it : val->variables )
-		it->accept( this );
-	for ( const auto & it : val->functions )
-		it->accept( this );
+//	if ( val->base )
+//		val->base->accept( this );
+//	if ( val->where )
+//		val->where->accept( this );
+//
+//	for ( const auto & it : val->elements )
+//		it->accept( this );
+//	for ( const auto & it : val->usings )
+//		it->accept( this );
+//	for ( const auto & it : val->variables )
+//		it->accept( this );
+//	for ( const auto & it : val->functions )
+//		it->accept( this );
 }
 
 void x::visitor::visit( x::variable_decl_ast * val )
@@ -304,12 +304,6 @@ void x::visitor::visit( x::postfix_expr_ast * val )
 	val->exp->accept( this );
 }
 
-void x::visitor::visit( x::index_expr_ast * val )
-{
-	val->left->accept( this );
-	val->right->accept( this );
-}
-
 void x::visitor::visit( x::invoke_expr_ast * val )
 {
 	val->left->accept( this );
@@ -410,15 +404,6 @@ void x::scope_with_visitor::visit( x::function_decl_ast * val )
 		visitor::visit( val );
 	}
 	symbols()->pop_scope();
-}
-
-void x::scope_with_visitor::visit( x::template_decl_ast * val )
-{
-	// symbols()->push_scope( val->name );
-	// {
-	// 	pass::visit( val );
-	// }
-	// symbols()->pop_scope();
 }
 
 void x::scope_with_visitor::visit( x::namespace_decl_ast * val )

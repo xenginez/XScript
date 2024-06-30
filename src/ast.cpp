@@ -42,16 +42,6 @@ void x::type_ast::accept( visitor * val )
 	val->visit( this );
 }
 
-x::ast_t x::temp_type_ast::type() const
-{
-	return x::ast_t::TEMP_TYPE;
-}
-
-void x::temp_type_ast::accept( visitor * val )
-{
-	val->visit( this );
-}
-
 x::ast_t x::func_type_ast::type() const
 {
 	return x::ast_t::FUNC_TYPE;
@@ -62,12 +52,22 @@ void x::func_type_ast::accept( visitor * val )
 	val->visit( this );
 }
 
-x::ast_t x::array_type_ast::type() const
+x::ast_t x::temp_type_ast::type() const
 {
-	return x::ast_t::ARRAY_TYPE;
+	return x::ast_t::TEMP_TYPE;
 }
 
-void x::array_type_ast::accept( visitor * val )
+void x::temp_type_ast::accept( visitor * val )
+{
+	val->visit( this );
+}
+
+x::ast_t x::list_type_ast::type() const
+{
+	return x::ast_t::LIST_TYPE;
+}
+
+void x::list_type_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
@@ -488,16 +488,6 @@ x::ast_t x::postfix_expr_ast::type() const
 }
 
 void x::postfix_expr_ast::accept( visitor * val )
-{
-	val->visit( this );
-}
-
-x::ast_t x::index_expr_ast::type() const
-{
-	return x::ast_t::INDEX_EXP;
-}
-
-void x::index_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <deque>
+#include <variant>
 
 #include "type.h"
 
@@ -22,17 +23,43 @@ namespace x
 		bool is_ast() const;
 		bool is_type() const;
 		bool is_scope() const;
-		bool is_variable() const;
+		bool is_unit() const;
+		bool is_enum() const;
+		bool is_alias() const;
+		bool is_class() const;
+		bool is_block() const;
+		bool is_cycle() const;
+		bool is_local() const;
+		bool is_param() const;
+		bool is_element() const;
 		bool is_function() const;
+		bool is_variable() const;
+		bool is_template() const;
+		bool is_namespace() const;
+		bool is_foundation() const;
+		bool is_nativefunc() const;
+		bool is_builtinfunc() const;
 
 	public:
 		x::ast_symbol * cast_ast();
 		x::type_symbol * cast_type();
 		x::scope_symbol * cast_scope();
+		x::unit_symbol * cast_unit();
+		x::enum_symbol * cast_enum();
+		x::alias_symbol * cast_alias();
+		x::class_symbol * cast_class();
+		x::block_symbol * cast_block();
+		x::cycle_symbol * cast_cycle();
 		x::local_symbol * cast_local();
 		x::param_symbol * cast_param();
-		x::variable_symbol * cast_variable();
+		x::element_symbol * cast_element();
 		x::function_symbol * cast_function();
+		x::variable_symbol * cast_variable();
+		x::template_symbol * cast_template();
+		x::namespace_symbol * cast_namespace();
+		x::foundation_symbol * cast_foundation();
+		x::nativefunc_symbol * cast_nativefunc();
+		x::builtinfunc_symbol * cast_builtinfunc();
 
 	public:
 		x::symbol_t type = x::symbol_t::UNIT;
@@ -221,6 +248,20 @@ namespace x
 	public:
 		x::element_decl_ast_ptr element_ast;
 	};
+	class variable_symbol : public x::symbol, public x::ast_symbol
+	{
+	public:
+		variable_symbol();
+		~variable_symbol() override;
+
+	public:
+		x::ast_ptr ast() const override;
+		x::variable_decl_ast_ptr cast_ast() const;
+
+	public:
+		x::type_symbol * value = nullptr;
+		x::variable_decl_ast_ptr variable_ast;
+	};
 	class function_symbol : public x::symbol, public x::ast_symbol, public x::scope_symbol
 	{
 	public:
@@ -240,20 +281,6 @@ namespace x
 		x::block_symbol * block = nullptr;
 		x::function_decl_ast_ptr function_ast;
 		std::vector<x::param_symbol *> parameters;
-	};
-	class variable_symbol : public x::symbol, public x::ast_symbol
-	{
-	public:
-		variable_symbol();
-		~variable_symbol() override;
-
-	public:
-		x::ast_ptr ast() const override;
-		x::variable_decl_ast_ptr cast_ast() const;
-
-	public:
-		x::type_symbol * value = nullptr;
-		x::variable_decl_ast_ptr variable_ast;
 	};
 	class template_symbol : public x::symbol, public x::ast_symbol, public x::type_symbol, public x::scope_symbol
 	{
@@ -311,33 +338,58 @@ namespace x
 		std::vector<x::function_symbol *> functions;
 		std::vector<x::variable_symbol *> variables;
 	};
-	class nativefunc_symbol : public x::symbol
+	class nativefunc_symbol : public x::symbol, public x::scope_symbol
 	{
 	public:
 		nativefunc_symbol();
 		~nativefunc_symbol() override;
 
 	public:
+		void add_child( x::symbol * val ) override;
+		x::symbol * find_child( std::string_view name ) const override;
+
+	public:
 		void * callback = nullptr;
-		x::symbols * symbols = nullptr;
 		x::type_symbol * result = nullptr;
 		std::vector<x::param_symbol *> parameters;
 	};
-	class builtinfunc_symbol : public x::symbol
+	class builtinfunc_symbol : public x::symbol, public x::scope_symbol
 	{
 	public:
 		builtinfunc_symbol();
 		~builtinfunc_symbol() override;
 
 	public:
-		x::ast_ptr transferred(const x::ast_ptr & val ) const;
+		void add_child( x::symbol * val ) override;
+		x::symbol * find_child( std::string_view name ) const override;
+
+	public:
+		x::ast_ptr transferred( const x::symbols_ptr & symbols, const x::ast_ptr & val ) const;
 
 	public:
 		x::builtin_ptr built = nullptr;
-		x::symbols * symbols = nullptr;
 		x::type_symbol * result = nullptr;
 		std::vector<x::param_symbol *> parameters;
 	};
+
+	using symbol_variant = std::variant<
+		std::monostate,
+		unit_symbol,
+		enum_symbol,
+		alias_symbol,
+		class_symbol,
+		block_symbol,
+		cycle_symbol,
+		local_symbol,
+		param_symbol,
+		element_symbol,
+		function_symbol,
+		variable_symbol,
+		template_symbol,
+		namespace_symbol,
+		foundation_symbol,
+		nativefunc_symbol,
+		builtinfunc_symbol>;
 
 	class symbols : public std::enable_shared_from_this<symbols>
 	{
@@ -366,6 +418,7 @@ namespace x
 
 	public:
 		void push_scope( std::string_view name );
+		void push_scope( x::scope_symbol * symbol );
 		x::scope_symbol * cur_scope() const;
 		void pop_scope();
 
@@ -384,8 +437,8 @@ namespace x
 		x::symbol * find_symbol_from_fullname( std::string_view fullname ) const;
 
 	public:
-		void add_reference( std::string_view name, x::symbol * val );
-		x::symbol * find_reference( std::string_view name ) const;
+		void add_reference( x::ast * ast, std::string_view name, x::symbol * val );
+		x::symbol * find_reference( x::ast * ast, std::string_view name ) const;
 
 	private:
 		x::symbol * up_find_symbol( std::string_view name, x::scope_symbol * scope ) const;
@@ -395,7 +448,7 @@ namespace x
 		std::deque<x::scope_symbol *> _scope;
 		std::map<x::ast_ptr, x::symbol *> _astmap;
 		std::map<std::string, x::symbol *> _symbolmap;
-		std::map<std::string, x::symbol *> _referencemap;
 		std::multimap<std::string, x::template_symbol *> _templatemap;
+		std::map<x::ast *, std::map<std::string, x::symbol *>> _referencemap;
 	};
 }

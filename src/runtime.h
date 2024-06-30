@@ -18,6 +18,9 @@ namespace x
 		~runtime();
 
 	public:
+		static runtime * thread_owner_runtime();
+
+	public:
 		void push( const x::value & val );
 		x::value & top();
 		x::value pop();

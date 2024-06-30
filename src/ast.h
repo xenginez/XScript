@@ -57,15 +57,6 @@ namespace x
 		bool is_const = false;
 		std::string name;
 	};
-	class temp_type_ast : public type_ast
-	{
-	public:
-		x::ast_t type() const override;
-		void accept( visitor * val ) override;
-
-	public:
-		std::vector<x::type_ast_ptr> elements;
-	};
 	class func_type_ast : public type_ast
 	{
 	public:
@@ -75,14 +66,20 @@ namespace x
 	public:
 		std::vector<x::type_ast_ptr> parameters;
 	};
-	class array_type_ast : public type_ast
+	class temp_type_ast : public type_ast
 	{
 	public:
 		x::ast_t type() const override;
 		void accept( visitor * val ) override;
 
 	public:
-		int array_layer = 1;
+		std::vector<x::type_ast_ptr> elements;
+	};
+	class list_type_ast : public type_ast
+	{
+	public:
+		x::ast_t type() const override;
+		void accept( visitor * val ) override;
 	};
 
 	class decl_ast : public ast
@@ -167,6 +164,7 @@ namespace x
 	public:
 		bool is_const = false;
 		bool is_async = false;
+		bool is_final = false;
 		bool is_static = false;
 		bool is_virtual = false;
 		x::stat_ast_ptr stat;
@@ -499,15 +497,6 @@ namespace x
 		void accept( visitor * val ) override;
 
 	};
-	class index_expr_ast : public expr_stat_ast
-	{
-	public:
-		x::ast_t type() const override;
-		void accept( visitor * val ) override;
-
-	public:
-		x::expr_stat_ast_ptr left, right;
-	};
 	class invoke_expr_ast : public expr_stat_ast
 	{
 	public:
@@ -576,7 +565,6 @@ namespace x
 	public:
 		x::ast_t type() const override;
 		void accept( visitor * val ) override;
-
 	};
 	class bool_const_expr_ast : public const_expr_ast
 	{

@@ -7,7 +7,6 @@
 #include <string>
 #include <format>
 #include <cassert>
-#include <exception>
 
 #include "flags.hpp"
 #include "float16.h"
@@ -44,10 +43,9 @@ namespace x
     using uint16 = std::uint16_t;
     using uint32 = std::uint32_t;
     using uint64 = std::uint64_t;
-    // float16
     using float32 = float;
     using float64 = double;
-    using string = const char *;
+    struct string { uint32 idx; uint32 size; };
     enum class intptr : std::intptr_t {};
     
     enum class ast_t : x::uint8
@@ -57,9 +55,9 @@ namespace x
         ATTRIBUTE,
 
         TYPE,
-        TEMP_TYPE,
         FUNC_TYPE,
-        ARRAY_TYPE,
+        TEMP_TYPE,
+        LIST_TYPE,
 
         ENUM_DECL,
         CLASS_DECL,
@@ -105,7 +103,6 @@ namespace x
         TYPEOF_EXP,
         UNARY_EXP,
         POSTFIX_EXP,
-        INDEX_EXP,
         INVOKE_EXP,
         MEMBER_EXP,
         IDENTIFIER_EXP,
@@ -231,6 +228,7 @@ namespace x
         TK_REF,                  // ref
         TK_LOCAL,                // local
         TK_CONST,                // const
+        TK_FINAL,                // final
         TK_STATIC,               // static
         TK_EXTERN,               // extern
         TK_VIRTUAL,              // virtual
@@ -438,6 +436,9 @@ namespace x
 
     class value;
     class object;
+    class executor;
+    class scheduler;
+    class awaitable;
 
     class meta;
     class meta_type;
@@ -485,9 +486,9 @@ namespace x
     class import_ast; using import_ast_ptr = std::shared_ptr<import_ast>;
     class attribute_ast; using attribute_ast_ptr = std::shared_ptr<attribute_ast>;
     class type_ast; using type_ast_ptr = std::shared_ptr<type_ast>;
-    class temp_type_ast; using temp_type_ast_ptr = std::shared_ptr<temp_type_ast>;
     class func_type_ast; using func_type_ast_ptr = std::shared_ptr<func_type_ast>;
-    class array_type_ast; using array_type_ast_ptr = std::shared_ptr<array_type_ast>;
+    class temp_type_ast; using temp_type_ast_ptr = std::shared_ptr<temp_type_ast>;
+    class list_type_ast; using list_type_ast_ptr = std::shared_ptr<list_type_ast>;
     class decl_ast; using decl_ast_ptr = std::shared_ptr<decl_ast>;
     class enum_decl_ast; using enum_decl_ast_ptr = std::shared_ptr<enum_decl_ast>;
     class class_decl_ast; using class_decl_ast_ptr = std::shared_ptr<class_decl_ast>;
@@ -535,7 +536,6 @@ namespace x
     class typeof_expr_ast; using typeof_expr_ast_ptr = std::shared_ptr<typeof_expr_ast>;
     class unary_expr_ast; using unary_expr_ast_ptr = std::shared_ptr<unary_expr_ast>;
     class postfix_expr_ast; using postfix_expr_ast_ptr = std::shared_ptr<postfix_expr_ast>;
-    class index_expr_ast; using index_expr_ast_ptr = std::shared_ptr<index_expr_ast>;
     class invoke_expr_ast; using invoke_expr_ast_ptr = std::shared_ptr<invoke_expr_ast>;
     class member_expr_ast; using member_expr_ast_ptr = std::shared_ptr<member_expr_ast>;
     class identifier_expr_ast; using identifier_expr_ast_ptr = std::shared_ptr<identifier_expr_ast>;
@@ -599,12 +599,11 @@ namespace x
         return hash( str.data(), str.size() );
     }
 
-    inline constexpr std::string location_to_name( const x::location & location, std::string_view suffix = {} )
+    inline constexpr auto location_to_name( const x::location & location, std::string_view suffix = {} )
     {
         if ( suffix.empty() )
-            return std::format( "{}_{}_{}", location.file, location.line, location.column );
-
-        return std::format( "{}_{}_{}_{}", suffix, location.file, location.line, location.column );
+            return std::format( "{}_{}_{}", x::hash( location.file ), location.line, location.column );
+        return std::format( "{}_{}_{}_{}", suffix, x::hash( location.file ), location.line, location.column );
     }
 
     template<typename ... Ts> struct overload : Ts ... { using Ts::operator() ...; }; template<class... Ts> overload( Ts... ) -> overload<Ts...>;
@@ -680,7 +679,7 @@ namespace x
         { (const char *)u8"float16", x::token_t::TK_FLOAT16 },
         { (const char *)u8"float32", x::token_t::TK_FLOAT32 },
         { (const char *)u8"float64", x::token_t::TK_FLOAT64 },
-        { (const char *)u8"string", x::token_t::TK_STRING },
+        { (const char *)u8"x_string", x::token_t::TK_STRING },
         { (const char *)u8"import", x::token_t::TK_IMPORT },
         { (const char *)u8"assert", x::token_t::TK_ASSERT },
         { (const char *)u8"template", x::token_t::TK_TEMPLATE },
@@ -698,6 +697,7 @@ namespace x
         { (const char *)u8"ref", x::token_t::TK_REF },
         { (const char *)u8"local", x::token_t::TK_LOCAL },
         { (const char *)u8"const", x::token_t::TK_CONST },
+        { (const char *)u8"final", x::token_t::TK_FINAL },
         { (const char *)u8"static", x::token_t::TK_STATIC },
         { (const char *)u8"extern", x::token_t::TK_EXTERN },
         { (const char *)u8"virtual", x::token_t::TK_VIRTUAL },

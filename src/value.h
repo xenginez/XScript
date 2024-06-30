@@ -31,6 +31,7 @@ namespace x
 		value( x::intptr val );
 		value( x::object * val );
 		value( x::value * val );
+		value( x::value_flags val );
 		template<typename T, std::enable_if_t<std::is_enum_v<T>, int> = 0> value( T val )
 		{
 			i64 = (x::int64)val;
@@ -65,6 +66,7 @@ namespace x
 
 	public:
 		x::value_t type() const;
+		x::value_flags flags() const;
 
 	public:
 		bool is_ref() const;

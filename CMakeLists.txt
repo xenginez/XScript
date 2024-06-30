@@ -4,11 +4,21 @@ project ("XScript")
 
 add_executable (XScript 
 "main.cpp"
+"src/xlib.h"
+"src/xlib.cpp"
 "src/flags.hpp"
 "src/endian.hpp"
 "src/float16.h"
 "src/float16.cpp"
 "src/type.h"
+"src/buffer.h"
+"src/buffer.cpp"
+"src/executor.h"
+"src/executor.cpp"
+"src/scheduler.h"
+"src/scheduler.cpp"
+"src/awaitable.h"
+"src/awaitable.cpp"
 "src/ast.h"
 "src/ast.cpp"
 "src/meta.h"
@@ -45,8 +55,7 @@ add_executable (XScript
 "src/interpreter.cpp"
 "src/virtual_machine.h"
 "src/virtual_machine.cpp"
-
-"src/lib/x_lib.h")
+)
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET XScript PROPERTY CXX_STANDARD 20)
