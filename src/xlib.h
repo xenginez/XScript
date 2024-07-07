@@ -41,6 +41,7 @@ extern "C"{
     typedef intptr x_device;
     typedef intptr x_condition;
     typedef intptr x_awaitable;
+    typedef const char * x_string;
 
     typedef enum
     {
@@ -194,7 +195,6 @@ extern "C"{
     } x_input;
     typedef struct { int32 x; int32 y; } x_pos;
     typedef struct { int32 w; int32 h; } x_size;
-    typedef struct { uint32 p; uint32 s; } x_string;
     typedef struct { float32 x; float32 y; } x_offset;
     typedef struct { x_pos pos; x_size size; } x_rect;
     typedef union { int32 unicode; uint32 ctl; x_pos pos; x_offset off; } x_inputval;
@@ -206,10 +206,8 @@ extern "C"{
 
 #define FILE_MODE_READ                      uint32( 0x01 )
 #define FILE_MODE_WRITE                     uint32( 0x02 )
-#define FILE_MODE_ATE                       uint32( 0x04 )
 #define FILE_MODE_APPAND                    uint32( 0x08 )
 #define FILE_MODE_TRUNCATE                  uint32( 0x10 )
-#define FILE_MODE_BINARY                    uint32( 0x20 )
 
 #define WINDOW_STATE_HIDDEN                 uint32( 1 )
 #define WINDOW_STATE_NORMAL                 uint32( 2 )
@@ -223,48 +221,23 @@ extern "C"{
 #define SELECT_EVENT_READ                   uint32( 1 )
 #define SELECT_EVENT_WRITE                  uint32( 2 )
 #define SELECT_EVENT_CLOSE                  uint32( 3 )
-#define SELECT_EVENT_BIND                   uint32( 4 )
-#define SELECT_EVENT_LISTEN                 uint32( 5 )
+#define SELECT_EVENT_RECV                   uint32( 4 )
+#define SELECT_EVENT_SEND                   uint32( 5 )
 #define SELECT_EVENT_ACCEPT                 uint32( 6 )
 #define SELECT_EVENT_CONNECT                uint32( 7 )
 #define SELECT_EVENT_TIMEOUT                uint32( 8 )
 #define SELECT_EVENT_USER_EVENT             uint32( 255 )
 
-#define SCHEDULER_EXECUTOR_THREAD_MAIN      uint32( 1 )
-#define SCHEDULER_EXECUTOR_THREAD_POOL      uint32( 2 )
-#define SCHEDULER_EXECUTOR_NVIDIA_CUDA      uint32( 3 )
-#define SCHEDULER_EXECUTOR_COMPUTE_SHADER   uint32( 4 )
-
+#define SCHEDULER_EXECUTOR_THREAD_ONE       uint32( 1 )
+#define SCHEDULER_EXECUTOR_THREAD_MAIN      uint32( 2 )
+#define SCHEDULER_EXECUTOR_THREAD_POOL      uint32( 3 )
+#define SCHEDULER_EXECUTOR_NVIDIA_CUDA      uint32( 4 )
+#define SCHEDULER_EXECUTOR_COMPUTE_SHADER   uint32( 5 )
 
     // os
     int x_main( int argc, const char ** argv );
     uint8 x_os_arch();
     x_string x_os_name();
-
-	// math
-    float64 x_math_sqrt( float64 x );
-    float64 x_math_pow( float64 x, float64 y );
-    float64 x_math_abs( float64 x );
-    float64 x_math_ceil( float64 x );
-    float64 x_math_floor( float64 x );
-    float64 x_math_round( float64 x );
-    float64 x_math_cos( float64 x );
-    float64 x_math_sin( float64 x );
-    float64 x_math_tan( float64 x );
-    float64 x_math_acos( float64 x );
-    float64 x_math_asin( float64 x );
-    float64 x_math_atan( float64 x );
-    float64 x_math_atan2( float64 x );
-    float64 x_math_fmod( float64 x, float64 y );
-    float64 x_math_cbrt( float64 x );
-    float64 x_math_log( float64 x );
-    float64 x_math_log2( float64 x );
-    float64 x_math_log10( float64 x );
-    float64 x_math_exp( float64 x );
-    float64 x_math_exp2( float64 x );
-    float64 x_math_pow( float64 x, float64 y );
-    float64 x_math_pow10( int32 p );
-    float64 x_math_ceil( float64 x );
 
     // path
     x_string x_path_app_path();
@@ -288,19 +261,20 @@ extern "C"{
     bool x_file_is_eof( x_file file );
     uint64 x_file_read_tell( x_file file );
     uint64 x_file_write_tell( x_file file );
-    void x_file_read_seek( x_file file, uint32 off, uint32 pos );
-    void x_file_write_seek( x_file file, uint32 off, uint32 pos );
+    void x_file_read_seek( x_file file, int32 off, uint32 pos );
+    void x_file_write_seek( x_file file, int32 off, uint32 pos );
     uint64 x_file_read( x_file file, intptr buffer, uint64 size );
     uint64 x_file_write( x_file file, intptr buffer, uint64 size );
-    x_buffer x_file_read_all( x_file file );
     void x_file_close( x_file file );
     void x_file_release( x_file file );
 
 	// time
     int64 x_time_now();
+    void x_time_sleep( int64 milliseconds );
     int32 x_time_year( int64 time );
     int32 x_time_month( int64 time );
     int32 x_time_day( int64 time );
+    int32 x_time_weekday( int64 time );
     int32 x_time_hour( int64 time );
     int32 x_time_minute( int64 time );
     int32 x_time_second( int64 time );
@@ -338,8 +312,10 @@ extern "C"{
     void x_atomic_release( x_atomic atomic );
 
     // locale
-    x_string utf8_local( x_string str );
-    x_string local_utf8( x_string str );
+    x_string utf8_ansi( x_string str );
+    x_string ansi_utf8( x_string str );
+    x_string wide_ansi( x_string str );
+    x_string ansi_wide( x_string str );
 
     // window
     x_window x_window_create();
@@ -372,14 +348,15 @@ extern "C"{
     int32 x_socket_listen( x_socket socket );
     x_socket x_socket_accept( x_socket socket );
     int32 x_socket_connect( x_socket socket, x_string peername, uint16 port );
-    uint64 x_socket_read( x_socket socket, intptr buffer, uint64 size );
-    uint64 x_socket_write( x_socket socket, intptr buffer, uint64 size );
+    uint64 x_socket_recv( x_socket socket, intptr buffer, uint64 size );
+    uint64 x_socket_send( x_socket socket, intptr buffer, uint64 size );
+    uint64 x_socket_sendto( x_socket socket, x_string peername, uint16 port, intptr buffer, uint64 size );
     x_string x_socket_getsockname( x_socket socket );
     uint16 x_socket_getsockport( x_socket socket );
     x_string x_socket_getpeername( x_socket socket );
     uint16 x_socket_getpeerport( x_socket socket );
     x_string x_socket_getsockopt( x_socket socket, int32 key );
-    void x_socket_setsockopt( x_socket socket, int32 key, x_string value );
+    int32 x_socket_setsockopt( x_socket socket, int32 key, x_string value );
     void x_socket_close( x_socket socket );
     void x_socket_release( x_socket socket );
     
@@ -392,25 +369,16 @@ extern "C"{
     void x_condition_release( x_condition cond );
 
     // awaitable
-    x_awaitable x_file_open_await( x_file file, x_string path, uint32 mode );
-    x_awaitable x_file_read_await( x_file file, intptr buffer, uint64 size );
-    x_awaitable x_file_write_await( x_file file, intptr buffer, uint64 size );
-    x_awaitable x_file_read_all_await( x_file file );
-    x_awaitable x_file_close_await( x_file file );
-    x_awaitable x_window_close_await( x_window window );
-    x_awaitable x_socket_bind_await( x_socket socket, x_string sockname, uint16 port );
-    x_awaitable x_socket_listen_await( x_socket socket );
-    x_awaitable x_socket_accept_await( x_socket socket );
-    x_awaitable x_socket_connect_await( x_socket socket, x_string peername, uint16 port );
-    x_awaitable x_socket_read_await( x_socket socket, intptr buffer, uint64 size );
-    x_awaitable x_socket_write_await( x_socket socket, intptr buffer, uint64 size );
-    x_awaitable x_socket_close_await( x_socket socket );
-    x_awaitable x_device_open_await( x_string name );
-    x_awaitable x_device_ioctl_await( x_device device, x_string cmd );
-    x_awaitable x_device_read_await( x_device device, intptr buffer, uint64 size );
-    x_awaitable x_device_write_await( x_device device, intptr buffer, uint64 size );
-    x_awaitable x_device_close_await( x_device device );
-
+    x_awaitable x_awaitable_file_read( x_file file, intptr buffer, uint64 size );
+    x_awaitable x_awaitable_file_write( x_file file, intptr buffer, uint64 size );
+    x_awaitable x_awaitable_timer_sleep( int64 milliseconds );
+    x_awaitable x_awaitable_socket_accept( x_socket socket );
+    x_awaitable x_awaitable_socket_connect( x_socket socket, x_string peername, uint16 port );
+    x_awaitable x_awaitable_socket_recv( x_socket socket, intptr buffer, uint64 size );
+    x_awaitable x_awaitable_socket_send( x_socket socket, intptr buffer, uint64 size );
+    x_awaitable x_awaitable_socket_sendto( x_socket socket, x_string peername, uint16 port, intptr buffer, uint64 size );
+    x_awaitable x_awaitable_scheduler_post( x_awaitable awaiter, uint32 executor );
+    
 #ifdef __cplusplus
 }
 #endif // __cplusplus

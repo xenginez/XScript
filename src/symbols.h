@@ -349,6 +349,7 @@ namespace x
 		x::symbol * find_child( std::string_view name ) const override;
 
 	public:
+		bool is_await = false;
 		void * callback = nullptr;
 		x::type_symbol * result = nullptr;
 		std::vector<x::param_symbol *> parameters;

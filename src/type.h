@@ -45,7 +45,7 @@ namespace x
     using uint64 = std::uint64_t;
     using float32 = float;
     using float64 = double;
-    struct string { uint32 idx; uint32 size; };
+    using string = const char *;
     enum class intptr : std::intptr_t {};
     
     enum class ast_t : x::uint8
@@ -436,9 +436,7 @@ namespace x
 
     class value;
     class object;
-    class executor;
     class scheduler;
-    class awaitable;
 
     class meta;
     class meta_type;

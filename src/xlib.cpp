@@ -15,8 +15,6 @@
 	#include "xlib_android.cpp"
 #elif defined( __linux__ )
 	#include "xlib_linux.cpp"
-#elif defined( __EMSCRIPTEN__ )
-	#error "not support emscripten"
 #else
 	#error "unknown platform"
 #endif
@@ -32,48 +30,36 @@
 #include "allocator.h"
 #include "exception.h"
 
-#define STR_VIEW( S ) x::allocator::transform( std::bit_cast<x::string>( S ) )
-#define VIEW_STR( V ) std::bit_cast<x_string>( x::allocator::transform( V ) );
-
 namespace
 {
-	struct file_info
-	{
-		uint32 m;
-		std::string p;
-		std::fstream fs;
-	};
 	struct condition_info
 	{
 		std::mutex lock;
 		std::condition_variable var;
 	};
 
-	template<typename Clock, typename Duration = typename Clock::duration> int64 time_2_stamp( std::chrono::time_point<Clock, Duration> time )
-	{
-		std::chrono::time_point<Clock, std::chrono::milliseconds> tp = std::chrono::time_point_cast<std::chrono::milliseconds>( time );
-		auto tmp = std::chrono::duration_cast<std::chrono::milliseconds>( tp.time_since_epoch() );
-		return tmp.count();
-
-	}
 	template<typename Clock> std::chrono::time_point<Clock> stamp_2_time( int64 stamp )
 	{
 		return std::chrono::time_point<Clock>() + std::chrono::milliseconds( stamp );
 	}
+	template<typename Clock, typename Duration = typename Clock::duration> int64 time_2_stamp( std::chrono::time_point<Clock, Duration> time )
+	{
+		return std::chrono::duration_cast<std::chrono::milliseconds>( std::chrono::time_point_cast<std::chrono::milliseconds>( time ).time_since_epoch() ).count();
+	}
 
-	static const char * mmmm[12] = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" };
-	static const char * mmm[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
-	static const char * dddd[7] = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
-	static const char * ddd[7] = { "Sun","Mon","Tue","Wed","Thu","Fri","Sat" };
+	static const char * MMMM[12] = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" };
+	static const char * MMM[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+	static const char * dddd[7] = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday","Sunday" };
+	static const char * ddd[7] = { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
 }
 
 x_string x_path_app_path()
 {
-	return VIEW_STR( std::filesystem::current_path().string() );
+	return x::allocator::salloc( std::filesystem::current_path().string() );
 }
 x_string x_path_temp_path()
 {
-	return VIEW_STR( std::filesystem::temp_directory_path().string() );
+	return x::allocator::salloc( std::filesystem::temp_directory_path().string() );
 }
 void x_path_copy( x_string frompath, x_string topath, bool recursive, bool overwrite )
 {
@@ -83,7 +69,7 @@ void x_path_copy( x_string frompath, x_string topath, bool recursive, bool overw
 	if ( recursive ) opt |= std::filesystem::copy_options::recursive;
 	if ( overwrite ) opt |= std::filesystem::copy_options::overwrite_existing;
 
-	std::filesystem::copy( STR_VIEW( frompath ), STR_VIEW( topath ), opt, ec );
+	std::filesystem::copy( frompath, topath, opt, ec );
 
 	XTHROW( x::runtime_exception, !ec, ec.message() );
 }
@@ -91,7 +77,7 @@ void x_path_create( x_string path, bool recursive )
 {
 	std::error_code ec;
 
-	std::filesystem::create_directories( STR_VIEW( path ), ec );
+	std::filesystem::create_directories( path, ec );
 
 	XTHROW( x::runtime_exception, !ec, ec.message() );
 }
@@ -99,133 +85,47 @@ void x_path_remove( x_string path )
 {
 	std::error_code ec;
 
-	std::filesystem::remove_all( STR_VIEW( path ), ec );
+	std::filesystem::remove_all( path, ec );
 
 	XTHROW( x::runtime_exception, !ec, ec.message() );
 }
 bool x_path_exists( x_string path )
 {
-	return std::filesystem::exists( STR_VIEW( path ) );
+	return std::filesystem::exists( path );
 }
 bool x_path_is_file( x_string path )
 {
-	return !std::filesystem::is_directory( STR_VIEW( path ) );
+	return !std::filesystem::is_directory( path );
 }
 bool x_path_is_directory( x_string path )
 {
-	return std::filesystem::is_directory( STR_VIEW( path ) );
+	return std::filesystem::is_directory( path );
 }
 uint64 x_path_entry_count( x_string path )
 {
-	std::filesystem::directory_iterator it( STR_VIEW( path ) ), end;
+	std::filesystem::directory_iterator it( path ), end;
 	return std::distance( it, end );
 }
 x_string x_path_at_entry_name( x_string path, uint64 idx )
 {
-	std::filesystem::directory_iterator it( STR_VIEW( path ) ), end;
+	std::filesystem::directory_iterator it( path ), end;
 
 	for ( size_t i = 0; it != end; i++, it++ )
 	{
 		if ( i == idx )
-			return VIEW_STR( it->path().filename().string() );
+			return x::allocator::salloc( it->path().filename().string() );
 	}
 
-	return { 0, 0 };
-}
-
-x_file x_file_create()
-{
-	return new file_info;
-}
-bool x_file_open( x_file file, x_string path, uint32 mode )
-{
-	auto info = reinterpret_cast<file_info *>( file );
-
-	info->m = mode;
-	info->p = STR_VIEW( path );
-	info->fs.open( info->p, mode );
-
-	return info->fs.is_open();
-}
-uint64 x_file_size( x_file file )
-{
-	return std::filesystem::file_size( reinterpret_cast<file_info *>( file )->p );
-}
-x_string x_file_name( x_file file )
-{
-	return VIEW_STR( std::filesystem::path( reinterpret_cast<file_info *>( file )->p ).filename().string() );
-}
-int64 x_file_time( x_file file )
-{
-	std::error_code ec;
-	
-	std::filesystem::file_time_type time = std::filesystem::last_write_time( reinterpret_cast<file_info *>( file )->p, ec );
-
-	XTHROW( x::runtime_exception, !ec, ec.message() );
-
-	return time_2_stamp( time );
-}
-void x_file_rename( x_file file, x_string name )
-{
-	std::error_code ec;
-
-	std::filesystem::rename( reinterpret_cast<file_info *>( file )->p, STR_VIEW( name ) );
-
-	XTHROW( x::runtime_exception, !ec, ec.message() );
-}
-bool x_file_is_eof( x_file file )
-{
-	return reinterpret_cast<file_info *>( file )->fs.eof();
-}
-uint64 x_file_read_tell( x_file file )
-{
-	return reinterpret_cast<file_info *>( file )->fs.tellg();
-}
-uint64 x_file_write_tell( x_file file )
-{
-	return reinterpret_cast<file_info *>( file )->fs.tellp();
-}
-void x_file_read_seek( x_file file, uint32 off, uint32 pos )
-{
-	reinterpret_cast<file_info *>( file )->fs.seekg( off, pos - 1 );
-}
-void x_file_write_seek( x_file file, uint32 off, uint32 pos )
-{
-	reinterpret_cast<file_info *>( file )->fs.seekp( off, pos - 1 );
-}
-uint64 x_file_read( x_file file, intptr buffer, uint64 size )
-{
-	return reinterpret_cast<file_info *>( file )->fs.readsome( reinterpret_cast<char *>( buffer ), size );
-}
-uint64 x_file_write( x_file file, intptr buffer, uint64 size )
-{
-	reinterpret_cast<file_info *>( file )->fs.write( reinterpret_cast<const char *>( buffer ), size );
-	return size;
-}
-x_buffer x_file_read_all( x_file file )
-{
-	auto sz = x_file_size( file );
-
-	auto buff = new x::buffer;
-
-	buff->resize( sz );
-
-	reinterpret_cast<file_info *>( file )->fs.read( reinterpret_cast<char *>( buff->data() ), sz );
-
-	return buff;
-}
-void x_file_close( x_file file )
-{
-	reinterpret_cast<file_info *>( file )->fs.close();
-}
-void x_file_release( x_file file )
-{
-	delete reinterpret_cast<file_info *>( file );
+	return nullptr;
 }
 
 int64 x_time_now()
 {
 	return time_2_stamp( std::chrono::system_clock::now() );
+}
+void x_time_sleep( int64 milliseconds )
+{
+	std::this_thread::sleep_for( std::chrono::milliseconds( milliseconds ) );
 }
 int32 x_time_year( int64 time )
 {
@@ -247,6 +147,13 @@ int32 x_time_day( int64 time )
 	auto dp = std::chrono::floor<std::chrono::days>( tp );
 	std::chrono::year_month_day ymd{ dp };
 	return (int32)(unsigned int)ymd.day();
+}
+int32 x_time_weekday( int64 time )
+{
+	auto tp = stamp_2_time<std::chrono::system_clock>( time );
+	auto dp = std::chrono::floor<std::chrono::days>( tp );
+	std::chrono::year_month_weekday ymd{ dp };
+	return (int32)ymd.weekday().c_encoding();
 }
 int32 x_time_hour( int64 time )
 {
@@ -326,31 +233,485 @@ int64 x_time_from_utc( int64 time )
 }
 x_string x_time_to_string( int64 time, x_string fmt )
 {
-	std::string fmt_view( STR_VIEW( fmt ) );
+	std::string buf;
+	std::string_view fmt_view( fmt );
 
-	std::tm tm;
-	std::time_t tt = std::chrono::system_clock::to_time_t( stamp_2_time<std::chrono::system_clock>( time ) );
-
-	gmtime_s( &tm, &tt );
-
-	std::ostringstream oss;
-
-	oss << std::put_time( &tm, fmt_view.c_str() );
+	auto tp = stamp_2_time<std::chrono::system_clock>( time );
+	auto dp = std::chrono::floor<std::chrono::days>( tp );
+	std::chrono::year_month_day ymd{ dp };
+	std::chrono::year_month_weekday ymwd{ dp };
+	std::chrono::hh_mm_ss tm{ std::chrono::floor<std::chrono::milliseconds>( tp - dp ) };
 	
-	return VIEW_STR( oss.str() );
+	auto year = int( ymd.year() );
+	auto month = unsigned int( ymd.month() );
+	auto day = unsigned int( ymd.day() );
+	auto week = ymwd.weekday().c_encoding();
+	auto hour = tm.hours().count();
+	auto minute = tm.minutes().count();
+	auto second = tm.seconds().count();
+	auto millisecond = tm.subseconds().count();
+	
+	for ( int i = 0; i < fmt_view.size(); )
+	{
+		int j = 0;
+		char key[5];
+		memset( key, 0, 5 );
+
+		if ( ( i < fmt_view.size() ) && fmt_view[i] == 'y' && ( i + 1 ) < fmt_view.size() && fmt_view[i + 1] == 'y' )
+		{
+			key[j++] = fmt_view[i++];
+			key[j++] = fmt_view[i++];
+
+			if ( ( i < fmt_view.size() ) && fmt_view[i] == 'y' && ( i + 1 ) < fmt_view.size() && fmt_view[i + 1] == 'y' )
+			{
+				key[j++] = fmt_view[i++];
+				key[j++] = fmt_view[i++];
+			}
+		}
+		else if ( ( i < fmt_view.size() ) && fmt_view[i] == 'M' )
+		{
+			key[j++] = fmt_view[i++];
+			if ( ( i < fmt_view.size() ) && fmt_view[i] == 'M' )
+			{
+				key[j++] = fmt_view[i++];
+				if ( ( i < fmt_view.size() ) && fmt_view[i] == 'M' )
+				{
+					key[j++] = fmt_view[i++];
+					if ( ( i < fmt_view.size() ) && fmt_view[i] == 'M' )
+					{
+						key[j++] = fmt_view[i++];
+					}
+				}
+			}
+		}
+		else if ( ( i < fmt_view.size() ) && fmt_view[i] == 'd' )
+		{
+			key[j++] = fmt_view[i++];
+			if ( ( i < fmt_view.size() ) && fmt_view[i] == 'd' )
+			{
+				key[j++] = fmt_view[i++];
+				if ( ( i < fmt_view.size() ) && fmt_view[i] == 'd' )
+				{
+					key[j++] = fmt_view[i++];
+					if ( ( i < fmt_view.size() ) && fmt_view[i] == 'd' )
+					{
+						key[j++] = fmt_view[i++];
+					}
+				}
+			}
+		}
+		else if ( ( i < fmt_view.size() ) && fmt_view[i] == 'h' )
+		{
+			key[j++] = fmt_view[i++];
+			if ( ( i < fmt_view.size() ) && fmt_view[i] == 'h' )
+			{
+				key[j++] = fmt_view[i++];
+			}
+		}
+		else if ( ( i < fmt_view.size() ) && fmt_view[i] == 'm' )
+		{
+			key[j++] = fmt_view[i++];
+			if ( ( i < fmt_view.size() ) && fmt_view[i] == 'm' )
+			{
+				key[j++] = fmt_view[i++];
+			}
+		}
+		else if ( ( i < fmt_view.size() ) && fmt_view[i] == 's' )
+		{
+			key[j++] = fmt_view[i++];
+			if ( ( i < fmt_view.size() ) && fmt_view[i] == 's' )
+			{
+				key[j++] = fmt_view[i++];
+			}
+		}
+		else if ( ( i < fmt_view.size() ) && fmt_view[i] == 'z' )
+		{
+			key[j++] = fmt_view[i++];
+			if ( ( i < fmt_view.size() ) && fmt_view[i] == 'z' && ( i + 1 < fmt_view.size() && fmt_view[i + 1] == 'z' ) )
+			{
+				key[j++] = fmt_view[i++];
+				key[j++] = fmt_view[i++];
+			}
+		}
+		else
+		{
+			buf.push_back( fmt_view[i++] );
+		}
+
+		if ( j != 0 )
+		{
+			if ( strcmp( key, "yyyy" ) == 0 )
+				buf.append( std::format( "{:04d}", year ) );
+			else if ( strcmp( key, "yy" ) == 0 )
+				buf.append( std::format( "{}", year ) );
+			else if ( strcmp( key, "MMMM" ) == 0 )
+				buf.append( MMMM[month] );
+			else if ( strcmp( key, "MMM" ) == 0 )
+				buf.append( MMM[month] );
+			else if ( strcmp( key, "MM" ) == 0 )
+				buf.append( std::format( "{:02d}", month ) );
+			else if ( strcmp( key, "M" ) == 0 )
+				buf.append( std::format( "{}", month ) );
+			else if ( strcmp( key, "dddd" ) == 0 )
+				buf.append( dddd[week] );
+			else if ( strcmp( key, "ddd" ) == 0 )
+				buf.append( ddd[week] );
+			else if ( strcmp( key, "dd" ) == 0 )
+				buf.append( std::format( "{:02d}", day ) );
+			else if ( strcmp( key, "d" ) == 0 )
+				buf.append( std::format( "{}", day ) );
+			else if ( strcmp( key, "hh" ) == 0 )
+				buf.append( std::format( "{:02d}", hour ) );
+			else if ( strcmp( key, "h" ) == 0 )
+				buf.append( std::format( "{}", hour ) );
+			else if ( strcmp( key, "mm" ) == 0 )
+				buf.append( std::format( "{:02d}", minute ) );
+			else if ( strcmp( key, "m" ) == 0 )
+				buf.append( std::format( "{}", minute ) );
+			else if ( strcmp( key, "ss" ) == 0 )
+				buf.append( std::format( "{:02d}", second ) );
+			else if ( strcmp( key, "s" ) == 0 )
+				buf.append( std::format( "{}", second ) );
+			else if ( strcmp( key, "zzz" ) == 0 )
+				buf.append( std::format( "{:03d}", millisecond ) );
+			else if ( strcmp( key, "z" ) == 0 )
+				buf.append( std::format( "{}", millisecond ) );
+			else
+				buf.append( key );
+		}
+	}
+
+	return x::allocator::salloc( buf );
 }
 int64 x_time_from_string( x_string str, x_string fmt )
 {
-	std::string str_view( STR_VIEW( str ) );
-	std::string fmt_view( STR_VIEW( fmt ) );
+	std::string_view str_view( str );
+	std::string_view fmt_view( fmt );
 
-	std::istringstream iss( str_view );
-	
-	std::chrono::system_clock::time_point time;
-	
-	iss >> std::chrono::parse( fmt_view, time );
+	int64 year = 0;
+	int64 month = 0;
+	int64 day = 0;
+	int64 week = 0;
+	int64 hour = 0;
+	int64 minute = 0;
+	int64 second = 0;
+	int64 millisecond = 0;
 
-	return time_2_stamp( time );
+	/*
+		d		日期为数字，不带零（1到31）
+		dd		日数以零开头（01到31）
+		ddd		星期名称（例如“Mon”到“Sun”）
+		dddd	长星期名称（例如“Monday”到“Sunday”）
+		M		月份为数字，不带零（1-12）
+		MM		月份以零开头（01-12）
+		MMM		是本地化月份名称（例如“Jan”到“Dec”）
+		MMMM	长本地化月份名称（例如“January”到“December”）
+		yy		以两位数表示的年份（00-99）
+		yyyy	以四位数表示的年份
+
+		h		不带零的小时（0到23）
+		hh		以零开头的小时（00至23）
+		m		不带零的分钟（0到59）
+		mm		以零开头的分钟（00到59）
+		s		不带零的秒（0到59）
+		ss		以零开头的秒（00到59）
+		z		不带零的毫秒（0到999）
+		zzz		以零开头的毫秒（000到999）
+	*/
+
+	for ( size_t i = 0, k = 0; i < fmt_view.size(); )
+	{
+		size_t j = 0;
+		char key[5];
+		memset( key, 0, 5 );
+
+		if ( fmt_view[i] == 'y' && ( i + 1 ) < fmt_view.size() && fmt_view[i + 1] == 'y' )
+		{
+			key[j++] = fmt_view[i++];
+			key[j++] = fmt_view[i++];
+
+			if ( fmt_view[i] == 'y' && ( i + 1 ) < fmt_view.size() && fmt_view[i + 1] == 'y' )
+			{
+				key[j++] = fmt_view[i++];
+				key[j++] = fmt_view[i++];
+			}
+		}
+		else if ( fmt_view[i] == 'M' )
+		{
+			key[j++] = fmt_view[i++];
+			if ( fmt_view[i] == 'M' )
+			{
+				key[j++] = fmt_view[i++];
+				if ( fmt_view[i] == 'M' )
+				{
+					key[j++] = fmt_view[i++];
+					if ( fmt_view[i] == 'M' )
+					{
+						key[j++] = fmt_view[i++];
+					}
+				}
+			}
+		}
+		else if ( fmt_view[i] == 'd' )
+		{
+			key[j++] = fmt_view[i++];
+			if ( fmt_view[i] == 'd' )
+			{
+				key[j++] = fmt_view[i++];
+				if ( fmt_view[i] == 'd' )
+				{
+					key[j++] = fmt_view[i++];
+					if ( fmt_view[i] == 'd' )
+					{
+						key[j++] = fmt_view[i++];
+					}
+				}
+			}
+		}
+		else if ( fmt_view[i] == 'h' )
+		{
+			key[j++] = fmt_view[i++];
+			if ( fmt_view[i] == 'h' )
+			{
+				key[j++] = fmt_view[i++];
+			}
+		}
+		else if ( fmt_view[i] == 'H' )
+		{
+			key[j++] = fmt_view[i++];
+			if ( fmt_view[i] == 'H' )
+			{
+				key[j++] = fmt_view[i++];
+			}
+		}
+		else if ( fmt_view[i] == 'm' )
+		{
+			key[j++] = fmt_view[i++];
+			if ( fmt_view[i] == 'm' )
+			{
+				key[j++] = fmt_view[i++];
+			}
+		}
+		else if ( fmt_view[i] == 's' )
+		{
+			key[j++] = fmt_view[i++];
+			if ( fmt_view[i] == 's' )
+			{
+				key[j++] = fmt_view[i++];
+			}
+		}
+		else if ( fmt_view[i] == 'z' )
+		{
+			key[j++] = fmt_view[i++];
+			if ( fmt_view[i] == 'z' && ( i + 1 < fmt_view.size() && fmt_view[i + 1] == 'z' ) && ( i + 2 < fmt_view.size() && fmt_view[i + 2] == 'z' ) )
+			{
+				key[j++] = fmt_view[i++];
+				key[j++] = fmt_view[i++];
+			}
+		}
+		else
+		{
+			i++; k++;
+		}
+
+		if ( j != 0 )
+		{
+			if ( strcmp( key, "yyyy" ) == 0 )
+			{
+				std::from_chars( str_view.data() + k, str_view.data() + k + 4, year );
+				k += 4;
+			}
+			else if ( strcmp( key, "yy" ) == 0 )
+			{
+				std::from_chars( str_view.data() + k, str_view.data() + k + 2, year );
+				k += 2;
+			}
+			else if ( strcmp( key, "MMMM" ) == 0 )
+			{
+				for ( size_t i = 0; i < 12; i++ )
+				{
+					if ( str_view.find( MMMM[i], k ) == k )
+					{
+						k += strlen( MMMM[i] );
+						month = i + 1;
+					}
+				}
+			}
+			else if ( strcmp( key, "MMM" ) == 0 )
+			{
+				for ( size_t i = 0; i < 12; i++ )
+				{
+					if ( str_view.find( MMM[i], k ) == k )
+					{
+						k += strlen( MMM[i] );
+						month = i + 1;
+					}
+				}
+			}
+			else if ( strcmp( key, "MM" ) == 0 )
+			{
+				std::from_chars( str_view.data() + k, str_view.data() + k + 2, month );
+				k += 2;
+			}
+			else if ( strcmp( key, "M" ) == 0 )
+			{
+				if ( ::isdigit( str_view[k] ) )
+				{
+					if ( k + 1 < str_view.size() && ::isdigit( str_view[k + 1] ) )
+					{
+						std::from_chars( str_view.data() + k, str_view.data() + k + 2, month );
+						k += 2;
+					}
+					else
+					{
+						month = str_view[k] - '0';
+						k++;
+					}
+				}
+			}
+			else if ( strcmp( key, "dddd" ) == 0 )
+			{
+				for ( size_t i = 0; i < 12; i++ )
+				{
+					if ( str_view.find( dddd[i], k ) == k )
+					{
+						k += strlen( dddd[i] );
+						week = i + 1;
+					}
+				}
+			}
+			else if ( strcmp( key, "ddd" ) == 0 )
+			{
+				for ( size_t i = 0; i < 12; i++ )
+				{
+					if ( str_view.find( ddd[i], k ) == k )
+					{
+						k += strlen( ddd[i] );
+						week = i + 1;
+					}
+				}
+			}
+			else if ( strcmp( key, "dd" ) == 0 )
+			{
+				std::from_chars( str_view.data() + k, str_view.data() + k + 2, day );
+				k += 2;
+			}
+			else if ( strcmp( key, "d" ) == 0 )
+			{
+				if ( ::isdigit( str_view[k] ) )
+				{
+					if ( k + 1 < str_view.size() && ::isdigit( str_view[k + 1] ) )
+					{
+						std::from_chars( str_view.data() + k, str_view.data() + k + 2, day );
+						k += 2;
+					}
+					else
+					{
+						day = str_view[k] - '0';
+						k++;
+					}
+				}
+			}
+			else if ( strcmp( key, "hh" ) == 0 )
+			{
+				std::from_chars( str_view.data() + k, str_view.data() + k + 2, hour );
+				k += 2;
+			}
+			else if ( strcmp( key, "h" ) == 0 )
+			{
+				if ( ::isdigit( str_view[k] ) )
+				{
+					if ( k + 1 < str_view.size() && ::isdigit( str_view[k + 1] ) )
+					{
+						std::from_chars( str_view.data() + k, str_view.data() + k + 2, hour );
+						k += 2;
+					}
+					else
+					{
+						hour = str_view[k] - '0';
+						k++;
+					}
+				}
+				}
+			else if ( strcmp( key, "mm" ) == 0 )
+			{
+				std::from_chars( str_view.data() + k, str_view.data() + k + 2, minute );
+				k += 2;
+			}
+			else if ( strcmp( key, "m" ) == 0 )
+			{
+				if ( ::isdigit( str_view[k] ) )
+				{
+					if ( k + 1 < str_view.size() && ::isdigit( str_view[k + 1] ) )
+					{
+						std::from_chars( str_view.data() + k, str_view.data() + k + 2, minute );
+						k += 2;
+					}
+					else
+					{
+						minute = str_view[k] - '0';
+						k++;
+					}
+				}
+			}
+			else if ( strcmp( key, "ss" ) == 0 )
+			{
+				std::from_chars( str_view.data() + k, str_view.data() + k + 2, second );
+				k += 2;
+			}
+			else if ( strcmp( key, "s" ) == 0 )
+			{
+				if ( ::isdigit( str_view[k] ) )
+				{
+					if ( k + 1 < str_view.size() && ::isdigit( str_view[k + 1] ) )
+					{
+						std::from_chars( str_view.data() + k, str_view.data() + k + 2, second );
+						k += 2;
+					}
+					else
+					{
+						second = str_view[k] - '0';
+						k++;
+					}
+				}
+			}
+			else if ( strcmp( key, "zzz" ) == 0 )
+			{
+				std::from_chars( str_view.data() + k, str_view.data() + k + 3, millisecond );
+				k += 3;
+			}
+			else if ( strcmp( key, "z" ) == 0 )
+			{
+				if ( ::isdigit( str_view[k] ) )
+				{
+					if ( k + 1 < str_view.size() && ::isdigit(str_view[k + 1]) )
+					{
+						if ( k + 2 < str_view.size() && ::isdigit( str_view[k+2] ) )
+						{
+							std::from_chars( str_view.data() + k, str_view.data() + k + 3, millisecond );
+							k += 3;
+						}
+						else
+						{
+							std::from_chars( str_view.data() + k, str_view.data() + k + 2, millisecond );
+							k += 2;
+						}
+					}
+					else
+					{
+						millisecond = str_view[k] - '0';
+						k++;
+					}
+				}
+			}
+			else
+			{
+				k += strlen( key );
+			}
+		}
+	}
+	
+	return time_2_stamp( std::chrono::system_clock::time_point( std::chrono::years( year ) + std::chrono::months( month ) + std::chrono::days( day ) + std::chrono::hours( hour ) + std::chrono::minutes( minute ) + std::chrono::seconds( second ) + std::chrono::milliseconds( millisecond ) ) );
 }
 
 x_lock x_lock_create()
@@ -388,7 +749,7 @@ void x_lock_release( x_lock lock )
 
 x_atomic x_atomic_create()
 {
-	return new std::atomic<intptr>;
+	return new std::atomic<x_atomic>( 0 );
 }
 bool x_atomic_compare_exchange( x_atomic atomic, intptr exp, intptr val )
 {
@@ -438,4 +799,9 @@ void x_condition_notify_all( x_condition cond )
 void x_condition_release( x_condition cond )
 {
 	delete reinterpret_cast<condition_info *>( cond );
+}
+
+x_awaitable x_awaitable_scheduler_post( x_awaitable awaiter, uint32 executor )
+{
+	return nullptr;
 }

@@ -2,7 +2,7 @@
 
 project ("XScript")
 
-add_executable (XScript 
+set(SRC_FILES 
 "main.cpp"
 "src/xlib.h"
 "src/xlib.cpp"
@@ -10,15 +10,12 @@ add_executable (XScript
 "src/endian.hpp"
 "src/float16.h"
 "src/float16.cpp"
+"src/concurrent_queue.hpp"
 "src/type.h"
 "src/buffer.h"
 "src/buffer.cpp"
-"src/executor.h"
-"src/executor.cpp"
-"src/scheduler.h"
-"src/scheduler.cpp"
-"src/awaitable.h"
-"src/awaitable.cpp"
+"src/coroutine.h"
+"src/coroutine.cpp"
 "src/ast.h"
 "src/ast.cpp"
 "src/meta.h"
@@ -54,9 +51,9 @@ add_executable (XScript
 "src/interpreter.h"
 "src/interpreter.cpp"
 "src/virtual_machine.h"
-"src/virtual_machine.cpp"
-)
+"src/virtual_machine.cpp")
 
-if (CMAKE_VERSION VERSION_GREATER 3.12)
-  set_property(TARGET XScript PROPERTY CXX_STANDARD 20)
-endif()
+#add_executable (XScript ${SRC_FILES})
+#set_property(TARGET XScript PROPERTY CXX_STANDARD 20)
+
+add_subdirectory(tests)

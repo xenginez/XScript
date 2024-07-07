@@ -95,7 +95,7 @@ x::uint64 x::buffer::read( x::value & val )
 	{
 		x::uint32 sz = *reinterpret_cast<x::uint32 *>( get( sizeof( x::uint32 ) ) );
 
-		val = x::allocator::transform( std::string_view{ reinterpret_cast<const char *>( get( sz ) ), sz } );
+		val = x::allocator::salloc( std::string_view{ reinterpret_cast<const char *>( get( sz ) ), sz } );
 	}
 		break;
 	case x::value_t::OBJECT:
@@ -156,7 +156,7 @@ x::uint64 x::buffer::write( const x::value & val )
 		break;
 	case x::value_t::STRING:
 	{
-		auto view = x::allocator::transform( val.to_string() );
+		std::string_view view( val.to_string() );
 		*reinterpret_cast<x::uint32 *>( put( sizeof( x::uint32 ) ) ) = static_cast<x::uint32>( view.size() );
 		char * buf = reinterpret_cast<char *>( put( view.size() ) );
 		memcpy( buf, view.data(), view.size() );

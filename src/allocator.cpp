@@ -157,14 +157,12 @@ void * x::allocator::malloc( x::uint64 size )
 	return instance()->heap_malloc( instance()->get_default_heap(), size );
 }
 
-x::string x::allocator::transform( std::string_view str )
+x::string x::allocator::salloc( std::string_view str )
 {
-	return x::string();
-}
-
-std::string_view x::allocator::transform( x::string str )
-{
-	return std::string_view();
+	auto s = ( char * )::malloc( str.size() + 1 );
+	memcpy( s, str.data(), str.size() );
+	s[str.size()] = 0;
+	return s;
 }
 
 void x::allocator::free_collect()

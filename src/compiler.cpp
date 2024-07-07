@@ -63,7 +63,6 @@ bool x::compiler::compile( const std::filesystem::path & file )
 		genunit();
 
 		linking();
-
 	}
 	catch ( const std::exception & e )
 	{
@@ -289,6 +288,30 @@ x::symbols_ptr x::module_compiler::make_symbols()
 	//////////////////////////////////// native function ////////////////////////////////////
 #define BEG( TYPE ) auto TYPE##_func = symbols->add_nativefunc( #TYPE, TYPE ); symbols->push_scope( TYPE##_func ); {
 #define END() } symbols->pop_scope();
+
+
+	// path
+	BEG( x_path_app_path );
+	END();
+	BEG( x_path_temp_path );
+	END();
+	BEG( x_path_copy );
+	END();
+	BEG( x_path_create );
+	END();
+	BEG( x_path_remove );
+	END();
+	BEG( x_path_exists );
+	END();
+	BEG( x_path_is_file );
+	END();
+	BEG( x_path_is_directory );
+	END();
+	BEG( x_path_entry_count );
+	END();
+	BEG( x_path_at_entry_name );
+	END();
+
 
 #undef BEG
 #undef END

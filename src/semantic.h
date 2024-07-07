@@ -31,6 +31,20 @@ namespace x
 		void visit( x::local_stat_ast * val ) override;
 	};
 
+	class instantiation_visitor : public x::scope_with_visitor
+	{
+	public:
+		using scope_with_visitor::visit;
+
+	public:
+		instantiation_visitor( const x::symbols_ptr & val );
+
+	public:
+		void visit( x::temp_type_ast * val ) override;
+		void visit( x::closure_expr_ast * val ) override;
+		void visit( x::function_decl_ast * val ) override;
+	};
+
 	class semantic_checker_visitor : public x::scope_with_visitor
 	{
 	public:
@@ -57,20 +71,6 @@ namespace x
 		void visit( x::invoke_expr_ast * val ) override;
 		void visit( x::member_expr_ast * val ) override;
 		void visit( x::identifier_expr_ast * val ) override;
-	};
-
-	class instantiation_visitor : public x::scope_with_visitor
-	{
-	public:
-		using scope_with_visitor::visit;
-
-	public:
-		instantiation_visitor( const x::symbols_ptr & val );
-
-	public:
-		void visit( x::temp_type_ast * val ) override;
-		void visit( x::function_decl_ast * val ) override;
-		void visit( x::closure_expr_ast * val ) override;
 	};
 
 	class expr_type_solver_visitor : public x::scope_with_visitor
