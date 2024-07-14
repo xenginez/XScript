@@ -5,6 +5,7 @@
 
 #include "xlib.h"
 #include "value.h"
+#include "object.h"
 #include "module.h"
 #include "grammar.h"
 #include "builtin.h"
@@ -20,6 +21,8 @@ namespace
 
 x::compiler::compiler( const log_callback_t & callback )
 {
+	_grammar = std::make_shared<x::grammar>();
+
 	if ( callback )
 		_logger = callback;
 	else
@@ -84,7 +87,7 @@ void x::compiler::scanner()
 
 void x::compiler::instant()
 {
-	x::instantiation_visitor instant( _symbols );
+	x::instantiation_constructor_visitor instant( _symbols );
 	
 	for ( const auto & it : _objects )
 		it->ast->accept( &instant );
@@ -92,7 +95,7 @@ void x::compiler::instant()
 
 void x::compiler::checker()
 {
-	x::semantic_checker_visitor semantic( _symbols );
+	x::semantics_checker_visitor semantic( _symbols );
 
 	for ( const auto & it : _objects )
 		it->ast->accept( &semantic );
@@ -173,7 +176,7 @@ void x::compiler::loading( const std::filesystem::path & file )
 		
 		XTHROW( x::compile_exception, ifs.is_open(), "" );
 
-		obj->ast = x::grammar( ifs, path.string() ).unit();
+		obj->ast = x::grammar().parse( ifs, path.string() );
 
 		logger( std::format( "loading script {}", path.string() ) );
 	}
@@ -243,6 +246,7 @@ x::symbols_ptr x::module_compiler::make_symbols()
 
 	//////////////////////////////////// foundation ////////////////////////////////////
 #define BEG( TYPE ) auto TYPE##_type = symbols->add_foundation( #TYPE, sizeof( TYPE ) ); symbols->push_scope( TYPE##_type ); {
+#define NBEG( TYPE, NAME ) auto NAME##_type = symbols->add_foundation( #NAME, sizeof( TYPE ) ); symbols->push_scope( NAME##_type ); {
 #define END() } symbols->pop_scope();
 
 	auto void_type = symbols->add_foundation( "void", 0 );
@@ -275,9 +279,17 @@ x::symbols_ptr x::module_compiler::make_symbols()
 	END();
 	BEG( float64 );
 	END();
+	BEG( intptr );
+	END();
 	BEG( string );
 	END();
-	BEG( intptr );
+	BEG( object );
+	END();
+	NBEG( array_object, array );
+	END();
+	NBEG( callable_object, callable );
+	END();
+	NBEG( coroutine_object, coroutine );
 	END();
 
 #undef BEG

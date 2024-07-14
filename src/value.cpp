@@ -1,5 +1,7 @@
 #include "value.h"
 
+#include "object.h"
+#include "runtime.h"
 #include "exception.h"
 
 x::value::value()
@@ -107,16 +109,16 @@ x::value::value( x::intptr val )
 	_flags = x::value_t::INTPTR;
 }
 
+x::value::value( x::value * val )
+{
+	ref = val;
+	_flags = x::value_t::REFERENCE;
+}
+
 x::value::value( x::object * val )
 {
 	obj = val;
 	_flags = x::value_t::OBJECT;
-}
-
-x::value::value( x::value * val )
-{
-	ref = val;
-	_flags = x::value_t::REF_MASK;
 }
 
 x::value::value( x::value_flags val )
@@ -223,6 +225,13 @@ x::value & x::value::operator=( x::intptr val )
 	return *this;
 }
 
+x::value & x::value::operator=( x::value * val )
+{
+	ref = val;
+	_flags = x::value_t::REFERENCE;
+	return *this;
+}
+
 x::value & x::value::operator=( x::object * val )
 {
 	obj = val;
@@ -230,21 +239,14 @@ x::value & x::value::operator=( x::object * val )
 	return *this;
 }
 
-x::value & x::value::operator=( x::value * val )
-{
-	ref = val;
-	_flags = x::value_t::REF_MASK;
-	return *this;
-}
-
 x::value_t x::value::type() const
 {
-	if ( to_reference()._flags == x::value_t::INVALID )
+	if ( to_ref()._flags == x::value_t::INVALID )
 		return x::value_t::INVALID;
-	else if ( to_reference()._flags == x::value_t::NIL )
+	else if ( to_ref()._flags == x::value_t::NIL )
 		return x::value_t::NIL;
 	else
-		return ( to_reference()._flags & x::value_t::TYPE_MASK ).value();
+		return ( to_ref()._flags & x::value_t::TYPE_MASK ).value();
 }
 
 x::value_flags x::value::flags() const
@@ -254,22 +256,7 @@ x::value_flags x::value::flags() const
 
 bool x::value::is_ref() const
 {
-	return _flags && x::value_t::REF_MASK;
-}
-
-bool x::value::is_enum() const
-{
-	return to_reference()._flags && x::value_t::ENUM_MASK;
-}
-
-bool x::value::is_async() const
-{
-	return to_reference()._flags && x::value_t::ASYN_MASK;
-}
-
-bool x::value::is_invalid() const
-{
-	return to_reference()._flags == x::value_t::INVALID;
+	return _flags == x::value_t::REFERENCE;
 }
 
 bool x::value::is_null() const
@@ -304,7 +291,7 @@ bool x::value::is_int64() const
 
 bool x::value::is_signed() const
 {
-	return to_reference()._flags || x::value_t::SIGNED_MASK;
+	return to_ref()._flags || x::value_t::SIGNED_MASK;
 }
 
 bool x::value::is_uint8() const
@@ -329,7 +316,7 @@ bool x::value::is_uint64() const
 
 bool x::value::is_unsigned() const
 {
-	return to_reference()._flags || x::value_t::UNSIGNED_MASK;
+	return to_ref()._flags || x::value_t::UNSIGNED_MASK;
 }
 
 bool x::value::is_float16() const
@@ -349,7 +336,7 @@ bool x::value::is_float64() const
 
 bool x::value::is_floating() const
 {
-	return to_reference()._flags || x::value_t::FLOATING_MASK;
+	return to_ref()._flags || x::value_t::FLOATING_MASK;
 }
 
 bool x::value::is_string() const
@@ -367,123 +354,226 @@ bool x::value::is_object() const
 	return type() == x::value_t::OBJECT;
 }
 
+bool x::value::is_invalid() const
+{
+	return _flags == x::value_t::INVALID;
+}
+
 bool x::value::to_bool() const
 {
 	XTHROW( x::bad_value_access, is_bool(), "" );
 
-	return to_reference().b;
+	return to_ref().b;
 }
 
 x::int8 x::value::to_int8() const
 {
 	XTHROW( x::bad_value_access, is_int8(), "" );
 
-	return to_reference().i8;
+	return to_ref().i8;
 }
 
 x::int16 x::value::to_int16() const
 {
 	XTHROW( x::bad_value_access, is_int16(), "" );
 
-	return to_reference().i16;
+	return to_ref().i16;
 }
 
 x::int32 x::value::to_int32() const
 {
 	XTHROW( x::bad_value_access, is_int32(), "" );
 
-	return to_reference().i32;
+	return to_ref().i32;
 }
 
 x::int64 x::value::to_int64() const
 {
 	XTHROW( x::bad_value_access, is_int64(), "" );
 
-	return to_reference().i64;
+	return to_ref().i64;
 }
 
 x::uint8 x::value::to_uint8() const
 {
 	XTHROW( x::bad_value_access, is_uint8(), "" );
 
-	return to_reference().u8;
+	return to_ref().u8;
 }
 
 x::uint16 x::value::to_uint16() const
 {
 	XTHROW( x::bad_value_access, is_uint16(), "" );
 
-	return to_reference().u16;
+	return to_ref().u16;
 }
 
 x::uint32 x::value::to_uint32() const
 {
 	XTHROW( x::bad_value_access, is_uint32(), "" );
 
-	return to_reference().u32;
+	return to_ref().u32;
 }
 
 x::uint64 x::value::to_uint64() const
 {
 	XTHROW( x::bad_value_access, is_uint64(), "" );
 
-	return to_reference().u64;
+	return to_ref().u64;
 }
 
 x::float16 x::value::to_float16() const
 {
 	XTHROW( x::bad_value_access, is_float16(), "" );
 
-	return to_reference().f16;
+	return to_ref().f16;
 }
 
 x::float32 x::value::to_float32() const
 {
 	XTHROW( x::bad_value_access, is_float32(), "" );
 
-	return to_reference().f32;
+	return to_ref().f32;
 }
 
 x::float64 x::value::to_float64() const
 {
 	XTHROW( x::bad_value_access, is_float64(), "" );
 
-	return to_reference().f64;
+	return to_ref().f64;
 }
 
 x::intptr x::value::to_intptr() const
 {
 	XTHROW( x::bad_value_access, is_intptr(), "" );
 
-	return to_reference().ptr;
+	return to_ref().ptr;
 }
 
 x::string x::value::to_string() const
 {
 	XTHROW( x::bad_value_access, is_string(), "" );
 
-	return to_reference().str;
+	return to_ref().str;
 }
 
 x::object * x::value::to_object() const
 {
 	XTHROW( x::bad_value_access, is_object(), "" );
 
-	return to_reference().obj;
+	return to_ref().obj;
 }
 
-x::value & x::value::to_reference()
+x::value * x::value::to_reference() const
 {
-	if ( is_ref() )
-		return ref->to_reference();
-	else
-		return *this;
+	return ref;
 }
 
-const x::value & x::value::to_reference() const
+x::value & x::value::to_ref()
 {
-	if ( is_ref() )
-		return ref->to_reference();
-	else
-		return *this;
+	x::value * result = this;
+
+	while ( 1 )
+	{
+		if ( result->is_ref() )
+			result = &result->to_ref();
+		else
+			break;
+	}
+
+	return *result;
+}
+
+const x::value & x::value::to_ref() const
+{
+	const x::value * result = this;
+
+	while ( 1 )
+	{
+		if ( result->is_ref() )
+			result = &result->to_ref();
+		else
+			break;
+	}
+
+	return *result;
+}
+
+x::value_handle::value_handle()
+{
+}
+
+x::value_handle::value_handle( std::nullptr_t )
+{
+}
+
+x::value_handle::value_handle( const x::value & val )
+	: _value( val )
+{
+	attach_to_root();
+}
+
+x::value_handle::value_handle( const value_handle & val )
+	: _value( val._value )
+{
+	attach_to_root();
+}
+
+x::value_handle::~value_handle()
+{
+	detach_to_root();
+}
+
+x::value_handle & x::value_handle::operator=( std::nullptr_t )
+{
+	detach_to_root();
+	_value = x::value{};
+
+	return *this;
+}
+
+x::value_handle & x::value_handle::operator=( const x::value & val )
+{
+	detach_to_root();
+	_value = val;
+	attach_to_root();
+
+	return *this;
+}
+
+x::value_handle & x::value_handle::operator=( const value_handle & val )
+{
+	detach_to_root();
+	_value = val._value;
+	attach_to_root();
+
+	return *this;
+}
+
+x::value & x::value_handle::operator*()
+{
+	return _value;
+}
+
+const x::value & x::value_handle::operator*() const
+{
+	return _value;
+}
+
+x::value * x::value_handle::operator->()
+{
+	return &_value;
+}
+
+const x::value * x::value_handle::operator->() const
+{
+	return &_value;
+}
+
+void x::value_handle::attach_to_root()
+{
+}
+
+void x::value_handle::detach_to_root()
+{
 }

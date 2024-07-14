@@ -8,6 +8,21 @@ void x::object::finalize()
 {
 }
 
+bool x::object::is_dataobject() const
+{
+	return true;
+}
+
+bool x::object::is_callobject() const
+{
+	return false;
+}
+
+bool x::object::is_coroobject() const
+{
+	return false;
+}
+
 x::uint64 x::object::size() const
 {
 	return x::uint64();
@@ -35,10 +50,6 @@ const x::meta_type * x::object::type() const
 int x::object::compare( x::object * other ) const
 {
 	return 0;
-}
-
-void x::object::on_event( x::uint32 event, x::int64 val )
-{
 }
 
 void x::object::mark( x::runtime * rt )

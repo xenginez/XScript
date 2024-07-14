@@ -2,8 +2,6 @@
 
 #include "type.h"
 
-#include <variant>
-
 namespace x
 {
 	class value
@@ -29,14 +27,12 @@ namespace x
 		value( x::float64 val );
 		value( x::string val );
 		value( x::intptr val );
-		value( x::object * val );
 		value( x::value * val );
+		value( x::object * val );
 		value( x::value_flags val );
 		template<typename T, std::enable_if_t<std::is_enum_v<T>, int> = 0> value( T val )
+			: i64( (x::int64)val ), _flags( x::value_t::INT64 )
 		{
-			i64 = (x::int64)val;
-			_flags = x::value_t::INT64;
-			_flags |= x::value_t::ENUM_MASK;
 		}
 
 	public:
@@ -54,13 +50,13 @@ namespace x
 		value & operator=( x::float64 val );
 		value & operator=( x::string val );
 		value & operator=( x::intptr val );
-		value & operator=( x::object * val );
 		value & operator=( x::value * val );
+		value & operator=( x::object * val );
 		template<typename T, std::enable_if_t<std::is_enum_v<T>, int> = 0> value & operator=( T val )
 		{
 			i64 = (x::int64)val;
 			_flags = x::value_t::INT64;
-			_flags |= x::value_t::ENUM_MASK;
+
 			return *this;
 		}
 
@@ -70,11 +66,6 @@ namespace x
 
 	public:
 		bool is_ref() const;
-		bool is_enum() const;
-		bool is_async() const;
-		bool is_invalid() const;
-
-	public:
 		bool is_null() const;
 		bool is_bool() const;
 		bool is_int8() const;
@@ -94,6 +85,7 @@ namespace x
 		bool is_string() const;
 		bool is_intptr() const;
 		bool is_object() const;
+		bool is_invalid() const;
 
 	public:
 		bool to_bool() const;
@@ -111,8 +103,13 @@ namespace x
 		x::string to_string() const;
 		x::intptr to_intptr() const;
 		x::object * to_object() const;
-		x::value & to_reference();
-		const x::value & to_reference() const;
+
+	public:
+		x::value * to_reference() const;
+
+	private:
+		x::value & to_ref();
+		const x::value & to_ref() const;
 
 	private:
 		x::value_flags _flags;
@@ -132,8 +129,42 @@ namespace x
 			x::float64 f64;
 			x::string str;
 			x::intptr ptr;
-			x::object * obj;
 			x::value * ref;
+			x::object * obj;
 		};
+	};
+
+	class value_handle
+	{
+	public:
+		value_handle( x::value && val ) = delete;
+		value_handle( value_handle && val ) = delete;
+		value_handle & operator=( x::value && val ) = delete;
+		value_handle & operator=( value_handle && val ) = delete;
+
+	public:
+		value_handle();
+		value_handle( std::nullptr_t );
+		value_handle( const x::value & val );
+		value_handle( const value_handle & val );
+		~value_handle();
+
+	public:
+		value_handle & operator=( std::nullptr_t );
+		value_handle & operator=( const x::value & val );
+		value_handle & operator=( const value_handle & val );
+
+	public:
+		x::value & operator*();
+		const x::value & operator*() const;
+		x::value * operator->();
+		const x::value * operator->() const;
+
+	private:
+		void attach_to_root();
+		void detach_to_root();
+
+	private:
+		x::value _value;
 	};
 }

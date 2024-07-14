@@ -67,4 +67,11 @@ namespace x
 	public:
 		x::ast_ptr transferred( const x::symbols_ptr & sym, const x::ast_ptr & ast ) const override;
 	};
+
+
+	//__builtin_coro_done
+	//__builtin_coro_resume
+	//__builtin_coro_destroy
+	//__builtin_coro_promise
+	//__builtin_coro_noop
 }

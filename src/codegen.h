@@ -53,9 +53,6 @@ namespace x
 		void visit( x::await_stat_ast * val ) override;
 		void visit( x::yield_stat_ast * val ) override;
 		void visit( x::new_stat_ast * val ) override;
-		void visit( x::try_stat_ast * val ) override;
-		void visit( x::catch_stat_ast * val ) override;
-		void visit( x::throw_stat_ast * val ) override;
 		void visit( x::if_stat_ast * val ) override;
 		void visit( x::while_stat_ast * val ) override;
 		void visit( x::for_stat_ast * val ) override;

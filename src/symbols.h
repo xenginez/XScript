@@ -277,9 +277,9 @@ namespace x
 		x::symbol * find_child( std::string_view name ) const override;
 
 	public:
-		x::type_symbol * result = nullptr;
 		x::block_symbol * block = nullptr;
 		x::function_decl_ast_ptr function_ast;
+		std::vector<x::type_symbol *> results;
 		std::vector<x::param_symbol *> parameters;
 	};
 	class template_symbol : public x::symbol, public x::ast_symbol, public x::type_symbol, public x::scope_symbol
@@ -303,6 +303,7 @@ namespace x
 		std::vector<x::alias_symbol *> aliases;
 		std::vector<x::function_symbol *> functions;
 		std::vector<x::variable_symbol *> variables;
+		std::vector<x::class_symbol *> specializeds;
 	};
 	class namespace_symbol : public x::symbol, public x::ast_symbol, public x::scope_symbol
 	{
@@ -372,25 +373,6 @@ namespace x
 		x::type_symbol * result = nullptr;
 		std::vector<x::param_symbol *> parameters;
 	};
-
-	using symbol_variant = std::variant<
-		std::monostate,
-		unit_symbol,
-		enum_symbol,
-		alias_symbol,
-		class_symbol,
-		block_symbol,
-		cycle_symbol,
-		local_symbol,
-		param_symbol,
-		element_symbol,
-		function_symbol,
-		variable_symbol,
-		template_symbol,
-		namespace_symbol,
-		foundation_symbol,
-		nativefunc_symbol,
-		builtinfunc_symbol>;
 
 	class symbols : public std::enable_shared_from_this<symbols>
 	{

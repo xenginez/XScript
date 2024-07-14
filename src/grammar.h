@@ -6,13 +6,16 @@
 
 namespace x
 {
-	class grammar
+	class grammar : public std::enable_shared_from_this<grammar>
 	{
 	public:
-		grammar( std::istream & stream, std::string_view name, const std::map<std::string, x::token_t> tokens = x::token_map );
+		grammar();
 		~grammar();
 
 	public:
+		x::unit_ast_ptr parse( std::istream & stream, std::string_view name, const std::map<std::string, x::token_t> & tokens = x::token_map );
+
+	private:
 		x::unit_ast_ptr unit();
 		x::type_ast_ptr type();
 		x::import_ast_ptr import();
@@ -33,13 +36,11 @@ namespace x
 		x::await_stat_ast_ptr await_stat();
 		x::yield_stat_ast_ptr yield_stat();
 		x::new_stat_ast_ptr new_stat();
-		x::try_stat_ast_ptr try_stat();
-		x::catch_stat_ast_ptr catch_stat();
-		x::throw_stat_ast_ptr throw_stat();
 		x::if_stat_ast_ptr if_stat();
 		x::while_stat_ast_ptr while_stat();
 		x::for_stat_ast_ptr for_stat();
 		x::foreach_stat_ast_ptr foreach_stat();
+		x::switch_stat_ast_ptr switch_stat();
 		x::break_stat_ast_ptr break_stat();
 		x::return_stat_ast_ptr return_stat();
 		x::continue_stat_ast_ptr continue_stat();
@@ -60,12 +61,14 @@ namespace x
 		x::expr_stat_ast_ptr is_exp();
 		x::expr_stat_ast_ptr sizeof_exp();
 		x::expr_stat_ast_ptr typeof_exp();
-		x::expr_stat_ast_ptr unary_exp();
-		x::expr_stat_ast_ptr postfix_exp();
+		x::expr_stat_ast_ptr index_exp();
 		x::expr_stat_ast_ptr invoke_exp();
 		x::expr_stat_ast_ptr member_exp();
+		x::expr_stat_ast_ptr unary_exp();
+		x::expr_stat_ast_ptr postfix_exp();
 		x::expr_stat_ast_ptr primary_exp();
 		x::closure_expr_ast_ptr closure_exp();
+		x::typecast_expr_ast_ptr typecast_exp();
 		x::arguments_expr_ast_ptr arguments_exp();
 		x::identifier_expr_ast_ptr identifier_exp();
 		x::initializers_expr_ast_ptr initializers_exp();
@@ -80,8 +83,8 @@ namespace x
 	private:
 		x::access_t access();
 		std::string type_name();
-		x::type_ast_ptr type( std::string_view name, bool is_const = false );
-
+		x::type_ast_ptr any_type();
+		
 	private:
 		x::token next();
 		x::token lookup();
@@ -115,8 +118,8 @@ namespace x
 		void push( std::string & str, int c ) const;
 
 	private:
-		std::istream _stream;
 		x::location _location;
-		std::map<std::string, x::token_t> _tokenmap;
+		std::istream * _stream = nullptr;
+		const std::map<std::string, x::token_t> * _tokenmap = nullptr;
 	};
 }

@@ -40,7 +40,7 @@ extern "C"{
     typedef intptr x_socket;
     typedef intptr x_device;
     typedef intptr x_condition;
-    typedef intptr x_awaitable;
+    typedef intptr x_coroutine;
     typedef const char * x_string;
 
     typedef enum
@@ -215,24 +215,12 @@ extern "C"{
 #define WINDOW_STATE_MAXIMIZE               uint32( 4 )
 #define WINDOW_STATE_FULLSCREEN             uint32( 5 )
 
+#define SOCKET_AF_INET                      uint32( 1 )
+#define SOCKET_AF_INET6                     uint32( 2 )
+
 #define SOCKET_PROTOCOL_UDP                 uint32( 1 )
 #define SOCKET_PROTOCOL_TCP                 uint32( 2 )
-
-#define SELECT_EVENT_READ                   uint32( 1 )
-#define SELECT_EVENT_WRITE                  uint32( 2 )
-#define SELECT_EVENT_CLOSE                  uint32( 3 )
-#define SELECT_EVENT_RECV                   uint32( 4 )
-#define SELECT_EVENT_SEND                   uint32( 5 )
-#define SELECT_EVENT_ACCEPT                 uint32( 6 )
-#define SELECT_EVENT_CONNECT                uint32( 7 )
-#define SELECT_EVENT_TIMEOUT                uint32( 8 )
-#define SELECT_EVENT_USER_EVENT             uint32( 255 )
-
-#define SCHEDULER_EXECUTOR_THREAD_ONE       uint32( 1 )
-#define SCHEDULER_EXECUTOR_THREAD_MAIN      uint32( 2 )
-#define SCHEDULER_EXECUTOR_THREAD_POOL      uint32( 3 )
-#define SCHEDULER_EXECUTOR_NVIDIA_CUDA      uint32( 4 )
-#define SCHEDULER_EXECUTOR_COMPUTE_SHADER   uint32( 5 )
+#define SOCKET_PROTOCOL_ICMP                uint32( 3 )
 
     // os
     int x_main( int argc, const char ** argv );
@@ -270,7 +258,8 @@ extern "C"{
 
 	// time
     int64 x_time_now();
-    void x_time_sleep( int64 milliseconds );
+    void x_time_sleep_for( int64 milliseconds );
+    void x_time_sleep_until( int64 time );
     int32 x_time_year( int64 time );
     int32 x_time_month( int64 time );
     int32 x_time_day( int64 time );
@@ -312,10 +301,13 @@ extern "C"{
     void x_atomic_release( x_atomic atomic );
 
     // locale
-    x_string utf8_ansi( x_string str );
-    x_string ansi_utf8( x_string str );
-    x_string wide_ansi( x_string str );
-    x_string ansi_wide( x_string str );
+    uint32 x_locale_codepage();
+    x_string x_locale_utf8_local( x_string utf8_str );
+    x_string x_locale_utf8_utf16( x_string utf8_str );
+    x_string x_locale_local_utf8( x_string local_str );
+    x_string x_locale_local_utf16( x_string local_str );
+    x_string x_locale_utf16_utf8( x_string utf16_str );
+    x_string x_locale_utf16_local( x_string utf16_str );
 
     // window
     x_window x_window_create();
@@ -343,7 +335,8 @@ extern "C"{
     void x_window_release( x_window window );
 
 	// socket
-    x_socket x_socket_create( uint32 protocol );
+    x_buffer x_socket_getaddrinfo( uint32 protocol, x_string name, x_string service );
+    x_socket x_socket_create( uint32 protocol, uint32 family );
     int32 x_socket_bind( x_socket socket, x_string sockname, uint16 port );
     int32 x_socket_listen( x_socket socket );
     x_socket x_socket_accept( x_socket socket );
@@ -368,16 +361,16 @@ extern "C"{
     void x_condition_notify_all( x_condition cond );
     void x_condition_release( x_condition cond );
 
-    // awaitable
-    x_awaitable x_awaitable_file_read( x_file file, intptr buffer, uint64 size );
-    x_awaitable x_awaitable_file_write( x_file file, intptr buffer, uint64 size );
-    x_awaitable x_awaitable_timer_sleep( int64 milliseconds );
-    x_awaitable x_awaitable_socket_accept( x_socket socket );
-    x_awaitable x_awaitable_socket_connect( x_socket socket, x_string peername, uint16 port );
-    x_awaitable x_awaitable_socket_recv( x_socket socket, intptr buffer, uint64 size );
-    x_awaitable x_awaitable_socket_send( x_socket socket, intptr buffer, uint64 size );
-    x_awaitable x_awaitable_socket_sendto( x_socket socket, x_string peername, uint16 port, intptr buffer, uint64 size );
-    x_awaitable x_awaitable_scheduler_post( x_awaitable awaiter, uint32 executor );
+    // coroutine
+    void x_coroutine_sleep_for( x_coroutine coroutine, int64 milliseconds );
+    void x_coroutine_sleep_until( x_coroutine coroutine, int64 time );
+    void x_coroutine_file_read( x_coroutine coroutine, x_file file, intptr buffer, uint64 size );
+    void x_coroutine_file_write( x_coroutine coroutine, x_file file, intptr buffer, uint64 size );
+    void x_coroutine_socket_accept( x_coroutine coroutine, x_socket socket );
+    void x_coroutine_socket_connect( x_coroutine coroutine, x_socket socket, x_string peername, uint16 port );
+    void x_coroutine_socket_recv( x_coroutine coroutine, x_socket socket, intptr buffer, uint64 size );
+    void x_coroutine_socket_send( x_coroutine coroutine, x_socket socket, intptr buffer, uint64 size );
+    void x_coroutine_socket_sendto( x_coroutine coroutine, x_socket socket, x_string peername, uint16 port, intptr buffer, uint64 size );
     
 #ifdef __cplusplus
 }

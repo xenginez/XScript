@@ -36,7 +36,8 @@ namespace x
 		x::value get_thread( x::uint64 idx );
 
 	public:
-		void add_root( x::object * root );
+		void attach_root( x::object * root );
+		void detach_root( x::object * root );
 		void set_trigger_gc_size( x::uint64 size );
 
 	public:

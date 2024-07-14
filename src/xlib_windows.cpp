@@ -11,10 +11,22 @@
 #include <Windows.h>
 #include <ws2tcpip.h>
 
+#include "value.h"
+#include "object.h"
+#include "buffer.h"
 #include "allocator.h"
-#include "coroutine.h"
+#include "concurrent_queue.hpp"
 
 #pragma comment(lib, "Ws2_32.lib")
+
+#define IOCP_EVENT_READ                   uint32( 1 )
+#define IOCP_EVENT_WRITE                  uint32( 2 )
+#define IOCP_EVENT_CLOSE                  uint32( 3 )
+#define IOCP_EVENT_RECV                   uint32( 4 )
+#define IOCP_EVENT_SEND                   uint32( 5 )
+#define IOCP_EVENT_ACCEPT                 uint32( 6 )
+#define IOCP_EVENT_CONNECT                uint32( 7 )
+#define IOCP_EVENT_ADDRINFO               uint32( 8 )
 
 namespace
 {
@@ -22,17 +34,16 @@ namespace
     struct file_info;
     struct window_info;
     struct socket_info;
-    struct iocp_scheduler;
-    struct timer_scheduler;
+    struct windows_scheduler;
 
     struct overlapped
     {
         OVERLAPPED overlap;
         uint32 type = 0;
-        std::coroutine_handle<> handle = nullptr;
         DWORD bytes = 0;
         DWORD flags = 0;
         WSABUF buffer = {};
+        x::coroutine_object * result;
         union
         {
             file_info * file;
@@ -43,33 +54,12 @@ namespace
         {
             struct
             {
-                x::await_result<uint64> * result;
-            } read;
-            struct
-            {
-                x::await_result<uint64> * result;
-            } write;
-            struct
-            {
-                x::await_result<uint64> * result;
-            } recv;
-            struct
-            {
-                x::await_result<uint64> * result;
-            } send;
-            struct
-            {
                 int size;
             } sendto;
             struct
             {
-                x::await_result<x_socket> * result;
                 socket_info * client;
             } accept;
-            struct
-            {
-                x::await_result<int32> * result;
-            } connect;
         };
     };
 
@@ -98,10 +88,10 @@ namespace
         sockaddr_in sockaddr = {};
         sockaddr_in peeraddr = {};
     };
-    struct iocp_scheduler
+    struct windows_scheduler
     {
     public:
-        iocp_scheduler()
+        windows_scheduler()
         {
             ( void )::WSAStartup( MAKEWORD( 2, 2 ), &_wsadata );
 
@@ -116,9 +106,9 @@ namespace
             WSAIoctl( 0, SIO_GET_EXTENSION_FUNCTION_POINTER, &ConnectExGuid, sizeof( ConnectExGuid ), &_ConnectEx, sizeof( _ConnectEx ), &bytes, nullptr, nullptr );
             WSAIoctl( 0, SIO_GET_EXTENSION_FUNCTION_POINTER, &GetAcceptExSockaddrsGuid, sizeof( GetAcceptExSockaddrsGuid ), &_GetAcceptExSockaddrs, sizeof( _GetAcceptExSockaddrs ), &bytes, nullptr, nullptr );
 
-            _thread = std::jthread( runtask );
+            _thread = std::jthread( run );
         }
-        ~iocp_scheduler()
+        ~windows_scheduler()
         {
             _thread.request_stop();
 
@@ -128,9 +118,9 @@ namespace
         }
 
     public:
-        static iocp_scheduler * instance()
+        static windows_scheduler * instance()
         {
-            static iocp_scheduler io;
+            static windows_scheduler io;
             return &io;
         }
 
@@ -141,13 +131,19 @@ namespace
         }
         static void enqueue( overlapped * lap )
         {
-            instance()->_overlaps.push_back( lap );
+            if ( instance()->_overlaps.size_approx() > 128 )
+                delete lap;
+            else
+                instance()->_overlaps.enqueue( lap );
         }
         static overlapped * dequeue()
         {
-            auto lap = instance()->_overlaps.front();
-            instance()->_overlaps.pop_front();
-            return lap;
+            overlapped * result = nullptr;
+            if ( !instance()->_overlaps.try_dequeue( result ) )
+            {
+                result = new overlapped{};
+            }
+            return result;
         }
 
     public:
@@ -165,41 +161,50 @@ namespace
         }
 
     private:
-        static void runtask( std::stop_token token )
+        static void run( std::stop_token token )
         {
             DWORD bytes = 0;
             ULONG_PTR key = 0;
             overlapped * overlap = nullptr;
 
+            sockaddr * localaddr = nullptr, * remoteaddr = nullptr;
+            int localaddr_len = 0, remoteaddr_len = 0;
+
             while ( !token.stop_requested() )
             {
-                if ( ::GetQueuedCompletionStatus( iocp_scheduler::iocp_handle(), &bytes, &key, (LPOVERLAPPED *)&overlap, 10 ) )
+                if ( ::GetQueuedCompletionStatus( windows_scheduler::iocp_handle(), &bytes, &key, (LPOVERLAPPED *)&overlap, 10 ) )
                 {
-                    socket_info * client = nullptr;
-
                     switch ( overlap->type )
                     {
-                    case SELECT_EVENT_READ:
-                        overlap->read.result->resume( overlap->bytes );
+                    case IOCP_EVENT_READ:
+                        overlap->result->resume( (x::uint64)overlap->bytes );
                         break;
-                    case SELECT_EVENT_WRITE:
-                        overlap->write.result->resume( overlap->bytes );
+                    case IOCP_EVENT_WRITE:
+                        overlap->result->resume( (x::uint64)overlap->bytes );
                         break;
-                    case SELECT_EVENT_RECV:
-                        overlap->recv.result->resume( overlap->bytes );
+                    case IOCP_EVENT_RECV:
+                        overlap->result->resume( (x::uint64)overlap->bytes );
                         break;
-                    case SELECT_EVENT_SEND:
-                        overlap->send.result->resume( overlap->bytes );
+                    case IOCP_EVENT_SEND:
+                        overlap->result->resume( (x::uint64)overlap->bytes );
                         break;
-                    case SELECT_EVENT_ACCEPT:
-                        overlap->accept.result->resume( overlap->accept.client );
+                    case IOCP_EVENT_ACCEPT:
+                        GetAcceptExSockaddrs( overlap->buffer.buf, overlap->buffer.len, sizeof( sockaddr_in ), sizeof( sockaddr_in ), &localaddr, &localaddr_len, &remoteaddr, &remoteaddr_len );
+
+                        memcpy_s( &overlap->accept.client->sockaddr, sizeof( sockaddr_in ), localaddr, localaddr_len );
+                        memcpy_s( &overlap->accept.client->peeraddr, sizeof( sockaddr_in ), remoteaddr, remoteaddr_len );
+
+                        delete[] overlap->buffer.buf;
+                        overlap->result->resume( overlap->accept.client );
                         break;
-                    case SELECT_EVENT_CONNECT:
-                        overlap->connect.result->resume( 0 );
+                    case IOCP_EVENT_CONNECT:
+                        overlap->result->resume( 0 );
                         break;
                     default:
                         break;
                     }
+
+                    enqueue( overlap );
                 }
             }
         }
@@ -208,112 +213,12 @@ namespace
         HANDLE _iocp;
         WSADATA _wsadata;
         std::jthread _thread;
-        std::deque<overlapped *> _overlaps;
+        x::concurrent_queue<overlapped *> _overlaps;
+
+    private:
         LPFN_ACCEPTEX _AcceptEx;
         LPFN_CONNECTEX _ConnectEx;
         LPFN_GETACCEPTEXSOCKADDRS _GetAcceptExSockaddrs;
-    };
-    struct timer_scheduler
-    {
-    public:
-        using clock = std::chrono::system_clock;
-        using duration = clock::duration;
-        using time_point = clock::time_point;
-
-    public:
-        static constexpr x::int64 N = 60;
-        static constexpr x::int64 Si = 10;
-
-    public:
-        struct timer
-        {
-            time_point time;
-            x::await_result<void> * result;
-        };
-        using timer_iterator = std::list<timer>::iterator;
-        struct timewheel
-        {
-            x::int64 interval = 0;
-            std::list<timer_iterator> timers;
-        };
-
-    private:
-        timer_scheduler()
-        {
-            _now = clock::now();
-            _id = SetTimer( nullptr, 0, USER_TIMER_MINIMUM, time_tick );
-        }
-        ~timer_scheduler()
-        {
-            KillTimer( nullptr, _id );
-        }
-
-    public:
-        static timer_scheduler * instance()
-        {
-            static timer_scheduler timer;
-            return &timer;
-        }
-
-    public:
-        static void sleep( const time_point & time, x::await_result<void> * result )
-        {
-            x::int64 timeout = std::chrono::duration_cast<std::chrono::milliseconds>( time - instance()->_now ).count();
-
-            x::int64 ticks = timeout / Si;
-
-            x::int64 slot = ( instance()->_slot + ( ticks % N ) ) % N;
-
-            instance()->_timewheels[slot].timers.push_back( instance()->_timers.insert( instance()->_timers.end(), { time, result } ) );
-        }
-
-    private:
-        static void time_tick( HWND, UINT, UINT_PTR, DWORD )
-        {
-            auto now = clock::now();
-            auto slot = instance()->_slot;
-            auto tick = std::chrono::duration_cast<std::chrono::milliseconds>( clock::now() - instance()->_now ).count();
-
-            while ( tick > 0 )
-            {
-                instance()->_timewheels[slot].interval += tick;
-
-                for( auto it = instance()->_timewheels[slot].timers.begin(); it != instance()->_timewheels[slot].timers.end(); )
-                {
-                    if ( ( *it )->time <= now )
-                    {
-                        ( *it )->result->resume();
-                        instance()->_timers.erase( ( *it ) );
-                        it = instance()->_timewheels[slot].timers.erase( it );
-                    }
-                    else
-                    {
-                        ++it;
-                    }
-                }
-
-                if ( instance()->_timewheels[slot].interval >= Si )
-                {
-                    tick = instance()->_timewheels[slot].interval - Si;
-                    instance()->_timewheels[slot].interval = 0;
-                    slot = ( slot + 1 ) % N;
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            instance()->_now = now;
-            instance()->_slot = slot;
-        }
-
-    private:
-        UINT_PTR _id = 0;
-        x::uint64 _slot = 0;
-        time_point _now = {};
-        std::list<timer> _timers;
-        std::array<timewheel, N> _timewheels;
     };
     uint32 key_event( WPARAM wParam )
     {
@@ -545,11 +450,7 @@ int x_main( int argc, const char ** argv )
 
 			DispatchMessageA( &msg );
 		}
-
-        //x::scheduler::instance()->maintick();
 	}
-
-    //x::scheduler::instance()->shutdown();
 
 	return 0;
 }
@@ -562,63 +463,81 @@ x_string x_os_name()
 	return x::allocator::salloc( "windows" );
 }
 
-x_string utf8_ansi( x_string utf_str )
+uint32 x_locale_codepage()
 {
-    std::string gbk_str;
-
-    int len = MultiByteToWideChar( CP_UTF8, 0, utf_str, -1, NULL, 0 );
-
-    std::wstring wstr( len, 0 );
-
-    len = MultiByteToWideChar( CP_UTF8, 0, utf_str, -1, wstr.data(), len );
-
-    len = WideCharToMultiByte( CP_ACP, 0, wstr.data(), -1, NULL, 0, NULL, 0 );
-
-    gbk_str.resize( len );
-    len = WideCharToMultiByte( CP_ACP, 0, wstr.data(), -1, gbk_str.data(), len, NULL, 0 );
-
-    return x::allocator::salloc( gbk_str.c_str() );
+    return ::GetACP();
 }
-x_string ansi_utf8( x_string gbk_str )
+x_string x_locale_utf8_local( x_string utf8_str )
 {
-    std::string utf_str;
+    int len = MultiByteToWideChar( CP_UTF8, 0, utf8_str, -1, NULL, 0 );
 
-    int len = MultiByteToWideChar( CP_ACP, 0, gbk_str, -1, NULL, 0 );
+    std::wstring utf16_str( len + 1, 0 );
 
-    std::wstring wstr( len, 0 );
+    len = MultiByteToWideChar( CP_UTF8, 0, utf8_str, -1, utf16_str.data(), len );
 
-    len = MultiByteToWideChar( CP_ACP, 0, gbk_str, -1, wstr.data(), len );
+    len = WideCharToMultiByte( CP_ACP, 0, utf16_str.data(), -1, NULL, 0, NULL, 0 );
 
-    len = WideCharToMultiByte( CP_UTF8, 0, wstr.data(), -1, NULL, 0, NULL, 0 );
+    std::string local_str( len + 1, 0 );
 
-    utf_str.resize( len );
-    len = WideCharToMultiByte( CP_UTF8, 0, wstr.data(), -1, utf_str.data(), len, NULL, 0 );
+    len = WideCharToMultiByte( CP_ACP, 0, utf16_str.data(), -1, local_str.data(), len, NULL, 0 );
 
-    return x::allocator::salloc( utf_str.c_str() );
+    return x::allocator::salloc( local_str.c_str() );
 }
-x_string wide_ansi( x_string wide_str )
+x_string x_locale_utf8_utf16( x_string utf8_str )
 {
-    std::string ansi_str;
+    int len = MultiByteToWideChar( CP_UTF8, 0, utf8_str, -1, NULL, 0 );
 
-    int len = WideCharToMultiByte( CP_ACP, 0, (const wchar_t *)wide_str, -1, NULL, 0, NULL, 0 );
+    std::wstring utf16_str( len + 1, 0 );
 
-    ansi_str.resize( len );
+    len = MultiByteToWideChar( CP_UTF8, 0, utf8_str, -1, utf16_str.data(), len );
 
-    len = WideCharToMultiByte( CP_ACP, 0, (const wchar_t *)wide_str, -1, ansi_str.data(), len, NULL, 0 );
-
-    return x::allocator::salloc( ansi_str.c_str() );
+    return x::allocator::salloc( (const char *)utf16_str.c_str() );
 }
-x_string ansi_wide( x_string ansi_str )
+x_string x_locale_local_utf8( x_string local_str )
 {
-    std::wstring wide_str;
+    int len = MultiByteToWideChar( CP_ACP, 0, local_str, -1, NULL, 0 );
 
-    int len = MultiByteToWideChar( CP_ACP, 0, ansi_str, -1, NULL, 0 );
+    std::wstring utf16_str( len + 1, 0 );
 
-    wide_str.resize( len );
+    len = MultiByteToWideChar( CP_ACP, 0, local_str, -1, utf16_str.data(), len );
 
-    len = MultiByteToWideChar( CP_ACP, 0, ansi_str, -1, wide_str.data(), len );
+    len = WideCharToMultiByte( CP_UTF8, 0, utf16_str.data(), -1, NULL, 0, NULL, 0 );
 
-    return x::allocator::salloc( (const char *)wide_str.c_str() );
+    std::string utf8_str( len + 1, 0 );
+
+    len = WideCharToMultiByte( CP_UTF8, 0, utf16_str.data(), -1, utf8_str.data(), len, NULL, 0 );
+
+    return x::allocator::salloc( utf8_str.c_str() );
+}
+x_string x_locale_local_utf16( x_string local_str )
+{
+    int len = MultiByteToWideChar( CP_ACP, 0, local_str, -1, NULL, 0 );
+
+    std::wstring utf16_str( len + 1, 0 );
+
+    len = MultiByteToWideChar( CP_ACP, 0, local_str, -1, utf16_str.data(), len );
+
+    return x::allocator::salloc( (const char *)utf16_str.c_str() );
+}
+x_string x_locale_utf16_utf8( x_string utf16_str )
+{
+    int len = WideCharToMultiByte( CP_UTF8, 0, (const wchar_t *)utf16_str, -1, NULL, 0, NULL, 0 );
+
+    std::string utf8_str( len + 1, 0 );
+
+    len = WideCharToMultiByte( CP_UTF8, 0, (const wchar_t *)utf16_str, -1, utf8_str.data(), len, NULL, 0 );
+
+    return x::allocator::salloc( utf8_str.c_str() );
+}
+x_string x_locale_utf16_local( x_string utf16_str )
+{
+    int len = WideCharToMultiByte( CP_ACP, 0, (const wchar_t *)utf16_str, -1, NULL, 0, NULL, 0 );
+
+    std::string local_str( len + 1, 0 );
+
+    len = WideCharToMultiByte( CP_ACP, 0, (const wchar_t *)utf16_str, -1, local_str.data(), len, NULL, 0 );
+
+    return x::allocator::salloc( local_str.c_str() );
 }
 
 x_file x_file_create()
@@ -660,7 +579,7 @@ bool x_file_open( x_file file, x_string path, uint32 mode )
             info->writeoff = end_off;
         }
 
-        ::CreateIoCompletionPort( info->handle, iocp_scheduler::iocp_handle(), (ULONG_PTR)info, 0 );
+        ::CreateIoCompletionPort( info->handle, windows_scheduler::iocp_handle(), (ULONG_PTR)info, 0 );
     }
 
     return info->handle != INVALID_HANDLE_VALUE;
@@ -1009,12 +928,78 @@ void x_window_release( x_window window )
     delete (window_info *)window;
 }
 
-x_socket x_socket_create( uint32 protocol )
+x_buffer x_socket_getaddrinfo( uint32 protocol, x_string name, x_string service )
+{
+    ADDRINFOA info = {};
+    PADDRINFOA result = nullptr;
+
+    info.ai_addrlen = 0;
+    info.ai_canonname = 0;
+    info.ai_addr = 0;
+    info.ai_next = 0;
+    info.ai_flags = AI_ALL;
+    switch ( protocol )
+    {
+    case SOCKET_PROTOCOL_UDP:
+        info.ai_family = AF_INET;
+        info.ai_socktype = SOCK_DGRAM;
+        info.ai_protocol = IPPROTO_UDP;
+        break;
+    case SOCKET_PROTOCOL_TCP:
+        info.ai_family = AF_INET;
+        info.ai_socktype = SOCK_STREAM;
+        info.ai_protocol = IPPROTO_TCP;
+        break;
+    case SOCKET_PROTOCOL_ICMP:
+        info.ai_family = AF_INET;
+        info.ai_socktype = SOCK_RAW;
+        info.ai_protocol = IPPROTO_ICMP;
+        break;
+    default:
+        break;
+    }
+
+    if ( ::getaddrinfo( name, service, &info, &result ) == 0 )
+    {
+        auto buf = new x::buffer;
+
+        while ( result != nullptr )
+        {
+            char ip[64]; ::memset( ip, 0, 64 );
+
+            if ( result->ai_family == AF_INET )
+                ::inet_ntop( AF_INET, result->ai_addr, ip, 64 );
+            else if( result->ai_family == AF_INET6 )
+                ::inet_ntop( AF_INET6, result->ai_addr, ip, 64 );
+            
+            ip[63] = 0;
+
+            buf->write( (const x::byte *)ip, ::strlen( ip ) + 1 );
+
+            result = result->ai_next;
+        }
+
+        return buf;
+    }
+
+    return nullptr;
+}
+x_socket x_socket_create( uint32 protocol, uint32 family )
 {
     auto info = new socket_info;
 
     info->type = protocol;
-    info->info.ai_family = AF_INET;
+    switch ( family )
+    {
+    case SOCKET_AF_INET:
+        info->info.ai_family = AF_INET;
+        break;
+    case SOCKET_AF_INET6:
+        info->info.ai_family = AF_INET6;
+        break;
+    default:
+        break;
+    }
     switch ( protocol )
     {
     case SOCKET_PROTOCOL_UDP:
@@ -1025,13 +1010,17 @@ x_socket x_socket_create( uint32 protocol )
         info->info.ai_socktype = SOCK_STREAM;
         info->info.ai_protocol = IPPROTO_TCP;
         break;
+    case SOCKET_PROTOCOL_ICMP:
+        info->info.ai_socktype = SOCK_RAW;
+        info->info.ai_protocol = IPPROTO_ICMP;
+        break;
     default:
         break;
     }
 
     info->handle = ::socket( info->info.ai_family, info->info.ai_socktype, info->info.ai_protocol );
 
-    ::CreateIoCompletionPort( (HANDLE)info->handle, iocp_scheduler::iocp_handle(), (ULONG_PTR)info, 0 );
+    ::CreateIoCompletionPort( (HANDLE)info->handle, windows_scheduler::iocp_handle(), (ULONG_PTR)info, 0 );
 
     return info;
 }
@@ -1039,9 +1028,9 @@ int32 x_socket_bind( x_socket socket, x_string sockname, uint16 port )
 {
     auto info = reinterpret_cast<socket_info *>( socket );
 
-    info->sockaddr.sin_family = AF_INET;
+    info->sockaddr.sin_family = ::strchr( sockname, ':' ) == nullptr ? AF_INET : AF_INET6;
     info->sockaddr.sin_port = ::htons( port );
-    ::inet_pton( AF_INET, sockname, &info->sockaddr.sin_addr.s_addr );
+    ::inet_pton( info->sockaddr.sin_family, sockname, &info->sockaddr.sin_addr.s_addr );
 
     return ::bind( info->handle, (sockaddr *)&info->sockaddr, sizeof( info->sockaddr ) );
 }
@@ -1062,7 +1051,7 @@ x_socket x_socket_accept( x_socket socket )
     client_info->sockaddr = info->sockaddr;
     client_info->handle = ::accept( info->handle, (sockaddr *)&client_info->peeraddr, &len );
 
-    CreateIoCompletionPort( (HANDLE)client_info->handle, iocp_scheduler::iocp_handle(), (ULONG_PTR)client_info, 0 );
+    CreateIoCompletionPort( (HANDLE)client_info->handle, windows_scheduler::iocp_handle(), (ULONG_PTR)client_info, 0 );
 
     return client_info;
 }
@@ -1070,9 +1059,9 @@ int32 x_socket_connect( x_socket socket, x_string peername, uint16 port )
 {
     auto info = reinterpret_cast<socket_info *>( socket );
 
-    info->peeraddr.sin_family = AF_INET;
+    info->peeraddr.sin_family = ::strchr( peername, ':' ) == nullptr ? AF_INET : AF_INET6;
     info->peeraddr.sin_port = ::htons( port );
-    ::inet_pton( AF_INET, peername, &info->peeraddr.sin_addr.s_addr );
+    ::inet_pton( info->peeraddr.sin_family, peername, &info->peeraddr.sin_addr.s_addr );
 
     return ::connect(info->handle, (sockaddr *)&info->peeraddr, sizeof( info->peeraddr ) );
 }
@@ -1092,26 +1081,17 @@ uint64 x_socket_send( x_socket socket, intptr buffer, uint64 size )
 {
     auto info = reinterpret_cast<socket_info *>( socket );
 
-    int len = 0, fromlen = sizeof( info->peeraddr );
-    if ( info->type == SOCKET_PROTOCOL_TCP )
-        len = ::send( info->handle, (char *)buffer, (int)size, 0 );
-    else
-        len = ::sendto( info->handle, (char *)buffer, (int)size, 0, (sockaddr *)&info->peeraddr, sizeof( info->peeraddr ) );
-
-    return len;
+    return ::send( info->handle, (char *)buffer, (int)size, 0 );
 }
 uint64 x_socket_sendto( x_socket socket, x_string peername, uint16 port, intptr buffer, uint64 size )
 {
     auto info = reinterpret_cast<socket_info *>( socket );
 
-    if ( info->type == SOCKET_PROTOCOL_UDP )
-    {
-        info->peeraddr.sin_family = AF_INET;
-        info->peeraddr.sin_port = ::htons( port );
-        ::inet_pton( AF_INET, peername, &info->peeraddr.sin_addr.s_addr );
+    info->peeraddr.sin_family = ::strchr( peername, ':' ) == nullptr ? AF_INET : AF_INET6;
+    info->peeraddr.sin_port = ::htons( port );
+    ::inet_pton( info->peeraddr.sin_family, peername, &info->peeraddr.sin_addr.s_addr );
 
-        return ::sendto( info->handle, (char *)buffer, (int)size, 0, (sockaddr *)&info->peeraddr, sizeof( info->peeraddr ) );
-    }
+    return ::sendto( info->handle, (char *)buffer, (int)size, 0, (sockaddr *)&info->peeraddr, sizeof( info->peeraddr ) );
 
     return 0;
 }
@@ -1173,155 +1153,110 @@ void x_socket_release( x_socket socket )
     delete reinterpret_cast<socket_info *>( socket );
 }
 
-x_awaitable x_awaitable_file_read( x_file file, intptr buffer, uint64 size )
+void x_coroutine_file_read( x_coroutine coroutine, x_file file, intptr buffer, uint64 size )
 {
     auto info = (file_info *)file;
 
-    auto lap = iocp_scheduler::dequeue();
-    lap->type = SELECT_EVENT_READ;
+    auto lap = windows_scheduler::dequeue();
+    lap->type = IOCP_EVENT_READ;
     lap->file = info;
     lap->buffer.buf = reinterpret_cast<CHAR *>( buffer );
     lap->buffer.len = (ULONG)size;
 
-    return x::to_awaitable<uint64>( [lap]( x::await_result<uint64> * result )
-    {
-        lap->read.result = result;
+    lap->result = reinterpret_cast<x::coroutine_object *>( coroutine );
 
-        ReadFile( lap->file->handle, lap->buffer.buf, lap->buffer.len, &lap->bytes, (LPOVERLAPPED)lap );
-
-    } ).address();
+    (void)ReadFile( lap->file->handle, lap->buffer.buf, lap->buffer.len, &lap->bytes, (LPOVERLAPPED)lap );
 }
-x_awaitable x_awaitable_file_write( x_file file, intptr buffer, uint64 size )
+void x_coroutine_file_write( x_coroutine coroutine, x_file file, intptr buffer, uint64 size )
 {
     auto info = (file_info *)file;
 
-    auto lap = iocp_scheduler::dequeue();
-    lap->type = SELECT_EVENT_WRITE;
+    auto lap = windows_scheduler::dequeue();
+    lap->type = IOCP_EVENT_WRITE;
     lap->file = info;
     lap->buffer.buf = reinterpret_cast<CHAR *>( buffer );
     lap->buffer.len = (ULONG)size;
+    lap->result = reinterpret_cast<x::coroutine_object *>( coroutine );
 
-    return x::to_awaitable<uint64>( [lap]( x::await_result<uint64> * result )
-    {
-        lap->write.result = result;
-
-        WriteFile( lap->file->handle, lap->buffer.buf, lap->buffer.len, &lap->bytes, (LPOVERLAPPED)lap );
-
-    } ).address();
+    (void)WriteFile( lap->file->handle, lap->buffer.buf, lap->buffer.len, &lap->bytes, (LPOVERLAPPED)lap );
 }
-x_awaitable x_awaitable_timer_sleep( int64 milliseconds )
-{
-    auto time = timer_scheduler::clock::now() + std::chrono::milliseconds( milliseconds );
-
-    return x::to_awaitable<void>( [time]( x::await_result<void> * result )
-    {
-        if ( time > timer_scheduler::clock::now() )
-        {
-            timer_scheduler::sleep( time, result );
-        }
-        else
-        {
-            result->resume();
-        }
-    } ).address();
-}
-x_awaitable x_awaitable_socket_accept( x_socket socket )
+void x_coroutine_socket_accept( x_coroutine coroutine, x_socket socket )
 {
     auto info = reinterpret_cast<socket_info *>( socket );
 
-    auto lap = iocp_scheduler::dequeue();
+    auto lap = windows_scheduler::dequeue();
     lap->socket = info;
-    lap->type = SELECT_EVENT_ACCEPT;
-    lap->accept.client = reinterpret_cast<socket_info *>( x_socket_create( info->type ) );
-
+    lap->type = IOCP_EVENT_ACCEPT;
+    lap->accept.client = reinterpret_cast<socket_info *>( x_socket_create( info->type, SOCKET_AF_INET ) );
     lap->accept.client->sockaddr = info->sockaddr;
+    lap->result = reinterpret_cast<x::coroutine_object *>( coroutine );
+    lap->buffer.buf = new char[512];
+    lap->buffer.len = 512;
 
-    return x::to_awaitable<x_socket>( [lap]( x::await_result<x_socket> * result )
-    {
-        lap->accept.result = result;
-
-        iocp_scheduler::AcceptEx( lap->socket->handle, lap->accept.client->handle, lap->buffer.buf, 0, sizeof( sockaddr_in ), sizeof( sockaddr_in ), &lap->bytes, (LPOVERLAPPED)lap );
-
-    } ).address();
+    (void)windows_scheduler::AcceptEx( lap->socket->handle, lap->accept.client->handle, lap->buffer.buf, 0, sizeof( sockaddr_in ), sizeof( sockaddr_in ), &lap->bytes, (LPOVERLAPPED)lap );
 }
-x_awaitable x_awaitable_socket_connect( x_socket socket, x_string peername, uint16 port )
+void x_coroutine_socket_connect( x_coroutine coroutine, x_socket socket, x_string peername, uint16 port )
 {
     auto info = reinterpret_cast<socket_info *>( socket );
 
-    info->peeraddr.sin_family = AF_INET;
+    info->peeraddr.sin_family = ::strchr( peername, ':' ) == nullptr ? AF_INET : AF_INET6;
     info->peeraddr.sin_port = ::htons( port );
-    ::inet_pton( AF_INET, peername, &info->peeraddr.sin_addr.s_addr );
+    ::inet_pton( info->peeraddr.sin_family, peername, &info->peeraddr.sin_addr.s_addr );
 
-    auto lap = iocp_scheduler::dequeue();
+    auto lap = windows_scheduler::dequeue();
     lap->socket = info;
-    lap->type = SELECT_EVENT_CONNECT;
+    lap->type = IOCP_EVENT_CONNECT;
+    lap->result = reinterpret_cast<x::coroutine_object *>( coroutine );
 
-    return x::to_awaitable<int32>( [lap]( x::await_result<int32> * result )
-    {
-        lap->connect.result = result;
-
-        iocp_scheduler::ConnectEx( lap->socket->handle, (sockaddr *)&lap->socket->peeraddr, sizeof( lap->socket->peeraddr ), &lap->buffer, 1, &lap->bytes, (LPOVERLAPPED)lap );
-    } ).address();
+    (void)windows_scheduler::ConnectEx( lap->socket->handle, (sockaddr *)&lap->socket->peeraddr, sizeof( lap->socket->peeraddr ), &lap->buffer, 1, &lap->bytes, (LPOVERLAPPED)lap );
 }
-x_awaitable x_awaitable_socket_recv( x_socket socket, intptr buffer, uint64 size )
+void x_coroutine_socket_recv( x_coroutine coroutine, x_socket socket, intptr buffer, uint64 size )
 {
     auto info = reinterpret_cast<socket_info *>( socket );
 
-    auto lap = iocp_scheduler::dequeue();
-    lap->type = SELECT_EVENT_RECV;
+    auto lap = windows_scheduler::dequeue();
+    lap->type = IOCP_EVENT_RECV;
     lap->socket = info;
     lap->buffer.buf = reinterpret_cast<CHAR *>( buffer );
     lap->buffer.len = (ULONG)size;
+    lap->result = reinterpret_cast<x::coroutine_object *>( coroutine );
 
-    return x::to_awaitable<uint64>( [lap]( x::await_result<uint64> * result )
-    {
-        lap->recv.result = result;
-
-        if ( lap->socket->type == SOCKET_PROTOCOL_TCP )
-            WSARecv( lap->socket->handle, &lap->buffer, 1, &lap->bytes, &lap->flags, (LPOVERLAPPED)lap, nullptr );
-        else
-            WSARecvFrom( lap->socket->handle, &lap->buffer, 1, &lap->bytes, &lap->flags, (sockaddr *)&lap->socket->peeraddr, &lap->sendto.size, (LPOVERLAPPED)lap, nullptr );
-    } ).address();
+    if ( lap->socket->type == SOCKET_PROTOCOL_TCP )
+        ( void )::WSARecv( lap->socket->handle, &lap->buffer, 1, &lap->bytes, &lap->flags, (LPOVERLAPPED)lap, nullptr );
+    else
+        ( void )::WSARecvFrom( lap->socket->handle, &lap->buffer, 1, &lap->bytes, &lap->flags, (sockaddr *)&lap->socket->peeraddr, &lap->sendto.size, (LPOVERLAPPED)lap, nullptr );
 }
-x_awaitable x_awaitable_socket_send( x_socket socket, intptr buffer, uint64 size )
+void x_coroutine_socket_send( x_coroutine coroutine, x_socket socket, intptr buffer, uint64 size )
 {
     auto info = reinterpret_cast<socket_info *>( socket );
 
-    auto lap = iocp_scheduler::dequeue();
-    lap->type = SELECT_EVENT_SEND;
+    auto lap = windows_scheduler::dequeue();
+    lap->type = IOCP_EVENT_SEND;
     lap->socket = info;
     lap->buffer.buf = reinterpret_cast<CHAR *>( buffer );
     lap->buffer.len = (ULONG)size;
     lap->sendto.size = sizeof( sockaddr_in );
+    lap->result = reinterpret_cast<x::coroutine_object *>( coroutine );
 
-    return x::to_awaitable<uint64>( [lap]( x::await_result<uint64> * result )
-    {
-        lap->send.result = result;
-
-        ::WSASend( lap->socket->handle, &lap->buffer, 1, &lap->bytes, lap->flags, (LPOVERLAPPED)lap, nullptr );
-    } ).address();
+    ( void )::WSASend( lap->socket->handle, &lap->buffer, 1, &lap->bytes, lap->flags, (LPOVERLAPPED)lap, nullptr );
 }
-x_awaitable x_awaitable_socket_sendto( x_socket socket, x_string peername, uint16 port, intptr buffer, uint64 size )
+void x_coroutine_socket_sendto( x_coroutine coroutine, x_socket socket, x_string peername, uint16 port, intptr buffer, uint64 size )
 {
     auto info = reinterpret_cast<socket_info *>( socket );
 
-    info->peeraddr.sin_family = AF_INET;
+    info->peeraddr.sin_family = ::strchr( peername, ':' ) == nullptr ? AF_INET : AF_INET6;
     info->peeraddr.sin_port = ::htons( port );
-    ::inet_pton( AF_INET, peername, &info->peeraddr.sin_addr.s_addr );
+    ::inet_pton( info->peeraddr.sin_family, peername, &info->peeraddr.sin_addr.s_addr );
 
-    auto lap = iocp_scheduler::dequeue();
-    lap->type = SELECT_EVENT_SEND;
+    auto lap = windows_scheduler::dequeue();
+    lap->type = IOCP_EVENT_SEND;
     lap->socket = info;
     lap->buffer.buf = reinterpret_cast<CHAR *>( buffer );
     lap->buffer.len = (ULONG)size;
     lap->sendto.size = sizeof( sockaddr_in );
+    lap->result = reinterpret_cast<x::coroutine_object *>( coroutine );
 
-    return x::to_awaitable<uint64>( [lap]( x::await_result<uint64> * result )
-    {
-        lap->send.result = result;
-
-        ::WSASendTo( lap->socket->handle, &lap->buffer, 1, &lap->bytes, lap->flags, (sockaddr *)&lap->socket->peeraddr, lap->sendto.size, (LPOVERLAPPED)lap, nullptr );
-    } ).address();
+    ( void )::WSASendTo( lap->socket->handle, &lap->buffer, 1, &lap->bytes, lap->flags, (sockaddr *)&lap->socket->peeraddr, lap->sendto.size, (LPOVERLAPPED)lap, nullptr );
 }
 
 #endif

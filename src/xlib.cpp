@@ -29,6 +29,7 @@
 #include "buffer.h"
 #include "allocator.h"
 #include "exception.h"
+#include "scheduler.h"
 
 namespace
 {
@@ -37,15 +38,6 @@ namespace
 		std::mutex lock;
 		std::condition_variable var;
 	};
-
-	template<typename Clock> std::chrono::time_point<Clock> stamp_2_time( int64 stamp )
-	{
-		return std::chrono::time_point<Clock>() + std::chrono::milliseconds( stamp );
-	}
-	template<typename Clock, typename Duration = typename Clock::duration> int64 time_2_stamp( std::chrono::time_point<Clock, Duration> time )
-	{
-		return std::chrono::duration_cast<std::chrono::milliseconds>( std::chrono::time_point_cast<std::chrono::milliseconds>( time ).time_since_epoch() ).count();
-	}
 
 	static const char * MMMM[12] = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" };
 	static const char * MMM[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
@@ -121,43 +113,47 @@ x_string x_path_at_entry_name( x_string path, uint64 idx )
 
 int64 x_time_now()
 {
-	return time_2_stamp( std::chrono::system_clock::now() );
+	return x::time_2_stamp( std::chrono::system_clock::now() );
 }
-void x_time_sleep( int64 milliseconds )
+void x_time_sleep_for( int64 milliseconds )
 {
 	std::this_thread::sleep_for( std::chrono::milliseconds( milliseconds ) );
 }
+void x_time_sleep_until( int64 time )
+{
+	std::this_thread::sleep_until( x::stamp_2_time<std::chrono::system_clock>( time ) );
+}
 int32 x_time_year( int64 time )
 {
-	auto tp = stamp_2_time<std::chrono::system_clock>( time );
+	auto tp = x::stamp_2_time<std::chrono::system_clock>( time );
 	auto dp = std::chrono::floor<std::chrono::days>( tp );
 	std::chrono::year_month_day ymd{ dp };
 	return (int32)(int)ymd.year();
 }
 int32 x_time_month( int64 time )
 {
-	auto tp = stamp_2_time<std::chrono::system_clock>( time );
+	auto tp = x::stamp_2_time<std::chrono::system_clock>( time );
 	auto dp = std::chrono::floor<std::chrono::days>( tp );
 	std::chrono::year_month_day ymd{ dp };
 	return (int32)(unsigned int)ymd.month();
 }
 int32 x_time_day( int64 time )
 {
-	auto tp = stamp_2_time<std::chrono::system_clock>( time );
+	auto tp = x::stamp_2_time<std::chrono::system_clock>( time );
 	auto dp = std::chrono::floor<std::chrono::days>( tp );
 	std::chrono::year_month_day ymd{ dp };
 	return (int32)(unsigned int)ymd.day();
 }
 int32 x_time_weekday( int64 time )
 {
-	auto tp = stamp_2_time<std::chrono::system_clock>( time );
+	auto tp = x::stamp_2_time<std::chrono::system_clock>( time );
 	auto dp = std::chrono::floor<std::chrono::days>( tp );
 	std::chrono::year_month_weekday ymd{ dp };
 	return (int32)ymd.weekday().c_encoding();
 }
 int32 x_time_hour( int64 time )
 {
-	auto tp = stamp_2_time<std::chrono::system_clock>( time );
+	auto tp = x::stamp_2_time<std::chrono::system_clock>( time );
 	auto dp = std::chrono::floor<std::chrono::days>( tp );
 	std::chrono::year_month_day ymd{ dp };
 	std::chrono::hh_mm_ss tm{ std::chrono::floor<std::chrono::milliseconds>( tp - dp ) };
@@ -165,7 +161,7 @@ int32 x_time_hour( int64 time )
 }
 int32 x_time_minute( int64 time )
 {
-	auto tp = stamp_2_time<std::chrono::system_clock>( time );
+	auto tp = x::stamp_2_time<std::chrono::system_clock>( time );
 	auto dp = std::chrono::floor<std::chrono::days>( tp );
 	std::chrono::year_month_day ymd{ dp };
 	std::chrono::hh_mm_ss tm{ std::chrono::floor<std::chrono::milliseconds>( tp - dp ) };
@@ -173,7 +169,7 @@ int32 x_time_minute( int64 time )
 }
 int32 x_time_second( int64 time )
 {
-	auto tp = stamp_2_time<std::chrono::system_clock>( time );
+	auto tp = x::stamp_2_time<std::chrono::system_clock>( time );
 	auto dp = std::chrono::floor<std::chrono::days>( tp );
 	std::chrono::year_month_day ymd{ dp };
 	std::chrono::hh_mm_ss tm{ std::chrono::floor<std::chrono::milliseconds>( tp - dp ) };
@@ -181,7 +177,7 @@ int32 x_time_second( int64 time )
 }
 int32 x_time_millisecond( int64 time )
 {
-	auto tp = stamp_2_time<std::chrono::system_clock>( time );
+	auto tp = x::stamp_2_time<std::chrono::system_clock>( time );
 	auto dp = std::chrono::floor<std::chrono::days>( tp );
 	std::chrono::year_month_day ymd{ dp };
 	std::chrono::hh_mm_ss tm{ std::chrono::floor<std::chrono::milliseconds>( tp - dp ) };
@@ -189,54 +185,54 @@ int32 x_time_millisecond( int64 time )
 }
 int64 x_time_add_year( int64 time, int32 year )
 {
-	return time_2_stamp( stamp_2_time<std::chrono::system_clock>( time ) + std::chrono::years( year ) );
+	return x::time_2_stamp( x::stamp_2_time<std::chrono::system_clock>( time ) + std::chrono::years( year ) );
 }
 int64 x_time_add_month( int64 time, int32 month )
 {
-	return time_2_stamp( stamp_2_time<std::chrono::system_clock>( time ) + std::chrono::months( month ) );
+	return x::time_2_stamp( x::stamp_2_time<std::chrono::system_clock>( time ) + std::chrono::months( month ) );
 }
 int64 x_time_add_day( int64 time, int32 day )
 {
-	return time_2_stamp( stamp_2_time<std::chrono::system_clock>( time ) + std::chrono::days( day ) );
+	return x::time_2_stamp( x::stamp_2_time<std::chrono::system_clock>( time ) + std::chrono::days( day ) );
 }
 int64 x_time_add_hour( int64 time, int32 hour )
 {
-	return time_2_stamp( stamp_2_time<std::chrono::system_clock>( time ) + std::chrono::hours( hour ) );
+	return x::time_2_stamp( x::stamp_2_time<std::chrono::system_clock>( time ) + std::chrono::hours( hour ) );
 }
 int64 x_time_add_minute( int64 time, int32 minute )
 {
-	return time_2_stamp( stamp_2_time<std::chrono::system_clock>( time ) + std::chrono::minutes( minute ) );
+	return x::time_2_stamp( x::stamp_2_time<std::chrono::system_clock>( time ) + std::chrono::minutes( minute ) );
 }
 int64 x_time_add_second( int64 time, int32 second )
 {
-	return time_2_stamp( stamp_2_time<std::chrono::system_clock>( time ) + std::chrono::seconds( second ) );
+	return x::time_2_stamp( x::stamp_2_time<std::chrono::system_clock>( time ) + std::chrono::seconds( second ) );
 }
 int64 x_time_add_millisecond( int64 time, int32 millisecond )
 {
-	return time_2_stamp( stamp_2_time<std::chrono::system_clock>( time ) + std::chrono::milliseconds( millisecond ) );
+	return x::time_2_stamp( x::stamp_2_time<std::chrono::system_clock>( time ) + std::chrono::milliseconds( millisecond ) );
 }
 int64 x_time_second_clock( int64 lefttime, int64 righttime )
 {
-	return std::chrono::duration_cast<std::chrono::seconds>( stamp_2_time<std::chrono::system_clock>( lefttime ) - stamp_2_time<std::chrono::system_clock>( righttime ) ).count();
+	return std::chrono::duration_cast<std::chrono::seconds>( x::stamp_2_time<std::chrono::system_clock>( lefttime ) - x::stamp_2_time<std::chrono::system_clock>( righttime ) ).count();
 }
 int64 x_time_millisecond_clock( int64 lefttime, int64 righttime )
 {
-	return std::chrono::duration_cast<std::chrono::milliseconds>( stamp_2_time<std::chrono::system_clock>( lefttime ) - stamp_2_time<std::chrono::system_clock>( righttime ) ).count();
+	return std::chrono::duration_cast<std::chrono::milliseconds>( x::stamp_2_time<std::chrono::system_clock>( lefttime ) - x::stamp_2_time<std::chrono::system_clock>( righttime ) ).count();
 }
 int64 x_time_to_utc( int64 time )
 {
-	return time_2_stamp( std::chrono::utc_clock::from_sys( stamp_2_time<std::chrono::system_clock>( time ) ) );
+	return x::time_2_stamp( std::chrono::utc_clock::from_sys( x::stamp_2_time<std::chrono::system_clock>( time ) ) );
 }
 int64 x_time_from_utc( int64 time )
 {
-	return time_2_stamp( std::chrono::utc_clock::to_sys( stamp_2_time<std::chrono::utc_clock>( time ) ) );
+	return x::time_2_stamp( std::chrono::utc_clock::to_sys( x::stamp_2_time<std::chrono::utc_clock>( time ) ) );
 }
 x_string x_time_to_string( int64 time, x_string fmt )
 {
 	std::string buf;
 	std::string_view fmt_view( fmt );
 
-	auto tp = stamp_2_time<std::chrono::system_clock>( time );
+	auto tp = x::stamp_2_time<std::chrono::system_clock>( time );
 	auto dp = std::chrono::floor<std::chrono::days>( tp );
 	std::chrono::year_month_day ymd{ dp };
 	std::chrono::year_month_weekday ymwd{ dp };
@@ -711,7 +707,7 @@ int64 x_time_from_string( x_string str, x_string fmt )
 		}
 	}
 	
-	return time_2_stamp( std::chrono::system_clock::time_point( std::chrono::years( year ) + std::chrono::months( month ) + std::chrono::days( day ) + std::chrono::hours( hour ) + std::chrono::minutes( minute ) + std::chrono::seconds( second ) + std::chrono::milliseconds( millisecond ) ) );
+	return x::time_2_stamp( std::chrono::system_clock::time_point( std::chrono::years( year ) + std::chrono::months( month ) + std::chrono::days( day ) + std::chrono::hours( hour ) + std::chrono::minutes( minute ) + std::chrono::seconds( second ) + std::chrono::milliseconds( millisecond ) ) );
 }
 
 x_lock x_lock_create()
@@ -801,7 +797,11 @@ void x_condition_release( x_condition cond )
 	delete reinterpret_cast<condition_info *>( cond );
 }
 
-x_awaitable x_awaitable_scheduler_post( x_awaitable awaiter, uint32 executor )
+void x_coroutine_sleep_for( x_coroutine coroutine, int64 milliseconds )
 {
-	return nullptr;
+	//x::scheduler;
+}
+void x_coroutine_sleep_until( x_coroutine coroutine, int64 time )
+{
+	//x::scheduler;
 }

@@ -221,14 +221,14 @@ x::access_t x::meta_function::access() const
 	return _access;
 }
 
-const x::meta_type * x::meta_function::result_type() const
+std::span<const x::meta_type * const> x::meta_function::results() const
 {
-	return _result;
+	return _results;
 }
 
 std::span<const x::meta_parameter * const> x::meta_function::parameters() const
 {
-	return _parameter_types;
+	return _parameters;
 }
 
 void x::meta_function::invoke() const

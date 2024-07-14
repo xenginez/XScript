@@ -835,6 +835,15 @@ x::nativefunc_symbol::~nativefunc_symbol()
 {
 }
 
+void x::nativefunc_symbol::add_child( x::symbol * val )
+{
+}
+
+x::symbol * x::nativefunc_symbol::find_child( std::string_view name ) const
+{
+	return nullptr;
+}
+
 x::builtinfunc_symbol::builtinfunc_symbol()
 {
 	type = x::symbol_t::BUILTINFUNC;
@@ -842,6 +851,15 @@ x::builtinfunc_symbol::builtinfunc_symbol()
 
 x::builtinfunc_symbol::~builtinfunc_symbol()
 {
+}
+
+void x::builtinfunc_symbol::add_child( x::symbol * val )
+{
+}
+
+x::symbol * x::builtinfunc_symbol::find_child( std::string_view name ) const
+{
+	return nullptr;
 }
 
 x::ast_ptr x::builtinfunc_symbol::transferred( const x::symbols_ptr & symbols, const x::ast_ptr & val ) const

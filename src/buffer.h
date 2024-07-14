@@ -26,8 +26,12 @@ namespace x
 		const x::byte * data() const;
 
 	public:
-		uint64 read( x::value & val );
-		uint64 write( const x::value & val );
+		x::uint64 read( x::value & val );
+		x::uint64 write( const x::value & val );
+
+	public:
+		x::uint64 read( x::byte * data, x::uint64 size );
+		x::uint64 write( const x::byte * data, x::uint64 size );
 
 	private:
 		x::byte * get( x::uint64 size );

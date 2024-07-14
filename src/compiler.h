@@ -54,6 +54,7 @@ namespace x
 
 	private:
 		log_callback_t _logger;
+		x::grammar_ptr _grammar;
 		x::symbols_ptr _symbols;
 		std::vector<object_ptr> _objects;
 		std::deque<std::filesystem::path> _relative_paths;

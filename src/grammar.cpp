@@ -5,17 +5,26 @@
 
 #include "exception.h"
 
-#define BEG_VERIFYS( ... ) while ( 1 ) { bool is_sucsess = false; switch ( verify( { __VA_ARGS__ } ).type ) {
+#define BEG_VERIFYS( ... ) for( bool is_sucsess = false; !is_sucsess; ) { switch ( verify( { __VA_ARGS__ } ).type ) {
 #define END_VERIFYS() default: is_sucsess = true; break; } }
 
-x::grammar::grammar( std::istream & stream, std::string_view name, const std::map<std::string, x::token_t> tokens )
-    : _stream( stream.rdbuf() ), _tokenmap( tokens )
+x::grammar::grammar()
 {
-    _location.file = name;
 }
 
 x::grammar::~grammar()
 {
+}
+
+x::unit_ast_ptr x::grammar::parse( std::istream & stream, std::string_view name, const std::map<std::string, x::token_t> & tokens )
+{
+    _stream = &stream;
+    _tokenmap = &tokens;
+    _location.file = name;
+    _location.line = 0;
+    _location.column = 0;
+
+    return unit();
 }
 
 x::unit_ast_ptr x::grammar::unit()
@@ -24,7 +33,7 @@ x::unit_ast_ptr x::grammar::unit()
     ast->location = _location;
 
     auto tk = lookup();
-    do
+    while( tk.type != x::token_t::TK_EOF )
     {
         switch ( tk.type )
         {
@@ -34,8 +43,12 @@ x::unit_ast_ptr x::grammar::unit()
         case x::token_t::TK_NAMESPACE:
             ast->namespaces.emplace_back( namespace_decl() );
             break;
+        case x::token_t::TK_SEMICOLON:
+            break;
         }
-    } while ( tk.type != x::token_t::TK_EOF );
+
+        tk = lookup();
+    }
 
     return ast;
 }
@@ -48,6 +61,7 @@ x::type_ast_ptr x::grammar::type()
 
     bool is_ref = false;
     bool is_const = false;
+
     BEG_VERIFYS( x::token_t::TK_CONST, x::token_t::TK_REF )
         case x::token_t::TK_CONST: ast->is_const = true; break;
         case x::token_t::TK_REF: ast->is_ref = true; break;
@@ -67,11 +81,21 @@ x::type_ast_ptr x::grammar::type()
     }
     else if ( verify( x::token_t::TK_LEFT_INDEX ) )
     {
+        auto array_type = std::make_shared<x::array_type_ast>();
+
+        do { array_type->layer++; } while ( verify( x::token_t::TK_COMMA ) );
+
+        verify( x::token_t::TK_RIGHT_INDEX );
+
+        ast = array_type;
+    }
+    else if ( verify( x::token_t::TK_LESS ) )
+    {
         auto temp_type = std::make_shared<x::temp_type_ast>();
 
         do { temp_type->elements.emplace_back( type() ); } while ( verify( x::token_t::TK_COMMA ) );
 
-        verify( x::token_t::TK_RIGHT_INDEX );
+        verify( x::token_t::TK_LARG );
 
         ast = temp_type;
     }
@@ -95,7 +119,9 @@ x::import_ast_ptr x::grammar::import()
     auto ast = std::make_shared<x::import_ast>();
     ast->location = _location;
 
+    validity( x::token_t::TK_LEFT_BRACKETS );
     ast->path = validity( x::token_t::TK_LITERAL_STRING ).str;
+    validity( x::token_t::TK_RIGHT_BRACKETS );
 
     return ast;
 }
@@ -156,10 +182,16 @@ x::class_decl_ast_ptr x::grammar::class_decl()
     if ( verify( x::token_t::TK_TYPECAST ) )
         ast->base = type();
 
-    verify_list( x::token_t::TK_LEFT_CURLY_BRACES, x::token_t::TK_RIGHT_CURLY_BRACES, x::token_t::TK_COMMA, [&]()
+    x::access_t acce = x::access_t::PRIVATE;
+    x::attribute_ast_ptr attr = nullptr;
+    verify_list( x::token_t::TK_LEFT_CURLY_BRACES, x::token_t::TK_RIGHT_CURLY_BRACES, x::token_t::TK_SEMICOLON, [&]()
     {
-        auto attr = attribute();
-        auto acce = access();
+        if ( lookup().type == x::token_t::TK_ATTRIBUTE )
+            attr = attribute();
+        else
+            attr = nullptr;
+
+        acce = access();
 
         switch ( lookup().type )
         {
@@ -242,7 +274,7 @@ x::template_decl_ast_ptr x::grammar::template_decl()
     } );
 
     if ( verify( x::token_t::TK_WHERE ) )
-        ast->where = stat();
+        ast->where = compound_stat();
 
     if ( verify( x::token_t::TK_TYPECAST ) )
         ast->base = type();
@@ -309,9 +341,24 @@ x::variable_decl_ast_ptr x::grammar::variable_decl()
     if ( verify( x::token_t::TK_TYPECAST ) )
         ast->value_type = type();
     else
-        ast->value_type = type( "any" );
+        ast->value_type = any_type();
 
-    if ( verify( x::token_t::TK_ASSIGN ) ) ast->init = initializers_exp();
+    if ( verify( x::token_t::TK_ASSIGN ) )
+    {
+        if ( lookup().type == x::token_t::TK_LEFT_CURLY_BRACES )
+        {
+            ast->init = initializers_exp();
+        }
+        else
+        {
+            auto init = std::make_shared<x::initializers_expr_ast>();
+            init->location = _location;
+
+            init->args.emplace_back( expr_stat() );
+
+            ast->init = init;
+        }
+    }
 
     return ast;
 }
@@ -340,16 +387,21 @@ x::function_decl_ast_ptr x::grammar::function_decl()
 
     verify_list( x::token_t::TK_LEFT_BRACKETS, x::token_t::TK_RIGHT_BRACKETS, x::token_t::TK_COMMA, [&]() -> bool
     {
-        if ( ast->parameters.emplace_back( parameter_decl() )->value_type->type() == x::ast_t::LIST_TYPE )
+        if ( ast->parameters.emplace_back( parameter_decl() )->value_type->ast_type() == x::ast_t::LIST_TYPE )
             return true;
         return false;
     } );
-    validity( x::token_t::TK_RIGHT_BRACKETS );
 
     if ( verify( x::token_t::TK_FUNCTION_RESULT ) )
-        ast->result = type();
-    else
-        ast->result = type( "void" );
+    {
+        while ( 1 )
+        {
+            ast->results.emplace_back( type() );
+
+            if ( !verify( x::token_t::TK_COMMA ) )
+                break;
+        }
+    }
 
     if ( verify( x::token_t::TK_ASSIGN ) )
         ast->stat = extern_stat();
@@ -371,7 +423,7 @@ x::parameter_decl_ast_ptr x::grammar::parameter_decl()
     else if ( verify( x::token_t::TK_VARIADIC_SIGN ) )
         parameter->value_type = std::make_shared<x::list_type_ast>();
     else
-        parameter->value_type = type( "any" );
+        parameter->value_type = any_type();
 
     return parameter;
 }
@@ -383,37 +435,36 @@ x::namespace_decl_ast_ptr x::grammar::namespace_decl()
     auto ast = std::make_shared<x::namespace_decl_ast>();
     ast->location = _location;
 
-    verify_list( x::token_t::TK_LEFT_CURLY_BRACES, x::token_t::TK_RIGHT_CURLY_BRACES, x::token_t::TK_COMMA, [&]()
+    ast->name = validity( x::token_t::TK_IDENTIFIER ).str;
+
+    x::access_t acce = x::access_t::PRIVATE;
+    x::decl_ast_ptr decl = nullptr;
+    x::attribute_ast_ptr attr = nullptr;
+
+    verify_list( x::token_t::TK_LEFT_CURLY_BRACES, x::token_t::TK_RIGHT_CURLY_BRACES, x::token_t::TK_SEMICOLON, [&]()
     {
-        x::decl_ast_ptr decl = nullptr;
-        x::attribute_ast_ptr attr = nullptr;
-        x::access_t acce = x::access_t::PRIVATE;
+        if( lookup().type == x::token_t::TK_ATTRIBUTE )
+            attr = attribute();
+        else
+            attr = nullptr;
+
+        acce = access();
 
         switch ( lookup().type )
         {
         case x::token_t::TK_ENUM:
-            attr = attribute();
-            acce = access();
             decl = enum_decl();
             break;
         case x::token_t::TK_CLASS:
-            attr = attribute();
-            acce = access();
             decl = class_decl();
             break;
         case x::token_t::TK_USING:
-            attr = attribute();
-            acce = access();
             decl = using_decl();
             break;
         case x::token_t::TK_TEMPLATE:
-            attr = attribute();
-            acce = access();
             decl = template_decl();
             break;
         case x::token_t::TK_NAMESPACE:
-            attr = attribute();
-            acce = x::access_t::PUBLIC;
             decl = namespace_decl();
             break;
         case x::token_t::TK_SEMICOLON:
@@ -426,9 +477,11 @@ x::namespace_decl_ast_ptr x::grammar::namespace_decl()
 
         if ( decl )
         {
-            decl->attr = attr;
+            decl->attr = std::move( attr );
             decl->access = acce;
-            ast->members.emplace_back( decl );
+            ast->members.emplace_back( std::move( decl ) );
+
+            acce = x::access_t::PRIVATE;
         }
     } );
 
@@ -440,7 +493,7 @@ x::stat_ast_ptr x::grammar::stat()
     switch ( lookup().type )
     {
     case x::token_t::TK_SEMICOLON:
-        return std::make_shared<x::empty_stat_ast>();
+        return nullptr;
     case x::token_t::TK_LEFT_CURLY_BRACES:
         return compound_stat();
     case x::token_t::TK_IF:
@@ -451,12 +504,10 @@ x::stat_ast_ptr x::grammar::stat()
         return for_stat();
     case x::token_t::TK_FOREACH:
         return foreach_stat();
+    case x::token_t::TK_SWITCH:
+        return switch_stat();
     case x::token_t::TK_NEW:
         return new_stat();
-    case x::token_t::TK_TRY:
-        return try_stat();
-    case x::token_t::TK_THROW:
-        return throw_stat();
     case x::token_t::TK_AWAIT:
         return await_stat();
     case x::token_t::TK_YIELD:
@@ -495,17 +546,21 @@ x::extern_stat_ast_ptr x::grammar::extern_stat()
 
 x::compound_stat_ast_ptr x::grammar::compound_stat()
 {
+    validity( x::token_t::TK_LEFT_CURLY_BRACES );
+
     auto ast = std::make_shared<x::compound_stat_ast>();
     ast->location = _location;
 
-    validity( x::token_t::TK_LEFT_CURLY_BRACES );
+    while ( !verify( x::token_t::TK_RIGHT_CURLY_BRACES ) )
     {
-        while ( verify( x::token_t::TK_RIGHT_CURLY_BRACES ) )
-        {
-            ast->stats.emplace_back( stat() );
-        }
+        auto s = stat();
+
+        if ( s )
+            ast->stats.emplace_back( s );
+
+        if ( lookup().type == x::token_t::TK_SEMICOLON )
+            next();
     }
-    validity( x::token_t::TK_RIGHT_CURLY_BRACES );
 
     return ast;
 }
@@ -550,51 +605,6 @@ x::new_stat_ast_ptr x::grammar::new_stat()
     {
         ast->init = initializers_exp();
     }
-
-    return ast;
-}
-
-x::try_stat_ast_ptr x::grammar::try_stat()
-{
-    validity( x::token_t::TK_TRY );
-
-    auto ast = std::make_shared<x::try_stat_ast>();
-    ast->location = _location;
-
-    ast->body = compound_stat();
-
-    while ( verify( x::token_t::TK_CATCH ) )
-    {
-        ast->catchs.emplace_back( catch_stat() );
-    }
-
-    return ast;
-}
-
-x::catch_stat_ast_ptr x::grammar::catch_stat()
-{
-    validity( x::token_t::TK_CATCH );
-
-    auto ast = std::make_shared<x::catch_stat_ast>();
-    ast->location = _location;
-
-    validity( x::token_t::TK_LEFT_BRACKETS );
-    ast->param = parameter_decl();
-    validity( x::token_t::TK_RIGHT_BRACKETS );
-
-    ast->body = compound_stat();
-
-    return ast;
-}
-
-x::throw_stat_ast_ptr x::grammar::throw_stat()
-{
-    validity( x::token_t::TK_THROW );
-
-    auto ast = std::make_shared<x::throw_stat_ast>();
-    ast->location = _location;
-
-    ast->stat = stat();
 
     return ast;
 }
@@ -672,6 +682,40 @@ x::foreach_stat_ast_ptr x::grammar::foreach_stat()
     return ast;
 }
 
+x::switch_stat_ast_ptr x::grammar::switch_stat()
+{
+    validity( x::token_t::TK_SWITCH );
+
+    auto ast = std::make_shared<x::switch_stat_ast>();
+    ast->location = _location;
+
+    validity( x::token_t::TK_LEFT_BRACKETS );
+    ast->expr = expr_stat();
+    validity( x::token_t::TK_RIGHT_BRACKETS );
+
+    validity( x::token_t::TK_LEFT_CURLY_BRACES );
+    {
+        while ( verify( x::token_t::TK_CASE ) )
+        {
+            auto expr = const_exp();
+            validity( x::token_t::TK_TYPECAST );
+            auto comb = compound_stat();
+
+            ast->cases.push_back( { expr, comb } );
+        }
+
+        if ( verify( x::token_t::TK_DEFAULT ) )
+        {
+            validity( x::token_t::TK_TYPECAST );
+
+            ast->defult = compound_stat();
+        }
+    }
+    validity( x::token_t::TK_RIGHT_CURLY_BRACES );
+
+    return ast;
+}
+
 x::break_stat_ast_ptr x::grammar::break_stat()
 {
     validity( x::token_t::TK_BREAK );
@@ -689,7 +733,13 @@ x::return_stat_ast_ptr x::grammar::return_stat()
     auto ast = std::make_shared<x::return_stat_ast>();
     ast->location = _location;
 
-    ast->exp = expr_stat();
+    if ( !verify( x::token_t::TK_SEMICOLON ) )
+    {
+        do
+        {
+            ast->exprs.emplace_back( expr_stat() );
+        } while ( verify( x::token_t::TK_COMMA ) );
+    }
 
     return ast;
 }
@@ -723,9 +773,25 @@ x::local_stat_ast_ptr x::grammar::local_stat()
     if ( verify( x::token_t::TK_TYPECAST ) )
         ast->value_type = type();
     else
-        ast->value_type = type( "any" );
+        ast->value_type = any_type();
 
-    if ( verify( x::token_t::TK_ASSIGN ) ) ast->init = initializers_exp();
+    if ( verify( x::token_t::TK_ASSIGN ) )
+    {
+        if ( lookup().type == x::token_t::TK_LEFT_CURLY_BRACES )
+        {
+            ast->init = initializers_exp();
+        }
+        else
+        {
+            auto init = std::make_shared<x::initializers_expr_ast>();
+            init->location = _location;
+
+            init->args.emplace_back( expr_stat() );
+
+            ast->init = init;
+        }
+    }
+
 
     return ast;
 }
@@ -737,7 +803,7 @@ x::expr_stat_ast_ptr x::grammar::expr_stat()
 
 x::expr_stat_ast_ptr x::grammar::assignment_exp()
 {
-    x::expr_stat_ast_ptr left = unary_exp();
+    x::expr_stat_ast_ptr left = logical_or_exp();
 
     if ( left != nullptr )
     {
@@ -952,7 +1018,7 @@ x::expr_stat_ast_ptr x::grammar::as_exp()
 
 x::expr_stat_ast_ptr x::grammar::is_exp()
 {
-    x::expr_stat_ast_ptr ast = unary_exp();
+    x::expr_stat_ast_ptr ast = sizeof_exp();
 
     while ( verify( x::token_t::TK_IS ) )
     {
@@ -989,7 +1055,7 @@ x::expr_stat_ast_ptr x::grammar::sizeof_exp()
 
 x::expr_stat_ast_ptr x::grammar::typeof_exp()
 {
-    x::expr_stat_ast_ptr ast = unary_exp();
+    x::expr_stat_ast_ptr ast = index_exp();
 
     while ( verify( x::token_t::TK_LEFT_BRACKETS ) )
     {
@@ -1001,6 +1067,62 @@ x::expr_stat_ast_ptr x::grammar::typeof_exp()
         ast = exp;
 
         validity( x::token_t::TK_RIGHT_BRACKETS );
+    }
+
+    return ast;
+}
+
+x::expr_stat_ast_ptr x::grammar::index_exp()
+{
+    x::expr_stat_ast_ptr ast = invoke_exp();
+
+    while ( verify( x::token_t::TK_LEFT_INDEX ) )
+    {
+        auto exp = std::make_shared<x::index_expr_ast>();
+        exp->location = _location;
+
+        exp->left = ast;
+        exp->right = invoke_exp();
+
+        validity( x::token_t::TK_RIGHT_INDEX );
+
+        ast = exp;
+    }
+
+    return ast;
+}
+
+x::expr_stat_ast_ptr x::grammar::invoke_exp()
+{
+    x::expr_stat_ast_ptr ast = member_exp();
+
+    while ( lookup().type == x::token_t::TK_LEFT_BRACKETS )
+    {
+        auto exp = std::make_shared<x::invoke_expr_ast>();
+        exp->location = _location;
+
+        exp->left = ast;
+        exp->right = arguments_exp();
+
+        ast = exp;
+    }
+
+    return ast;
+}
+
+x::expr_stat_ast_ptr x::grammar::member_exp()
+{
+    x::expr_stat_ast_ptr ast = unary_exp();
+
+    while ( verify( x::token_t::TK_MEMBER_POINT ) )
+    {
+        auto exp = std::make_shared<x::member_expr_ast>();
+        exp->location = _location;
+
+        exp->left = ast;
+        exp->right = unary_exp();
+
+        ast = exp;
     }
 
     return ast;
@@ -1062,42 +1184,6 @@ x::expr_stat_ast_ptr x::grammar::postfix_exp()
     return ast;
 }
 
-x::expr_stat_ast_ptr x::grammar::invoke_exp()
-{
-    x::expr_stat_ast_ptr ast = member_exp();
-
-    if ( lookup().type == x::token_t::TK_LEFT_BRACKETS )
-    {
-        auto exp = std::make_shared<x::invoke_expr_ast>();
-        exp->location = _location;
-
-        exp->left = ast;
-        exp->right = arguments_exp();
-
-        ast = exp;
-    }
-
-    return ast;
-}
-
-x::expr_stat_ast_ptr x::grammar::member_exp()
-{
-    x::expr_stat_ast_ptr ast = primary_exp();
-
-    while ( verify( x::token_t::TK_MEMBER_POINT ) )
-    {
-        auto exp = std::make_shared<x::member_expr_ast>();
-        exp->location = _location;
-
-        exp->left = ast;
-        exp->right = identifier_exp();
-
-        ast = exp;
-    }
-
-    return ast;
-}
-
 x::expr_stat_ast_ptr x::grammar::primary_exp()
 {
     x::expr_stat_ast_ptr ast = nullptr;
@@ -1106,6 +1192,9 @@ x::expr_stat_ast_ptr x::grammar::primary_exp()
     {
     case x::token_t::TK_FUNCTION:
         ast = closure_exp();
+        break;
+    case x::token_t::TK_TYPECAST:
+        ast = typecast_exp();
         break;
     case x::token_t::TK_IDENTIFIER:
         ast = identifier_exp();
@@ -1131,7 +1220,7 @@ x::closure_expr_ast_ptr x::grammar::closure_exp()
     auto ast = std::make_shared<x::closure_expr_ast>();
     ast->location = _location;
 
-    ast->name = x::location_to_name( ast->location, "closure_" );
+    ast->name = std::format( "{}_{}", "closure", x::time_2_stamp( std::chrono::system_clock::now() ) );
 
     if ( verify( x::token_t::TK_ASYNC ) ) ast->is_async = true;
 
@@ -1146,11 +1235,29 @@ x::closure_expr_ast_ptr x::grammar::closure_exp()
     } );
 
     if ( verify( x::token_t::TK_FUNCTION_RESULT ) )
-        ast->result = type();
-    else
-        ast->result = type( "void" );
+    {
+        while ( 1 )
+        {
+            ast->results.emplace_back( type() );
+
+            if ( !verify( x::token_t::TK_COMMA ) )
+                break;
+        }
+    }
 
     ast->stat = compound_stat();
+
+    return ast;
+}
+
+x::typecast_expr_ast_ptr x::grammar::typecast_exp()
+{
+    validity( x::token_t::TK_TYPECAST );
+
+    auto ast = std::make_shared<x::typecast_expr_ast>();
+    ast->location = _location;
+
+    ast->type = type();
 
     return ast;
 }
@@ -1190,14 +1297,12 @@ x::identifier_expr_ast_ptr x::grammar::identifier_exp()
 
 x::initializers_expr_ast_ptr x::grammar::initializers_exp()
 {
-    validity( x::token_t::TK_LEFT_CURLY_BRACES );
-
     auto ast = std::make_shared<x::initializers_expr_ast>();
     ast->location = _location;
 
     verify_list( x::token_t::TK_LEFT_CURLY_BRACES, x::token_t::TK_RIGHT_CURLY_BRACES, x::token_t::TK_COMMA, [&]()
     {
-        ast->args.emplace_back( assignment_exp() );
+        ast->args.emplace_back( expr_stat() );
     } );
 
     return ast;
@@ -1404,19 +1509,47 @@ std::string x::grammar::type_name()
     do
     {
         if ( !name.empty() ) name += ".";
-        name += validity( x::token_t::TK_IDENTIFIER ).str;
 
-    } while ( verify( x::token_t::TK_COMMA ) );
+        auto tk = lookup();
+        switch ( tk.type )
+        {
+        case x::token_t::TK_ANY:
+        case x::token_t::TK_VOID:
+        case x::token_t::TK_BYTE:
+        case x::token_t::TK_BOOL:
+        case x::token_t::TK_INT8:
+        case x::token_t::TK_INT16:
+        case x::token_t::TK_INT32:
+        case x::token_t::TK_INT64:
+        case x::token_t::TK_UINT8:
+        case x::token_t::TK_UINT16:
+        case x::token_t::TK_UINT32:
+        case x::token_t::TK_UINT64:
+        case x::token_t::TK_FLOAT16:
+        case x::token_t::TK_FLOAT32:
+        case x::token_t::TK_FLOAT64:
+        case x::token_t::TK_STRING:
+        case x::token_t::TK_INTPTR:
+        case x::token_t::TK_OBJECT:
+        case x::token_t::TK_ARRAY:
+        case x::token_t::TK_COROUTINE:
+        case x::token_t::TK_IDENTIFIER:
+            name += next().str;
+            break;
+        default:
+            XTHROW( x::syntax_exception, true, "", _location );
+            break;
+        }
+    } while ( verify( x::token_t::TK_MEMBER_POINT ) );
 
     return name;
 }
 
-x::type_ast_ptr x::grammar::type( std::string_view name, bool is_const )
+x::type_ast_ptr x::grammar::any_type()
 {
     auto ast = std::make_shared<x::type_ast>();
     ast->location = _location;
-    ast->name = name;
-    ast->is_const = is_const;
+    ast->name = "any";
     return ast;
 }
 
@@ -1446,7 +1579,7 @@ x::token x::grammar::next()
     tk.location = _location;
     tk.type = x::token_t::TK_EOF;
 
-    while ( !_stream.eof() )
+    while ( !_stream->eof() )
     {
         int c = get();
 
@@ -1454,7 +1587,7 @@ x::token x::grammar::next()
         {
             continue;
         }
-        else if ( c == '-' && std::isdigit( peek() ) )
+        else if ( c == '-' && std::isdigit( peek() ) ) // number | float
         {
             push( tk.str, c );
 
@@ -1606,10 +1739,10 @@ x::token x::grammar::next()
         {
             push( tk.str, c );
 
-            while ( std::isalnum( peek() ) || c > 127 ) push( tk.str, get() );
+            while ( std::isalnum( peek() ) || peek() == '_' || peek() > 127 ) push( tk.str, get() );
 
-            auto it = _tokenmap.find( tk.str );
-            tk.type = it != _tokenmap.end() ? it->second : x::token_t::TK_IDENTIFIER;
+            auto it = _tokenmap->find( tk.str );
+            tk.type = it != _tokenmap->end() ? it->second : x::token_t::TK_IDENTIFIER;
 
             break;
         }
@@ -1636,12 +1769,20 @@ x::token x::grammar::next()
         {
             push( tk.str, c );
 
-            while ( std::ispunct( peek() ) )
-                push( tk.str, get() );
+            XTHROW( x::syntax_exception, _tokenmap->find( tk.str ) != _tokenmap->end(), "", _location );
 
-            auto it = _tokenmap.find( tk.str );
-            XTHROW( x::syntax_exception, it == _tokenmap.end(), "", _location );
-            tk.type = it->second;
+            tk.type = _tokenmap->find( tk.str )->second;
+
+            while ( std::ispunct( peek() ) )
+            {
+                auto s = tk.str; s.push_back( peek() );
+
+                if ( _tokenmap->find( s ) == _tokenmap->end() )
+                    break;
+
+                push( tk.str, get() );
+                tk.type = _tokenmap->find( tk.str )->second;
+            }
 
             break;
         }
@@ -1656,9 +1797,9 @@ x::token x::grammar::next()
 
 x::token x::grammar::lookup()
 {
-    auto pos = _stream.tellg();
+    auto pos = _stream->tellg();
     auto tk = next();
-    _stream.seekg( pos );
+    _stream->seekg( pos );
 
     return tk;
 }
@@ -1692,13 +1833,14 @@ x::token x::grammar::verify( std::initializer_list<x::token_t> list )
 
 x::token x::grammar::validity( x::token_t k )
 {
-    XTHROW( x::lexical_exception, lookup().type != k, "", _location );
+    auto tk = lookup();
+    XTHROW( x::lexical_exception, tk.type == k, "", _location );
     return next();
 }
 
 int x::grammar::get()
 {
-    int c = _stream.get();
+    int c = _stream->get();
 
     if ( ( c & 0b10000000 ) != 0 )
     {
@@ -1749,9 +1891,9 @@ int x::grammar::get()
 
 int x::grammar::peek()
 {
-    auto pos = _stream.tellg();
+    auto pos = _stream->tellg();
     auto c = get();
-    _stream.seekg( pos );
+    _stream->seekg( pos );
 
     return c;
 }

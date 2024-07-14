@@ -2,58 +2,8 @@
 
 project ("XScript")
 
-set(SRC_FILES 
-"main.cpp"
-"src/xlib.h"
-"src/xlib.cpp"
-"src/flags.hpp"
-"src/endian.hpp"
-"src/float16.h"
-"src/float16.cpp"
-"src/concurrent_queue.hpp"
-"src/type.h"
-"src/buffer.h"
-"src/buffer.cpp"
-"src/coroutine.h"
-"src/coroutine.cpp"
-"src/ast.h"
-"src/ast.cpp"
-"src/meta.h"
-"src/meta.cpp"
-"src/module.h"
-"src/module.cpp"
-"src/grammar.h"
-"src/grammar.cpp"
-"src/builtin.h"
-"src/builtin.cpp"
-"src/visitor.h"
-"src/visitor.cpp"
-"src/symbols.h"
-"src/symbols.cpp"
-"src/codegen.h"
-"src/codegen.cpp"
-"src/semantic.h"
-"src/semantic.cpp"
-"src/compiler.h"
-"src/compiler.cpp"
-"src/exception.h"
-"src/exception.cpp"
-"src/value.h"
-"src/value.cpp"
-"src/object.h"
-"src/object.cpp"
-"src/runtime.h"
-"src/runtime.cpp"
-"src/context.h"
-"src/context.cpp"
-"src/allocator.h"
-"src/allocator.cpp"
-"src/interpreter.h"
-"src/interpreter.cpp"
-"src/virtual_machine.h"
-"src/virtual_machine.cpp")
-
-#add_executable (XScript ${SRC_FILES})
-#set_property(TARGET XScript PROPERTY CXX_STANDARD 20)
-
+add_subdirectory(src)
 add_subdirectory(tests)
+add_subdirectory(tools)
+
+configure_file(scripts/script_0.xs ${CMAKE_CURRENT_BINARY_DIR}/script_0.xs COPYONLY)

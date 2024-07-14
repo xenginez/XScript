@@ -39,6 +39,10 @@ void x::visitor::visit( x::list_type_ast * val )
 {
 }
 
+void x::visitor::visit( x::array_type_ast * val )
+{
+}
+
 void x::visitor::visit( x::enum_decl_ast * val )
 {
 	for ( const auto & it : val->elements )
@@ -93,7 +97,8 @@ void x::visitor::visit( x::variable_decl_ast * val )
 
 void x::visitor::visit( x::function_decl_ast * val )
 {
-	val->result->accept( this );
+	for ( const auto & it : val->results )
+		it->accept( this );
 
 	for ( const auto & it : val->parameters )
 		it->accept( this );
@@ -143,24 +148,6 @@ void x::visitor::visit( x::new_stat_ast * val )
 		val->init->accept( this );
 }
 
-void x::visitor::visit( x::try_stat_ast * val )
-{
-	val->body->accept( this );
-	for ( const auto & it : val->catchs )
-		it->accept( this );
-}
-
-void x::visitor::visit( x::catch_stat_ast * val )
-{
-	val->param->accept( this );
-	val->body->accept( this );
-}
-
-void x::visitor::visit( x::throw_stat_ast * val )
-{
-	val->stat->accept( this );
-}
-
 void x::visitor::visit( x::if_stat_ast * val )
 {
 	val->cond->accept( this );
@@ -190,14 +177,26 @@ void x::visitor::visit( x::foreach_stat_ast * val )
 	val->stat->accept( this );
 }
 
+void x::visitor::visit( x::switch_stat_ast * val )
+{
+	val->expr->accept( this );
+	for ( auto & it : val->cases )
+	{
+		it.first->accept( this );
+		it.second->accept( this );
+	}
+	if ( val->defult )
+		val->defult->accept( this );
+}
+
 void x::visitor::visit( x::break_stat_ast * val )
 {
 }
 
 void x::visitor::visit( x::return_stat_ast * val )
 {
-	if ( val->exp )
-		val->exp->accept( this );
+	for ( auto & it : val->exprs )
+		it->accept( this );
 }
 
 void x::visitor::visit( x::continue_stat_ast * val )
@@ -304,6 +303,12 @@ void x::visitor::visit( x::postfix_expr_ast * val )
 	val->exp->accept( this );
 }
 
+void x::visitor::visit( x::index_expr_ast * val )
+{
+	val->left->accept( this );
+	val->right->accept( this );
+}
+
 void x::visitor::visit( x::invoke_expr_ast * val )
 {
 	val->left->accept( this );
@@ -316,16 +321,22 @@ void x::visitor::visit( x::member_expr_ast * val )
 	val->right->accept( this );
 }
 
+void x::visitor::visit( x::typecast_expr_ast * val )
+{
+	val->type->accept( this );
+}
+
 void x::visitor::visit( x::identifier_expr_ast * val )
 {
 }
 
 void x::visitor::visit( x::closure_expr_ast * val )
 {
-	for ( const auto & it : val->captures )
+	for ( const auto & it : val->results )
 		it->accept( this );
 
-	val->result->accept( this );
+	for ( const auto & it : val->captures )
+		it->accept( this );
 
 	for ( const auto & it : val->parameters )
 		it->accept( this );

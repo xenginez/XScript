@@ -146,7 +146,7 @@ x::value x::runtime::get_thread( x::uint64 idx )
 	return tld::current()->_thread[idx];
 }
 
-void x::runtime::add_root( x::object * root )
+void x::runtime::attach_root( x::object * root )
 {
 	for ( size_t i = 0; i < _p->_gcroots.size(); i++ )
 	{
@@ -158,6 +158,18 @@ void x::runtime::add_root( x::object * root )
 	}
 
 	_p->_gcroots.push_back( root );
+}
+
+void x::runtime::detach_root( x::object * root )
+{
+	for ( size_t i = 0; i < _p->_gcroots.size(); i++ )
+	{
+		if ( _p->_gcroots[i] == root )
+		{
+			_p->_gcroots[i] = nullptr;
+			break;
+		}
+	}
 }
 
 void x::runtime::set_trigger_gc_size( x::uint64 size )

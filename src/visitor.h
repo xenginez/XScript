@@ -20,6 +20,7 @@ namespace x
 		virtual void visit( x::func_type_ast * val );
 		virtual void visit( x::temp_type_ast * val );
 		virtual void visit( x::list_type_ast * val );
+		virtual void visit( x::array_type_ast * val );
 
 		virtual void visit( x::enum_decl_ast * val );
 		virtual void visit( x::class_decl_ast * val );
@@ -37,13 +38,11 @@ namespace x
 		virtual void visit( x::await_stat_ast * val );
 		virtual void visit( x::yield_stat_ast * val );
 		virtual void visit( x::new_stat_ast * val );
-		virtual void visit( x::try_stat_ast * val );
-		virtual void visit( x::catch_stat_ast * val );
-		virtual void visit( x::throw_stat_ast * val );
 		virtual void visit( x::if_stat_ast * val );
 		virtual void visit( x::while_stat_ast * val );
 		virtual void visit( x::for_stat_ast * val );
 		virtual void visit( x::foreach_stat_ast * val );
+		virtual void visit( x::switch_stat_ast * val );
 		virtual void visit( x::break_stat_ast * val );
 		virtual void visit( x::return_stat_ast * val );
 		virtual void visit( x::continue_stat_ast * val );
@@ -65,8 +64,10 @@ namespace x
 		virtual void visit( x::typeof_expr_ast * val );
 		virtual void visit( x::unary_expr_ast * val );
 		virtual void visit( x::postfix_expr_ast * val );
+		virtual void visit( x::index_expr_ast * val );
 		virtual void visit( x::invoke_expr_ast * val );
 		virtual void visit( x::member_expr_ast * val );
+		virtual void visit( x::typecast_expr_ast * val );
 		virtual void visit( x::identifier_expr_ast * val );
 		virtual void visit( x::closure_expr_ast * val );
 		virtual void visit( x::arguments_expr_ast * val );

@@ -100,9 +100,11 @@ x::uint64 x::buffer::read( x::value & val )
 		break;
 	case x::value_t::OBJECT:
 	{
-		x::value v( x::value_t::STRING );
-		read( v );
-		val.to_object()->from_string( v.to_string() );
+		x::uint32 sz = *reinterpret_cast<x::uint32 *>( get( sizeof( x::uint32 ) ) );
+
+		auto str = x::allocator::salloc( std::string_view{ reinterpret_cast<const char *>( get( sz ) ), sz } );
+
+		val.to_object()->from_string( str );
 	}
 		break;
 	default:
@@ -170,6 +172,22 @@ x::uint64 x::buffer::write( const x::value & val )
 	}
 
 	return _ppos - ppos;
+}
+
+x::uint64 x::buffer::read( x::byte * data, x::uint64 size )
+{
+	size = std::min( size, _data.size() - _gpos );
+
+	memcpy( data, get( size ), size );
+
+	return size;
+}
+
+x::uint64 x::buffer::write( const x::byte * data, x::uint64 size )
+{
+	auto dst = put( size );
+	memcpy( dst, data, size );
+	return size;
 }
 
 x::byte * x::buffer::get( x::uint64 size )

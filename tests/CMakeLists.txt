@@ -1,6 +1,4 @@
-# ÃÌº”≤‚ ‘”√¿˝
-add_executable(awaitable_test awaitable_test.cpp ../src/xlib.cpp ../src/allocator.cpp ../src/coroutine.cpp)
-set_property(TARGET awaitable_test PROPERTY CXX_STANDARD 20)
-
-# ÃÌº”≤‚ ‘
-add_test(NAME awaitable_test COMMAND awaitable_test)
+add_executable(parse_test "parse_test.cpp")
+target_include_directories(parse_test PRIVATE "../src")
+target_link_libraries(parse_test PRIVATE xs)
+set_property(TARGET parse_test PROPERTY CXX_STANDARD 20)

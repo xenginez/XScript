@@ -164,7 +164,7 @@ namespace x
 		bool is_async() const;
 		bool is_static() const;
 		x::access_t access() const;
-		const x::meta_type * result_type() const;
+		std::span<const x::meta_type * const> results() const;
 		std::span<const x::meta_parameter * const> parameters() const;
 
 	public:
@@ -178,8 +178,8 @@ namespace x
 		x::uint64 _code = 0;
 		std::string_view _name;
 		std::string_view _fullname;
-		const x::meta_type * _result;
-		std::vector<const x::meta_parameter *> _parameter_types;
+		std::vector<const x::meta_type *> _results;
+		std::vector<const x::meta_parameter *> _parameters;
 	};
 
 	class meta_parameter : public meta

@@ -17,9 +17,10 @@ namespace sample
         public func static func_1( arg: int32 )
         {
             var_1[0] = add( var_1[1], arg );
+            var i32: int32 = :int32.parse( "123", 10 );
         }
 
-        public func static add( left: int32, right: int32 ) -> void = extren( "dllname", "funcname" );
+        public func static add( left: int32, right: int32 ) -> int32 = extren( "dllname", "funcname" );
     }
 
 }

@@ -6,6 +6,7 @@
 #include <vector>
 #include <string>
 #include <format>
+#include <chrono>
 #include <cassert>
 
 #include "flags.hpp"
@@ -46,7 +47,7 @@ namespace x
     using float32 = float;
     using float64 = double;
     using string = const char *;
-    enum class intptr : std::intptr_t {};
+    using intptr = void *;
     
     enum class ast_t : x::uint8
     {
@@ -58,6 +59,7 @@ namespace x
         FUNC_TYPE,
         TEMP_TYPE,
         LIST_TYPE,
+        ARRAY_TYPE,
 
         ENUM_DECL,
         CLASS_DECL,
@@ -75,13 +77,11 @@ namespace x
         AWAIT_STAT,
         YIELD_STAT,
         NEW_STAT,
-        TRY_STAT,
-        CATCH_STAT,
-        THROW_STAT,
         IF_STAT,
         WHILE_STAT,
         FOR_STAT,
         FOREACH_STAT,
+        SWITCH_STAT,
         BREAK_STAT,
         RETURN_STAT,
         CONTINUE_STAT,
@@ -103,8 +103,10 @@ namespace x
         TYPEOF_EXP,
         UNARY_EXP,
         POSTFIX_EXP,
+        INDEX_EXP,
         INVOKE_EXP,
         MEMBER_EXP,
+        TYPECAST_EXP,
         IDENTIFIER_EXP,
         CLOSURE_EXP,
         ARGUMENTS_EXP,
@@ -125,7 +127,6 @@ namespace x
         FLOAT64_CONST_EXP,
         STRING_CONST_EXP,
     };
-
     enum class meta_t : x::uint8
     {
         ENUM,
@@ -138,7 +139,6 @@ namespace x
         FLAG_ELEMENT,
         PARAM_ELEMENT,
     };
-
     enum class token_t : x::uint8
     {
         TK_EOF = 0,
@@ -211,6 +211,8 @@ namespace x
         TK_FLOAT32,              // float32
         TK_FLOAT64,              // float64
         TK_STRING,               // string
+        TK_ARRAY,                // array
+        TK_COROUTINE,            // coroutine
         TK_IMPORT,               // import
         TK_ASSERT,               // assert
         TK_TEMPLATE,             // template
@@ -240,11 +242,9 @@ namespace x
         TK_ELSE,                 // else
         TK_FOR,                  // for
         TK_FOREACH,              // foreach
+        TK_SWITCH,               // switch
         TK_CASE,                 // case
         TK_DEFAULT,              // default
-        TK_TRY,                  // try
-        TK_CATCH,                // catch
-        TK_THROW,                // throw
         TK_ASYNC,                // async
         TK_AWAIT,                // await
         TK_YIELD,                // yield
@@ -261,7 +261,6 @@ namespace x
         TK_THIS,                 // this
         TK_BASE,                 // base
     };
-
     enum class value_t : x::int32
     {
         INVALID             = 0,
@@ -280,26 +279,21 @@ namespace x
         FLOAT32             = 1 << 11,
         FLOAT64             = 1 << 12,
         STRING              = 1 << 13,
-        OBJECT              = 1 << 14,
-        INTPTR              = 1 << 15,
+        INTPTR              = 1 << 14,
+        OBJECT              = 1 << 15,
+        REFERENCE           = 1 << 16,
 
         SIGNED_MASK         = 0x3C,
         UNSIGNED_MASK       = 0x3C0,
         FLOATING_MASK       = 0x1C00,
         TYPE_MASK           = 0xFFFF,
-        
-        REF_MASK            = 1 << 27,
-        ENUM_MASK           = 1 << 28,
-        ASYN_MASK           = 1 << 29,
     };
-
     enum class access_t : x::uint8
     {
         PUBLIC,
         PRIVATE,
         PROTECTED,
     };
-
     enum class symbol_t : x::uint8
     {
         UNIT,
@@ -319,7 +313,6 @@ namespace x
         NATIVEFUNC,
         BUILTINFUNC,
     };
-
     enum class opcode_t : x::uint8
     {
         OP_NOP = 0,       // nop(TKPLS)                                                     1 byte
@@ -384,14 +377,12 @@ namespace x
         OP_JNEQUB,        // jnequb(dr_0)       REGID(1BYTE)/DIFF(4BYTE) PLACE(4BYTE)            6-9 byte
         OP_IDSTRUCT,      // idstruct(dr_0)     REGID(1BYTE)/DIFF(4BYTE) OFFSET(2BYTE)   4-7 byte
     };
-
     enum class valloc_t
     {
         READ                = 1 << 0,
         WRITE               = 1 << 1,
         EXECUTE             = 1 << 2,
     };
-
     enum class section_t : x::uint8
     {
         TYPE,
@@ -406,7 +397,6 @@ namespace x
         STRINGDATA,
         CUSTOMDATA,
     };
-
     enum class gcstage_t
     {
         NONE,
@@ -415,20 +405,24 @@ namespace x
         CLEARING,
         COLLECT,
     };
-
     enum class gcstatus_t
     {
         WHITE,
         BLACK,
         GRAY
     };
-
     enum class pagekind_t
     {
         SMALL,
         MEDIUM,
         LARGE,
         HUGE,
+    };
+    enum class corostatus_t
+    {
+        RESUME,
+        SUSPEND,
+        READY,
     };
 
     using value_flags = flags<x::value_t>;
@@ -471,6 +465,7 @@ namespace x
     class builtinfunc_symbol;
 
     class module; using module_ptr = std::shared_ptr<module>;
+    class grammar; using grammar_ptr = std::shared_ptr<grammar>;
     class visitor; using visitor_ptr = std::shared_ptr<visitor>;
     class builtin; using builtin_ptr = std::shared_ptr<builtin>;
     class symbols; using symbols_ptr = std::shared_ptr<symbols>;
@@ -487,6 +482,7 @@ namespace x
     class func_type_ast; using func_type_ast_ptr = std::shared_ptr<func_type_ast>;
     class temp_type_ast; using temp_type_ast_ptr = std::shared_ptr<temp_type_ast>;
     class list_type_ast; using list_type_ast_ptr = std::shared_ptr<list_type_ast>;
+    class array_type_ast; using array_type_ast_ptr = std::shared_ptr<array_type_ast>;
     class decl_ast; using decl_ast_ptr = std::shared_ptr<decl_ast>;
     class enum_decl_ast; using enum_decl_ast_ptr = std::shared_ptr<enum_decl_ast>;
     class class_decl_ast; using class_decl_ast_ptr = std::shared_ptr<class_decl_ast>;
@@ -504,14 +500,12 @@ namespace x
     class await_stat_ast; using await_stat_ast_ptr = std::shared_ptr<await_stat_ast>;
     class yield_stat_ast; using yield_stat_ast_ptr = std::shared_ptr<yield_stat_ast>;
     class new_stat_ast; using new_stat_ast_ptr = std::shared_ptr<new_stat_ast>;
-    class try_stat_ast; using try_stat_ast_ptr = std::shared_ptr<try_stat_ast>;
-    class catch_stat_ast; using catch_stat_ast_ptr = std::shared_ptr<catch_stat_ast>;
-    class throw_stat_ast; using throw_stat_ast_ptr = std::shared_ptr<throw_stat_ast>;
     class if_stat_ast; using if_stat_ast_ptr = std::shared_ptr<if_stat_ast>;
     class cycle_stat_ast; using cycle_stat_ast_ptr = std::shared_ptr<cycle_stat_ast>;
     class while_stat_ast; using while_stat_ast_ptr = std::shared_ptr<while_stat_ast>;
     class for_stat_ast; using for_stat_ast_ptr = std::shared_ptr<for_stat_ast>;
     class foreach_stat_ast; using foreach_stat_ast_ptr = std::shared_ptr<foreach_stat_ast>;
+    class switch_stat_ast; using switch_stat_ast_ptr = std::shared_ptr<switch_stat_ast>;
     class break_stat_ast; using break_stat_ast_ptr = std::shared_ptr<break_stat_ast>;
     class return_stat_ast; using return_stat_ast_ptr = std::shared_ptr<return_stat_ast>;
     class continue_stat_ast; using continue_stat_ast_ptr = std::shared_ptr<continue_stat_ast>;
@@ -534,8 +528,10 @@ namespace x
     class typeof_expr_ast; using typeof_expr_ast_ptr = std::shared_ptr<typeof_expr_ast>;
     class unary_expr_ast; using unary_expr_ast_ptr = std::shared_ptr<unary_expr_ast>;
     class postfix_expr_ast; using postfix_expr_ast_ptr = std::shared_ptr<postfix_expr_ast>;
+    class index_expr_ast; using index_expr_ast_ptr = std::shared_ptr<index_expr_ast>;
     class invoke_expr_ast; using invoke_expr_ast_ptr = std::shared_ptr<invoke_expr_ast>;
     class member_expr_ast; using member_expr_ast_ptr = std::shared_ptr<member_expr_ast>;
+    class typecast_expr_ast; using typecast_expr_ast_ptr = std::shared_ptr<typecast_expr_ast>;
     class identifier_expr_ast; using identifier_expr_ast_ptr = std::shared_ptr<identifier_expr_ast>;
     class closure_expr_ast; using closure_expr_ast_ptr = std::shared_ptr<closure_expr_ast>;
     class arguments_expr_ast; using arguments_expr_ast_ptr = std::shared_ptr<arguments_expr_ast>;
@@ -564,16 +560,14 @@ namespace x
         x::uint32 column = 1;
         std::string_view file;
     };
-
     struct range
     {
-        x::uint32 beg;
-        x::uint32 end;
+        x::uint32 beg = 0;
+        x::uint32 end = 0;
     };
-
     struct token
     {
-        token_t type;
+        token_t type = token_t::TK_EOF;
         std::string str;
         location location;
     };
@@ -597,11 +591,13 @@ namespace x
         return hash( str.data(), str.size() );
     }
 
-    inline constexpr auto location_to_name( const x::location & location, std::string_view suffix = {} )
+    template<typename Clock> inline constexpr std::chrono::time_point<Clock> stamp_2_time( x::int64 stamp )
     {
-        if ( suffix.empty() )
-            return std::format( "{}_{}_{}", x::hash( location.file ), location.line, location.column );
-        return std::format( "{}_{}_{}_{}", suffix, x::hash( location.file ), location.line, location.column );
+        return std::chrono::time_point<Clock>() + std::chrono::milliseconds( stamp );
+    }
+    template<typename Clock, typename Duration = typename Clock::duration> inline constexpr x::int64 time_2_stamp( std::chrono::time_point<Clock, Duration> time )
+    {
+        return std::chrono::duration_cast<std::chrono::milliseconds>( std::chrono::time_point_cast<std::chrono::milliseconds>( time ).time_since_epoch() ).count();
     }
 
     template<typename ... Ts> struct overload : Ts ... { using Ts::operator() ...; }; template<class... Ts> overload( Ts... ) -> overload<Ts...>;
@@ -677,7 +673,9 @@ namespace x
         { (const char *)u8"float16", x::token_t::TK_FLOAT16 },
         { (const char *)u8"float32", x::token_t::TK_FLOAT32 },
         { (const char *)u8"float64", x::token_t::TK_FLOAT64 },
-        { (const char *)u8"x_string", x::token_t::TK_STRING },
+        { (const char *)u8"string", x::token_t::TK_STRING },
+        { (const char *)u8"array", x::token_t::TK_ARRAY },
+        { (const char *)u8"coroutine", x::token_t::TK_COROUTINE },
         { (const char *)u8"import", x::token_t::TK_IMPORT },
         { (const char *)u8"assert", x::token_t::TK_ASSERT },
         { (const char *)u8"template", x::token_t::TK_TEMPLATE },
@@ -707,11 +705,9 @@ namespace x
         { (const char *)u8"else", x::token_t::TK_ELSE },
         { (const char *)u8"for", x::token_t::TK_FOR },
         { (const char *)u8"foreach", x::token_t::TK_FOREACH },
+        { (const char *)u8"switch", x::token_t::TK_SWITCH },
         { (const char *)u8"case", x::token_t::TK_CASE },
         { (const char *)u8"default", x::token_t::TK_DEFAULT },
-        { (const char *)u8"try", x::token_t::TK_TRY },
-        { (const char *)u8"catch", x::token_t::TK_CATCH },
-        { (const char *)u8"throw", x::token_t::TK_THROW },
         { (const char *)u8"await", x::token_t::TK_AWAIT },
         { (const char *)u8"yield", x::token_t::TK_YIELD },
         { (const char *)u8"break", x::token_t::TK_BREAK },
