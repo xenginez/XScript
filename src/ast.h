@@ -43,7 +43,7 @@ namespace x
 		void accept( visitor * val ) override;
 
 	public:
-		std::map<std::string, std::string> attributes;
+		std::vector<std::pair<std::string, std::string>> attributes;
 	};
 
 	class type_ast : public ast
@@ -368,7 +368,6 @@ namespace x
 	public:
 		x::ast_t ast_type()const override;
 		void accept( visitor * val ) override;
-
 	};
 	class logical_or_expr_ast : public binary_expr_ast
 	{
@@ -515,15 +514,6 @@ namespace x
 	public:
 		x::expr_stat_ast_ptr left;
 		x::expr_stat_ast_ptr right;
-	};
-	class typecast_expr_ast : public expr_stat_ast
-	{
-	public:
-		x::ast_t ast_type()const override;
-		void accept( visitor * val ) override;
-
-	public:
-		x::type_ast_ptr type;
 	};
 	class identifier_expr_ast : public expr_stat_ast
 	{

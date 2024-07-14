@@ -950,7 +950,7 @@ x::class_symbol * x::symbols::add_class( x::class_decl_ast * ast )
 
 x::block_symbol * x::symbols::add_block( x::compound_stat_ast * ast )
 {
-	std::string fullname = std::format( "block_{}_{}_{}", ast->location.file, ast->location.line, ast->location.column );
+	std::string fullname = std::format( "block_{}_{}_{}", ast->location.file, ast->location.line, ast->location.col );
 
 	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
@@ -967,7 +967,7 @@ x::block_symbol * x::symbols::add_block( x::compound_stat_ast * ast )
 
 x::cycle_symbol * x::symbols::add_cycle( x::cycle_stat_ast * ast )
 {
-	std::string fullname = std::format( "cycle_{}_{}_{}", ast->location.file, ast->location.line, ast->location.column );
+	std::string fullname = std::format( "cycle_{}_{}_{}", ast->location.file, ast->location.line, ast->location.col );
 
 	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 

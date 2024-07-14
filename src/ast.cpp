@@ -512,16 +512,6 @@ void x::member_expr_ast::accept( visitor * val )
 	val->visit( this );
 }
 
-x::ast_t x::typecast_expr_ast::ast_type() const
-{
-	return x::ast_t::TYPECAST_EXP;
-}
-
-void x::typecast_expr_ast::accept( visitor * val )
-{
-	val->visit( this );
-}
-
 x::ast_t x::identifier_expr_ast::ast_type() const
 {
 	return x::ast_t::IDENTIFIER_EXP;

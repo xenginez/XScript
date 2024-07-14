@@ -68,7 +68,6 @@ namespace x
 		x::expr_stat_ast_ptr postfix_exp();
 		x::expr_stat_ast_ptr primary_exp();
 		x::closure_expr_ast_ptr closure_exp();
-		x::typecast_expr_ast_ptr typecast_exp();
 		x::arguments_expr_ast_ptr arguments_exp();
 		x::identifier_expr_ast_ptr identifier_exp();
 		x::initializers_expr_ast_ptr initializers_exp();
@@ -88,6 +87,7 @@ namespace x
 	private:
 		x::token next();
 		x::token lookup();
+		bool lookup( x::token_t k );
 		bool verify( x::token_t k );
 		x::token verify( std::initializer_list<x::token_t> list );
 		x::token validity( x::token_t k );
@@ -113,9 +113,9 @@ namespace x
 		}
 
 	private:
-		int get();
-		int peek();
-		void push( std::string & str, int c ) const;
+		char32_t get();
+		char32_t peek();
+		void push( std::string & str, char32_t c ) const;
 
 	private:
 		x::location _location;

@@ -4,7 +4,7 @@
 
 x::lexical_exception::lexical_exception( std::string_view message, const x::location & location )
 {
-	this->message = std::format( "[lexical error]{} {}:{}\t{}", location.file, location.line, location.column, message );
+	this->message = std::format( "[lexical error]{} {}:{}\t{}", location.file, location.line, location.col, message );
 }
 
 char const * x::lexical_exception::what() const
@@ -14,7 +14,7 @@ char const * x::lexical_exception::what() const
 
 x::syntax_exception::syntax_exception( std::string_view message, const x::location & location )
 {
-	this->message = std::format( "[grammatical error]{} {}:{}\t{}", location.file, location.line, location.column, message );
+	this->message = std::format( "[grammatical error]{} {}:{}\t{}", location.file, location.line, location.col, message );
 }
 
 char const * x::syntax_exception::what() const

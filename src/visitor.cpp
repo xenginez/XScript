@@ -97,10 +97,10 @@ void x::visitor::visit( x::variable_decl_ast * val )
 
 void x::visitor::visit( x::function_decl_ast * val )
 {
-	for ( const auto & it : val->results )
+	for ( const auto & it : val->parameters )
 		it->accept( this );
 
-	for ( const auto & it : val->parameters )
+	for ( const auto & it : val->results )
 		it->accept( this );
 
 	val->stat->accept( this );
@@ -321,11 +321,6 @@ void x::visitor::visit( x::member_expr_ast * val )
 	val->right->accept( this );
 }
 
-void x::visitor::visit( x::typecast_expr_ast * val )
-{
-	val->type->accept( this );
-}
-
 void x::visitor::visit( x::identifier_expr_ast * val )
 {
 }
@@ -428,7 +423,7 @@ void x::scope_with_visitor::visit( x::namespace_decl_ast * val )
 
 void x::scope_with_visitor::visit( x::compound_stat_ast * val )
 {
-	symbols()->push_scope( std::format( "block_{}_{}_{}", val->location.file, val->location.line, val->location.column ) );
+	symbols()->push_scope( std::format( "block_{}_{}_{}", val->location.file, val->location.line, val->location.col ) );
 	{
 		visitor::visit( val );
 	}
@@ -437,7 +432,7 @@ void x::scope_with_visitor::visit( x::compound_stat_ast * val )
 
 void x::scope_with_visitor::visit( x::while_stat_ast * val )
 {
-	symbols()->push_scope( std::format( "cycle_{}_{}_{}", val->location.file, val->location.line, val->location.column ) );
+	symbols()->push_scope( std::format( "cycle_{}_{}_{}", val->location.file, val->location.line, val->location.col ) );
 	{
 		visitor::visit( val );
 	}
@@ -446,7 +441,7 @@ void x::scope_with_visitor::visit( x::while_stat_ast * val )
 
 void x::scope_with_visitor::visit( x::for_stat_ast * val )
 {
-	symbols()->push_scope( std::format( "cycle_{}_{}_{}", val->location.file, val->location.line, val->location.column ) );
+	symbols()->push_scope( std::format( "cycle_{}_{}_{}", val->location.file, val->location.line, val->location.col ) );
 	{
 		visitor::visit( val );
 	}
@@ -455,7 +450,7 @@ void x::scope_with_visitor::visit( x::for_stat_ast * val )
 
 void x::scope_with_visitor::visit( x::foreach_stat_ast * val )
 {
-	symbols()->push_scope( std::format( "cycle_{}_{}_{}", val->location.file, val->location.line, val->location.column ) );
+	symbols()->push_scope( std::format( "cycle_{}_{}_{}", val->location.file, val->location.line, val->location.col ) );
 	{
 		visitor::visit( val );
 	}

@@ -106,7 +106,6 @@ namespace x
         INDEX_EXP,
         INVOKE_EXP,
         MEMBER_EXP,
-        TYPECAST_EXP,
         IDENTIFIER_EXP,
         CLOSURE_EXP,
         ARGUMENTS_EXP,
@@ -531,7 +530,6 @@ namespace x
     class index_expr_ast; using index_expr_ast_ptr = std::shared_ptr<index_expr_ast>;
     class invoke_expr_ast; using invoke_expr_ast_ptr = std::shared_ptr<invoke_expr_ast>;
     class member_expr_ast; using member_expr_ast_ptr = std::shared_ptr<member_expr_ast>;
-    class typecast_expr_ast; using typecast_expr_ast_ptr = std::shared_ptr<typecast_expr_ast>;
     class identifier_expr_ast; using identifier_expr_ast_ptr = std::shared_ptr<identifier_expr_ast>;
     class closure_expr_ast; using closure_expr_ast_ptr = std::shared_ptr<closure_expr_ast>;
     class arguments_expr_ast; using arguments_expr_ast_ptr = std::shared_ptr<arguments_expr_ast>;
@@ -556,9 +554,9 @@ namespace x
 
     struct location
     {
+        x::uint32 col = 1;
         x::uint32 line = 1;
-        x::uint32 column = 1;
-        std::string_view file;
+        std::string file;
     };
     struct range
     {

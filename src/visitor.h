@@ -67,7 +67,6 @@ namespace x
 		virtual void visit( x::index_expr_ast * val );
 		virtual void visit( x::invoke_expr_ast * val );
 		virtual void visit( x::member_expr_ast * val );
-		virtual void visit( x::typecast_expr_ast * val );
 		virtual void visit( x::identifier_expr_ast * val );
 		virtual void visit( x::closure_expr_ast * val );
 		virtual void visit( x::arguments_expr_ast * val );
