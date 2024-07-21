@@ -1,11 +1,10 @@
 set(SRC_FILES 
+"url.hpp"
+"json.hpp"
 "xlib.h"
 "xlib.cpp"
-"flags.hpp"
-"endian.hpp"
 "float16.h"
 "float16.cpp"
-"concurrent_queue.hpp"
 "type.h"
 "buffer.h"
 "buffer.cpp"
@@ -41,14 +40,14 @@ set(SRC_FILES
 "context.cpp"
 "allocator.h"
 "allocator.cpp"
-
-
 "scheduler.h"
 "scheduler.cpp"
 "interpreter.h"
 "interpreter.cpp"
 "virtual_machine.h"
-"virtual_machine.cpp")
+"virtual_machine.cpp"
+"language_server.h"
+"language_server.cpp")
 
 add_library(xs STATIC ${SRC_FILES})
 set_property(TARGET xs PROPERTY CXX_STANDARD 20)

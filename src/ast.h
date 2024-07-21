@@ -91,6 +91,37 @@ namespace x
 		int layer = 0;
 	};
 
+	class enum_element_ast : public ast
+	{
+	public:
+		x::ast_t ast_type()const override;
+		void accept( visitor * val ) override;
+
+	public:
+		std::string name;
+		x::expr_stat_ast_ptr value;
+	};
+	class template_element_ast : public ast
+	{
+	public:
+		x::ast_t ast_type()const override;
+		void accept( visitor * val ) override;
+
+	public:
+		std::string name;
+		bool is_multi = false;
+	};
+	class parameter_element_ast : public ast
+	{
+	public:
+		x::ast_t ast_type()const override;
+		void accept( visitor * val ) override;
+
+	public:
+		std::string name;
+		x::type_ast_ptr value_type;
+	};
+
 	class decl_ast : public ast
 	{
 	public:
@@ -105,7 +136,7 @@ namespace x
 		void accept( visitor * val ) override;
 
 	public:
-		std::vector<x::element_decl_ast_ptr> elements;
+		std::vector<x::enum_element_ast_ptr> elements;
 	};
 	class class_decl_ast : public decl_ast
 	{
@@ -128,15 +159,6 @@ namespace x
 	public:
 		x::type_ast_ptr retype;
 	};
-	class element_decl_ast : public decl_ast
-	{
-	public:
-		x::ast_t ast_type()const override;
-		void accept( visitor * val ) override;
-
-	public:
-		x::expr_stat_ast_ptr value;
-	};
 	class template_decl_ast : public decl_ast
 	{
 	public:
@@ -146,7 +168,7 @@ namespace x
 	public:
 		x::type_ast_ptr base;
 		x::compound_stat_ast_ptr where;
-		std::vector<x::type_ast_ptr> elements;
+		std::vector<x::template_element_ast_ptr> elements;
 		std::vector<x::using_decl_ast_ptr> usings;
 		std::vector<x::variable_decl_ast_ptr> variables;
 		std::vector<x::function_decl_ast_ptr> functions;
@@ -162,7 +184,7 @@ namespace x
 		bool is_static = false;
 		bool is_thread = false;
 		x::type_ast_ptr value_type;
-		x::initializers_expr_ast_ptr init;
+		x::initializer_expr_ast_ptr init;
 	};
 	class function_decl_ast : public decl_ast
 	{
@@ -178,17 +200,7 @@ namespace x
 		bool is_virtual = false;
 		x::stat_ast_ptr stat;
 		std::vector<x::type_ast_ptr> results;
-		std::vector<x::parameter_decl_ast_ptr> parameters;
-	};
-	class parameter_decl_ast : public ast
-	{
-	public:
-		x::ast_t ast_type()const override;
-		void accept( visitor * val ) override;
-
-	public:
-		std::string name;
-		x::type_ast_ptr value_type;
+		std::vector<x::parameter_element_ast_ptr> parameters;
 	};
 	class namespace_decl_ast : public decl_ast
 	{
@@ -255,7 +267,7 @@ namespace x
 
 	public:
 		x::type_ast_ptr newtype;
-		x::initializers_expr_ast_ptr init;
+		x::initializer_expr_ast_ptr init;
 	};
 	class if_stat_ast : public stat_ast
 	{
@@ -351,7 +363,7 @@ namespace x
 		bool is_static = false;
 		bool is_thread = false;
 		x::type_ast_ptr value_type;
-		x::initializers_expr_ast_ptr init;
+		x::initializer_expr_ast_ptr init;
 	};
 
 	class expr_stat_ast : public stat_ast
@@ -360,169 +372,88 @@ namespace x
 	class binary_expr_ast : public expr_stat_ast
 	{
 	public:
-		x::token_t token = x::token_t::TK_EOF;
+		enum class op_t
+		{
+			NONE,
+			ADD,				// +
+			SUB,				// - 
+			MUL,				// * 
+			DIV,				// / 
+			MOD,				// %
+			AND,				// &
+			OR,					// |
+			XOR,				// ^
+			LEFT_SHIFT,			// <<
+			RIGHT_SHIFT,		// >> 
+			LAND,				// &&
+			LOR,				// ||
+			ASSIGN,				// =
+			ADD_ASSIGN,			// +=
+			SUB_ASSIGN,			// -= 
+			MUL_ASSIGN,			// *=
+			DIV_ASSIGN,			// /= 
+			MOD_ASSIGN,			// %= 
+			AND_ASSIGN,			// &= 
+			OR_ASSIGN,			// |= 
+			XOR_ASSIGN,			// ^= 
+			LSHIFT_EQUAL,		// <<=
+			RSHIFT_EQUAL,		// >>=
+			EQUAL,				// ==
+			NOT_EQUAL,			// !=
+			LESS,				// <
+			LARG,				// >
+			LESS_EQUAL,			// <=
+			LARG_EQUAL,			// >=
+			COMPARE,			// <=>
+			AS,					// as
+			IS,					// is
+			INDEX,				// x[y]
+			MEMBER,				// x.y
+			INVOKE,				// x(y)
+		};
+
+	public:
+		x::ast_t ast_type()const override;
+		void accept( visitor * val ) override;
+
+	public:
+		op_t op = op_t::NONE;
 		x::expr_stat_ast_ptr left, right;
-	};
-	class assignment_expr_ast : public binary_expr_ast
-	{
-	public:
-		x::ast_t ast_type()const override;
-		void accept( visitor * val ) override;
-	};
-	class logical_or_expr_ast : public binary_expr_ast
-	{
-	public:
-		x::ast_t ast_type()const override;
-		void accept( visitor * val ) override;
-
-	};
-	class logical_and_expr_ast : public binary_expr_ast
-	{
-	public:
-		x::ast_t ast_type()const override;
-		void accept( visitor * val ) override;
-
-	};
-	class or_expr_ast : public binary_expr_ast
-	{
-	public:
-		x::ast_t ast_type()const override;
-		void accept( visitor * val ) override;
-
-	};
-	class xor_expr_ast : public binary_expr_ast
-	{
-	public:
-		x::ast_t ast_type()const override;
-		void accept( visitor * val ) override;
-
-	};
-	class and_expr_ast : public binary_expr_ast
-	{
-	public:
-		x::ast_t ast_type()const override;
-		void accept( visitor * val ) override;
-
-	};
-	class compare_expr_ast : public binary_expr_ast
-	{
-	public:
-		x::ast_t ast_type()const override;
-		void accept( visitor * val ) override;
-
-	};
-	class shift_expr_ast : public binary_expr_ast
-	{
-	public:
-		x::ast_t ast_type()const override;
-		void accept( visitor * val ) override;
-
-	};
-	class add_expr_ast : public binary_expr_ast
-	{
-	public:
-		x::ast_t ast_type()const override;
-		void accept( visitor * val ) override;
-
-	};
-	class mul_expr_ast : public binary_expr_ast
-	{
-	public:
-		x::ast_t ast_type()const override;
-		void accept( visitor * val ) override;
-
-	};
-	class as_expr_ast : public expr_stat_ast
-	{
-	public:
-		x::ast_t ast_type()const override;
-		void accept( visitor * val ) override;
-
-	public:
-		x::expr_stat_ast_ptr value;
-		x::type_ast_ptr cast_type;
-	};
-	class is_expr_ast : public expr_stat_ast
-	{
-	public:
-		x::ast_t ast_type()const override;
-		void accept( visitor * val ) override;
-
-	public:
-		x::expr_stat_ast_ptr value;
-		x::type_ast_ptr cast_type;
-	};
-	class sizeof_expr_ast : public expr_stat_ast
-	{
-	public:
-		x::ast_t ast_type()const override;
-		void accept( visitor * val ) override;
-
-	public:
-		x::expr_stat_ast_ptr value;
-	};
-	class typeof_expr_ast : public expr_stat_ast
-	{
-	public:
-		x::ast_t ast_type()const override;
-		void accept( visitor * val ) override;
-
-	public:
-		x::expr_stat_ast_ptr value;
 	};
 	class unary_expr_ast : public expr_stat_ast
 	{
 	public:
+		enum class op_t
+		{
+			NONE,
+			PLUS,			// +
+			MINUS,			// -
+			INC,			// ++i
+			DEC,			// --i
+			POSTINC,		// i++
+			POSTDEC,		// i--
+			REV,			// ~
+			NOT,			// !
+			SIZEOF,			// sizeof
+			TYPEOF,			// typeof
+		};
+
+	public:
 		x::ast_t ast_type()const override;
 		void accept( visitor * val ) override;
 
 	public:
-		x::token_t token = x::token_t::TK_EOF;
+		op_t op = op_t::NONE;
 		x::expr_stat_ast_ptr exp;
 	};
-	class postfix_expr_ast : public unary_expr_ast
-	{
-	public:
-		x::ast_t ast_type()const override;
-		void accept( visitor * val ) override;
-
-	};
-	class index_expr_ast : public expr_stat_ast
+	class bracket_expr_ast : public expr_stat_ast
 	{
 	public:
 		x::ast_t ast_type()const override;
 		void accept( visitor * val ) override;
 
 	public:
-		x::expr_stat_ast_ptr left, right;
-	};
-	class invoke_expr_ast : public expr_stat_ast
-	{
-	public:
-		x::ast_t ast_type()const override;
-		void accept( visitor * val ) override;
-
-	public:
-		x::expr_stat_ast_ptr left, right;
-	};
-	class member_expr_ast : public expr_stat_ast
-	{
-	public:
-		x::ast_t ast_type()const override;
-		void accept( visitor * val ) override;
-
-	public:
-		x::expr_stat_ast_ptr left;
-		x::expr_stat_ast_ptr right;
-	};
-	class identifier_expr_ast : public expr_stat_ast
-	{
-	public:
-		x::ast_t ast_type()const override;
-		void accept( visitor * val ) override;
-
-	public:
-		std::string ident;
+		x::expr_stat_ast_ptr expr;
 	};
 	class closure_expr_ast : public expr_stat_ast
 	{
@@ -536,7 +467,7 @@ namespace x
 		x::compound_stat_ast_ptr stat;
 		std::vector<x::type_ast_ptr> results;
 		std::vector<x::identifier_expr_ast_ptr> captures;
-		std::vector<x::parameter_decl_ast_ptr> parameters;
+		std::vector<x::parameter_element_ast_ptr> parameters;
 	};
 	class arguments_expr_ast : public expr_stat_ast
 	{
@@ -547,7 +478,16 @@ namespace x
 	public:
 		std::vector<x::expr_stat_ast_ptr> args;
 	};
-	class initializers_expr_ast : public expr_stat_ast
+	class identifier_expr_ast : public expr_stat_ast
+	{
+	public:
+		x::ast_t ast_type()const override;
+		void accept( visitor * val ) override;
+
+	public:
+		std::string ident;
+	};
+	class initializer_expr_ast : public expr_stat_ast
 	{
 	public:
 		x::ast_t ast_type()const override;

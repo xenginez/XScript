@@ -63,7 +63,7 @@ void x_path_copy( x_string frompath, x_string topath, bool recursive, bool overw
 
 	std::filesystem::copy( frompath, topath, opt, ec );
 
-	XTHROW( x::runtime_exception, !ec, ec.message() );
+	XTHROW( x::runtime_exception, ec, ec.message() );
 }
 void x_path_create( x_string path, bool recursive )
 {
@@ -71,7 +71,7 @@ void x_path_create( x_string path, bool recursive )
 
 	std::filesystem::create_directories( path, ec );
 
-	XTHROW( x::runtime_exception, !ec, ec.message() );
+	XTHROW( x::runtime_exception, ec, ec.message() );
 }
 void x_path_remove( x_string path )
 {
@@ -79,7 +79,7 @@ void x_path_remove( x_string path )
 
 	std::filesystem::remove_all( path, ec );
 
-	XTHROW( x::runtime_exception, !ec, ec.message() );
+	XTHROW( x::runtime_exception, ec, ec.message() );
 }
 bool x_path_exists( x_string path )
 {

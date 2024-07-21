@@ -20,6 +20,7 @@ namespace x
 		virtual x::uint64 size() const;
 		virtual x::uint64 hashcode() const;
 		virtual x::string to_string() const;
+		virtual void from_copy( x::object * obj );
 		virtual void from_string( x::string str );
 		virtual const x::meta_type * type() const;
 		virtual int compare( x::object * other ) const;
@@ -33,6 +34,11 @@ namespace x
 	};
 
 	class array_object : public object
+	{
+
+	};
+
+	class string_object : public object
 	{
 
 	};

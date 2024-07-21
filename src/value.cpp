@@ -361,105 +361,105 @@ bool x::value::is_invalid() const
 
 bool x::value::to_bool() const
 {
-	XTHROW( x::bad_value_access, is_bool(), "" );
+	XTHROW( x::bad_value_access, !is_bool(), "" );
 
 	return to_ref().b;
 }
 
 x::int8 x::value::to_int8() const
 {
-	XTHROW( x::bad_value_access, is_int8(), "" );
+	XTHROW( x::bad_value_access, !is_int8(), "" );
 
 	return to_ref().i8;
 }
 
 x::int16 x::value::to_int16() const
 {
-	XTHROW( x::bad_value_access, is_int16(), "" );
+	XTHROW( x::bad_value_access, !is_int16(), "" );
 
 	return to_ref().i16;
 }
 
 x::int32 x::value::to_int32() const
 {
-	XTHROW( x::bad_value_access, is_int32(), "" );
+	XTHROW( x::bad_value_access, !is_int32(), "" );
 
 	return to_ref().i32;
 }
 
 x::int64 x::value::to_int64() const
 {
-	XTHROW( x::bad_value_access, is_int64(), "" );
+	XTHROW( x::bad_value_access, !is_int64(), "" );
 
 	return to_ref().i64;
 }
 
 x::uint8 x::value::to_uint8() const
 {
-	XTHROW( x::bad_value_access, is_uint8(), "" );
+	XTHROW( x::bad_value_access, !is_uint8(), "" );
 
 	return to_ref().u8;
 }
 
 x::uint16 x::value::to_uint16() const
 {
-	XTHROW( x::bad_value_access, is_uint16(), "" );
+	XTHROW( x::bad_value_access, !is_uint16(), "" );
 
 	return to_ref().u16;
 }
 
 x::uint32 x::value::to_uint32() const
 {
-	XTHROW( x::bad_value_access, is_uint32(), "" );
+	XTHROW( x::bad_value_access, !is_uint32(), "" );
 
 	return to_ref().u32;
 }
 
 x::uint64 x::value::to_uint64() const
 {
-	XTHROW( x::bad_value_access, is_uint64(), "" );
+	XTHROW( x::bad_value_access, !is_uint64(), "" );
 
 	return to_ref().u64;
 }
 
 x::float16 x::value::to_float16() const
 {
-	XTHROW( x::bad_value_access, is_float16(), "" );
+	XTHROW( x::bad_value_access, !is_float16(), "" );
 
 	return to_ref().f16;
 }
 
 x::float32 x::value::to_float32() const
 {
-	XTHROW( x::bad_value_access, is_float32(), "" );
+	XTHROW( x::bad_value_access, !is_float32(), "" );
 
 	return to_ref().f32;
 }
 
 x::float64 x::value::to_float64() const
 {
-	XTHROW( x::bad_value_access, is_float64(), "" );
+	XTHROW( x::bad_value_access, !is_float64(), "" );
 
 	return to_ref().f64;
 }
 
 x::intptr x::value::to_intptr() const
 {
-	XTHROW( x::bad_value_access, is_intptr(), "" );
+	XTHROW( x::bad_value_access, !is_intptr(), "" );
 
 	return to_ref().ptr;
 }
 
 x::string x::value::to_string() const
 {
-	XTHROW( x::bad_value_access, is_string(), "" );
+	XTHROW( x::bad_value_access, !is_string(), "" );
 
 	return to_ref().str;
 }
 
 x::object * x::value::to_object() const
 {
-	XTHROW( x::bad_value_access, is_object(), "" );
+	XTHROW( x::bad_value_access, !is_object(), "" );
 
 	return to_ref().obj;
 }

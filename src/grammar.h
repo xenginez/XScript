@@ -27,10 +27,10 @@ namespace x
 		x::template_decl_ast_ptr template_decl();
 		x::variable_decl_ast_ptr variable_decl();
 		x::function_decl_ast_ptr function_decl();
-		x::parameter_decl_ast_ptr parameter_decl();
+		x::parameter_element_ast_ptr parameter_decl();
 		x::namespace_decl_ast_ptr namespace_decl();
 
-		x::stat_ast_ptr stat();
+		x::stat_ast_ptr statement();
 		x::extern_stat_ast_ptr extern_stat();
 		x::compound_stat_ast_ptr compound_stat();
 		x::await_stat_ast_ptr await_stat();
@@ -46,7 +46,7 @@ namespace x
 		x::continue_stat_ast_ptr continue_stat();
 		x::local_stat_ast_ptr local_stat();
 
-		x::expr_stat_ast_ptr expr_stat();
+		x::expr_stat_ast_ptr express();
 		x::expr_stat_ast_ptr assignment_exp();
 		x::expr_stat_ast_ptr logical_or_exp();
 		x::expr_stat_ast_ptr logical_and_exp();
@@ -67,10 +67,13 @@ namespace x
 		x::expr_stat_ast_ptr unary_exp();
 		x::expr_stat_ast_ptr postfix_exp();
 		x::expr_stat_ast_ptr primary_exp();
+
+		x::bracket_expr_ast_ptr bracket_exp();
 		x::closure_expr_ast_ptr closure_exp();
 		x::arguments_expr_ast_ptr arguments_exp();
 		x::identifier_expr_ast_ptr identifier_exp();
-		x::initializers_expr_ast_ptr initializers_exp();
+		x::initializer_expr_ast_ptr initializer_exp();
+
 		x::const_expr_ast_ptr const_exp();
 		x::null_const_expr_ast_ptr null_const_exp();
 		x::bool_const_expr_ast_ptr true_const_exp();
@@ -82,15 +85,15 @@ namespace x
 	private:
 		x::access_t access();
 		std::string type_name();
-		x::type_ast_ptr any_type();
+		x::type_ast_ptr anytype();
 		
 	private:
 		x::token next();
 		x::token lookup();
 		bool lookup( x::token_t k );
 		bool verify( x::token_t k );
-		x::token verify( std::initializer_list<x::token_t> list );
 		x::token validity( x::token_t k );
+		x::token verify( std::initializer_list<x::token_t> list );
 		template<typename F> void verify_list( x::token_t beg, x::token_t end, x::token_t step, F && callback )
 		{
 			validity( beg );
@@ -103,8 +106,10 @@ namespace x
 						if ( callback() )
 							break;
 					}
-					else
+					else if( !lookup( end ) )
+					{
 						callback();
+					}
 
 				} while ( verify( step ) );
 

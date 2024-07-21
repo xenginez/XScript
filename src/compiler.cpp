@@ -59,9 +59,9 @@ bool x::compiler::compile( const std::filesystem::path & file )
 
 		scanner();
 
-		instant();
-
 		checker();
+
+		instant();
 
 		genunit();
 
@@ -79,26 +79,26 @@ bool x::compiler::compile( const std::filesystem::path & file )
 
 void x::compiler::scanner()
 {
-	x::symbol_scanner_visitor scanner( _symbols );
+	x::symbol_scanner_visitor scanner;
 
 	for ( const auto & it : _objects )
-		it->ast->accept( &scanner );
-}
-
-void x::compiler::instant()
-{
-	x::instantiation_constructor_visitor instant( _symbols );
-	
-	for ( const auto & it : _objects )
-		it->ast->accept( &instant );
+		scanner.scanner( _symbols, it->ast );
 }
 
 void x::compiler::checker()
 {
-	x::semantics_checker_visitor semantic( _symbols );
+	x::semantics_analyzer_visitor checker;
 
 	for ( const auto & it : _objects )
-		it->ast->accept( &semantic );
+		checker.analysis( _symbols, it->ast );
+}
+
+void x::compiler::instant()
+{
+	x::instantiate_translate_visitor instant;
+	
+	for ( const auto & it : _objects )
+		instant.translate( _symbols, it->ast );
 }
 
 void x::compiler::genunit()
@@ -174,7 +174,7 @@ void x::compiler::loading( const std::filesystem::path & file )
 	{
 		std::ifstream ifs( path );
 		
-		XTHROW( x::compile_exception, ifs.is_open(), "" );
+		XTHROW( x::compile_exception, !ifs.is_open(), "" );
 
 		obj->ast = x::grammar().parse( ifs, path.string() );
 
@@ -217,11 +217,9 @@ void x::module_compiler::genmodule()
 		{
 			obj->module = std::make_shared<x::module>();
 
-			x::module_scanner_visitor scanner( obj->module, symbols() );
-			obj->ast->accept( &scanner );
+			x::module_scanner_visitor().scanner( obj->module, symbols(), obj->ast );
 
-			x::module_generater_visitor generater( obj->module, symbols() );
-			obj->ast->accept( &generater );
+			x::module_generater_visitor().generate( obj->module, symbols(), obj->ast );
 
 			logger( std::format( "gen module: {}", obj->path.string() ) );
 		}
@@ -338,6 +336,8 @@ x::symbols_ptr x::module_compiler::make_symbols()
 	END();
 	BEG( builtin_typeof );
 	END();
+	BEG( builtin_list_sizeof );
+	END();
 	BEG( builtin_list_typeof );
 	END();
 	BEG( builtin_is_same );
@@ -348,9 +348,9 @@ x::symbols_ptr x::module_compiler::make_symbols()
 	END();
 	BEG( builtin_is_base_of );
 	END();
-	BEG( builtin_is_template_of );
-	END();
 	BEG( builtin_conditional );
+	END();
+	BEG( builtin_is_template_of );
 	END();
 
 #undef BEG
@@ -390,11 +390,9 @@ void x::llvm_compiler::genmodule()
 		{
 			//obj->module = std::make_shared<llvm::module>( obj->path.string(), *_context );
 
-			x::llvm_scanner_visitor scanner( obj->module, symbols() );
-			obj->ast->accept( &scanner );
+			x::llvm_scanner_visitor().scanner( obj->module, symbols(), obj->ast );
 
-			x::llvm_generater_visitor generater( obj->module, symbols() );
-			obj->ast->accept( &generater );
+			x::llvm_generater_visitor().generate( obj->module, symbols(), obj->ast );
 		}
 	}
 }
@@ -444,11 +442,9 @@ void x::spirv_compiler::genmodule()
 		{
 			//obj->module = std::make_shared<spirv::module>( obj->path.string(), *_context );
 
-			x::spirv_scanner_visitor scanner( obj->module, symbols() );
-			obj->ast->accept( &scanner );
+			x::spirv_scanner_visitor().scanner( obj->module, symbols(), obj->ast );
 
-			x::spirv_generater_visitor generater( obj->module, symbols() );
-			obj->ast->accept( &generater );
+			x::spirv_generater_visitor().generate( obj->module, symbols(), obj->ast );
 		}
 	}
 }

@@ -82,6 +82,36 @@ void x::array_type_ast::accept( visitor * val )
 	val->visit( this );
 }
 
+x::ast_t x::enum_element_ast::ast_type() const
+{
+	return x::ast_t::ENUM_ELEMENT;
+}
+
+void x::enum_element_ast::accept( visitor * val )
+{
+	val->visit( this );
+}
+
+x::ast_t x::template_element_ast::ast_type() const
+{
+	return x::ast_t::TEMPLATE_ELEMENT;
+}
+
+void x::template_element_ast::accept( visitor * val )
+{
+	val->visit( this );
+}
+
+x::ast_t x::parameter_element_ast::ast_type() const
+{
+	return x::ast_t::PARAMETER_ELEMENT;
+}
+
+void x::parameter_element_ast::accept( visitor * val )
+{
+	val->visit( this );
+}
+
 x::ast_t x::enum_decl_ast::ast_type() const
 {
 	return x::ast_t::ENUM_DECL;
@@ -112,16 +142,6 @@ void x::using_decl_ast::accept( visitor * val )
 	val->visit( this );
 }
 
-x::ast_t x::element_decl_ast::ast_type() const
-{
-	return x::ast_t::ELEMENT_DECL;
-}
-
-void x::element_decl_ast::accept( visitor * val )
-{
-	val->visit( this );
-}
-
 x::ast_t x::template_decl_ast::ast_type() const
 {
 	return x::ast_t::TEMPLATE_DECL;
@@ -148,16 +168,6 @@ x::ast_t x::function_decl_ast::ast_type() const
 }
 
 void x::function_decl_ast::accept( visitor * val )
-{
-	val->visit( this );
-}
-
-x::ast_t x::parameter_decl_ast::ast_type() const
-{
-	return x::ast_t::PARAMETER_DECL;
-}
-
-void x::parameter_decl_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
@@ -322,142 +332,12 @@ void x::local_stat_ast::accept( visitor * val )
 	val->visit( this );
 }
 
-x::ast_t x::assignment_expr_ast::ast_type() const
+x::ast_t x::binary_expr_ast::ast_type() const
 {
-	return x::ast_t::ASSIGNMENT_EXP;
+	return x::ast_t::BINRARY_EXP;
 }
 
-void x::assignment_expr_ast::accept( visitor * val )
-{
-	val->visit( this );
-}
-
-x::ast_t x::logical_or_expr_ast::ast_type() const
-{
-	return x::ast_t::LOGICAL_OR_EXP;
-}
-
-void x::logical_or_expr_ast::accept( visitor * val )
-{
-	val->visit( this );
-}
-
-x::ast_t x::logical_and_expr_ast::ast_type() const
-{
-	return x::ast_t::LOGICAL_AND_EXP;
-}
-
-void x::logical_and_expr_ast::accept( visitor * val )
-{
-	val->visit( this );
-}
-
-x::ast_t x::or_expr_ast::ast_type() const
-{
-	return x::ast_t::OR_EXP;
-}
-
-void x::or_expr_ast::accept( visitor * val )
-{
-	val->visit( this );
-}
-
-x::ast_t x::xor_expr_ast::ast_type() const
-{
-	return x::ast_t::XOR_EXP;
-}
-
-void x::xor_expr_ast::accept( visitor * val )
-{
-	val->visit( this );
-}
-
-x::ast_t x::and_expr_ast::ast_type() const
-{
-	return x::ast_t::AND_EXP;
-}
-
-void x::and_expr_ast::accept( visitor * val )
-{
-	val->visit( this );
-}
-
-x::ast_t x::compare_expr_ast::ast_type() const
-{
-	return x::ast_t::COMPARE_EXP;
-}
-
-void x::compare_expr_ast::accept( visitor * val )
-{
-	val->visit( this );
-}
-
-x::ast_t x::shift_expr_ast::ast_type() const
-{
-	return x::ast_t::SHIFT_EXP;
-}
-
-void x::shift_expr_ast::accept( visitor * val )
-{
-	val->visit( this );
-}
-
-x::ast_t x::add_expr_ast::ast_type() const
-{
-	return x::ast_t::ADD_EXP;
-}
-
-void x::add_expr_ast::accept( visitor * val )
-{
-	val->visit( this );
-}
-
-x::ast_t x::mul_expr_ast::ast_type() const
-{
-	return x::ast_t::MUL_EXP;
-}
-
-void x::mul_expr_ast::accept( visitor * val )
-{
-	val->visit( this );
-}
-
-x::ast_t x::as_expr_ast::ast_type() const
-{
-	return x::ast_t::AS_EXP;
-}
-
-void x::as_expr_ast::accept( visitor * val )
-{
-	val->visit( this );
-}
-
-x::ast_t x::is_expr_ast::ast_type() const
-{
-	return x::ast_t::IS_EXP;
-}
-
-void x::is_expr_ast::accept( visitor * val )
-{
-	val->visit( this );
-}
-
-x::ast_t x::sizeof_expr_ast::ast_type() const
-{
-	return x::ast_t::SIZEOF_EXP;
-}
-
-void x::sizeof_expr_ast::accept( visitor * val )
-{
-	val->visit( this );
-}
-
-x::ast_t x::typeof_expr_ast::ast_type() const
-{
-	return x::ast_t::TYPEOF_EXP;
-}
-
-void x::typeof_expr_ast::accept( visitor * val )
+void x::binary_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
@@ -472,52 +352,12 @@ void x::unary_expr_ast::accept( visitor * val )
 	val->visit( this );
 }
 
-x::ast_t x::postfix_expr_ast::ast_type() const
+x::ast_t x::bracket_expr_ast::ast_type() const
 {
-	return x::ast_t::POSTFIX_EXP;
+	return x::ast_t::BRACKET_EXP;
 }
 
-void x::postfix_expr_ast::accept( visitor * val )
-{
-	val->visit( this );
-}
-
-x::ast_t x::index_expr_ast::ast_type() const
-{
-	return x::ast_t::INDEX_EXP;
-}
-
-void x::index_expr_ast::accept( visitor * val )
-{
-	val->visit( this );
-}
-
-x::ast_t x::invoke_expr_ast::ast_type() const
-{
-	return x::ast_t::INVOKE_EXP;
-}
-
-void x::invoke_expr_ast::accept( visitor * val )
-{
-	val->visit( this );
-}
-
-x::ast_t x::member_expr_ast::ast_type() const
-{
-	return x::ast_t::MEMBER_EXP;
-}
-
-void x::member_expr_ast::accept( visitor * val )
-{
-	val->visit( this );
-}
-
-x::ast_t x::identifier_expr_ast::ast_type() const
-{
-	return x::ast_t::IDENTIFIER_EXP;
-}
-
-void x::identifier_expr_ast::accept( visitor * val )
+void x::bracket_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }
@@ -542,12 +382,22 @@ void x::arguments_expr_ast::accept( visitor * val )
 	val->visit( this );
 }
 
-x::ast_t x::initializers_expr_ast::ast_type() const
+x::ast_t x::identifier_expr_ast::ast_type() const
 {
-	return x::ast_t::INITIALIZERS_EXP;
+	return x::ast_t::IDENTIFIER_EXP;
 }
 
-void x::initializers_expr_ast::accept( visitor * val )
+void x::identifier_expr_ast::accept( visitor * val )
+{
+	val->visit( this );
+}
+
+x::ast_t x::initializer_expr_ast::ast_type() const
+{
+	return x::ast_t::INITIALIZER_EXP;
+}
+
+void x::initializer_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
 }

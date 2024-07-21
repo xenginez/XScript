@@ -37,8 +37,8 @@ namespace x
 
 	private:
 		void scanner();
-		void instant();
 		void checker();
+		void instant();
 		void genunit();
 		void linking();
 		void loading( const std::filesystem::path & file );

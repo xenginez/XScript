@@ -22,13 +22,18 @@ namespace x
 	public:
 		x::ast_ptr transferred( const x::symbols_ptr & sym, const x::ast_ptr & ast ) const override;
 	};
+	// type builtin_list_sizeof( list_type )
+	class builtin_list_sizeof : public x::builtin
+	{
+	public:
+		x::ast_ptr transferred( const x::symbols_ptr & sym, const x::ast_ptr & ast ) const override;
+	};
 	// type builtin_list_typeof( list_type, index )
 	class builtin_list_typeof : public x::builtin
 	{
 	public:
 		x::ast_ptr transferred( const x::symbols_ptr & sym, const x::ast_ptr & ast ) const override;
 	};
-
 	// bool builtin_is_same( left_type, right_type )
 	class builtin_is_same : public x::builtin
 	{
@@ -47,9 +52,14 @@ namespace x
 	public:
 		x::ast_ptr transferred( const x::symbols_ptr & sym, const x::ast_ptr & ast ) const override;
 	};
-
 	// bool builtin_is_base_of( type, base_type )
 	class builtin_is_base_of : public x::builtin
+	{
+	public:
+		x::ast_ptr transferred( const x::symbols_ptr & sym, const x::ast_ptr & ast ) const override;
+	};
+	// type builtin_conditional( cond, then_type, else_type )
+	class builtin_conditional : public x::builtin
 	{
 	public:
 		x::ast_ptr transferred( const x::symbols_ptr & sym, const x::ast_ptr & ast ) const override;
@@ -60,18 +70,4 @@ namespace x
 	public:
 		x::ast_ptr transferred( const x::symbols_ptr & sym, const x::ast_ptr & ast ) const override;
 	};
-
-	// type builtin_conditional( cond, then_type, else_type )
-	class builtin_conditional : public x::builtin
-	{
-	public:
-		x::ast_ptr transferred( const x::symbols_ptr & sym, const x::ast_ptr & ast ) const override;
-	};
-
-
-	//__builtin_coro_done
-	//__builtin_coro_resume
-	//__builtin_coro_destroy
-	//__builtin_coro_promise
-	//__builtin_coro_noop
 }

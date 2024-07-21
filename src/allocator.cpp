@@ -2,6 +2,7 @@
 
 #include <list>
 #include <atomic>
+#include <unordered_map>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -115,6 +116,7 @@ struct x::allocator::private_p
 	}
 
 	std::atomic<x::allocator::heap *> _heaps = nullptr;
+	std::unordered_map<std::uint64_t, std::string> _strpool;
 };
 
 x::allocator::allocator()
@@ -159,10 +161,15 @@ void * x::allocator::malloc( x::uint64 size )
 
 x::string x::allocator::salloc( std::string_view str )
 {
-	auto s = ( char * )::malloc( str.size() + 1 );
-	memcpy( s, str.data(), str.size() );
-	s[str.size()] = 0;
-	return s;
+	auto h = x::hash( str );
+
+	auto & pool = instance()->_p->_strpool;
+
+	auto it = pool.find( h );
+	if ( it != pool.end() )
+		return it->second.c_str();
+
+	return pool.insert( { h, {str.data(), str.size()} } ).first->second.c_str();
 }
 
 void x::allocator::free_collect()
