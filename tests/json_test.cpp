@@ -1,76 +1,36 @@
+#include <fstream>
+#include <filesystem>
 
 #include <json.hpp>
 
 int main()
 {
-	x::json json;
+	x::json json, json2;
 
-	json.load( R"(
-{
-	"null":null,
-	"bool1" : true,
-	"bool2" : false,
-	"int" : -124,
-	"uint" : 124,
-	"float" : 123.456,
-	"string" : "aaavdsgfdgdf",
-	"array" : [
-		"dsafdg",
-		"dsafdg",
-		"dsafdg"
-	],
-	"object" : {
-		"o_null":null,
-		"o_bool1" : true,
-		"o_bool2" : false,
-		"o_int" : -124,
-		"o_uint" : 124,
-		"o_float" : 123.456,
-		"o_string" : "aaavdsgfdgdf",
-	}
-}
-)" );
-	std::cout << json.save( false ) << std::endl;
-
-	json.clear();
-
-	const char * str = "fdsgkfdhgufid";
-	//std::string str = "fdsgkfdhgufid";
-	//std::string_view str = "fdsgkfdhgufid";
-
-	json["null"] = nullptr;
-	json["bool1"] = true;
-	json["bool2"] = false;
-	json["int"] = -123;
-	json["uint"] = 123;
-	json["float"] = 123.456;
-	json["string"] = str;
-
-	std::vector<x::json> arr;
+	std::fstream fs( std::filesystem::current_path() / "language_server.json" );
+	if ( fs.is_open() )
 	{
-		arr.push_back( nullptr );
-		arr.push_back( true );
-		arr.push_back( false );
-		arr.push_back( -123 );
-		arr.push_back( 123 );
-		arr.push_back( 123.456 );
-		arr.push_back( str );
-	}
-	json.insert( "array", arr );
+		json.load( fs );
 
-	std::map<std::string_view, x::json> obj;
-	{
-		obj.insert( { "null", nullptr } );
-		obj.insert( { "bool1", true } );
-		obj.insert( { "bool2", false } );
-		obj.insert( { "int", -123 } );
-		obj.insert( { "uint", 123 } );
-		obj.insert( { "float", 123.456 } );
-		obj.insert( { "string", str } );
-	}
-	json.insert( "object", obj );
+		auto obj = json.to_object();
+		for ( const auto & it : obj )
+		{
+			x::json elem2;
+			auto elem = it.second.to_array();
+			for ( const auto & it2 : elem )
+			{
+				if ( it2.contains( "method" ) )
+					elem2[it2["method"].to_string()] = it2;
+				else if ( it2.contains( "name" ) )
+					elem2[it2["name"].to_string()] = it2;
+			}
+			json2[it.first] = elem2;
+		}
 
-	std::cout << json.save( false ) << std::endl;
+		std::fstream fs2( std::filesystem::current_path() / "language_server.json", std::ios::out | std::ios::trunc );
+
+		json2.save( fs2 );
+	}
 
 	return 0;
 }

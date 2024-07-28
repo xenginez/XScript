@@ -84,7 +84,7 @@ namespace x
 		{
 			parse();
 		}
-		url_impl( const url_impl && val )
+		url_impl( const url_impl & val )
 			: string_type( val )
 		{
 			parse();

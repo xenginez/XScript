@@ -25,7 +25,7 @@ namespace x
 		using isstream_type = std::basic_istringstream<_Elem, _Traits, _Alloc>;
 		using osstream_type = std::basic_ostringstream<_Elem, _Traits, _Alloc>;
 		using array_type = std::vector<json_impl<_Elem, _Traits, _Alloc>>;
-		using object_type = std::map<string_type, json_impl<_Elem, _Traits, _Alloc>>;
+		using object_type = std::vector<std::pair<string_type, json_impl<_Elem, _Traits, _Alloc>>>;
 
 	private:
 		using shared_array_type = std::shared_ptr<array_type>;
@@ -197,9 +197,9 @@ namespace x
 			for ( const auto & it : val )
 			{
 				if constexpr ( std::is_pointer_v<K> )
-					std::get<shared_object_type>( _var )->insert( { it.first, it.second } );
+					std::get<shared_object_type>( _var )->push_back( { it.first, it.second } );
 				else
-					std::get<shared_object_type>( _var )->insert( { { it.first.begin(), it.first.end() }, it.second } );
+					std::get<shared_object_type>( _var )->push_back( { { it.first.begin(), it.first.end() }, it.second } );
 			}
 		}
 		template <class K, class C, class A> json_impl( const std::unordered_map<K, json_impl<_Elem, _Traits, _Alloc>, C, A> & val )
@@ -208,10 +208,20 @@ namespace x
 			for ( const auto & it : val )
 			{
 				if constexpr ( std::is_pointer_v<K> )
-					std::get<shared_object_type>( _var )->insert( { it.first, it.second } );
+					std::get<shared_object_type>( _var )->push_back( { it.first, it.second } );
 				else
-					std::get<shared_object_type>( _var )->insert( { { it.first.begin(), it.first.end() }, it.second } );
+					std::get<shared_object_type>( _var )->push_back( { { it.first.begin(), it.first.end() }, it.second } );
 			}
+		}
+		template <class A> json_impl( const std::vector<std::pair<string_type, json_impl<_Elem, _Traits, _Alloc>>, A> & val )
+			: _var( std::make_shared<object_type>() )
+		{
+			for ( const auto & it : val )
+			{
+				std::get<shared_object_type>( _var ).push_back( it.first, it.second );
+			}
+
+			return *this;
 		}
 		~json_impl() = default;
 
@@ -308,29 +318,29 @@ namespace x
 		}
 		template <class K, class C, class A> json_impl & operator=( const std::map<K, json_impl<_Elem, _Traits, _Alloc>, C, A> & val )
 		{
-			if ( _var )
-				_var.clear();
-			else
-				_var = std::make_shared<object_type>();
+			_var = std::make_shared<object_type>();
 
 			for ( const auto & it : val )
 			{
-				std::get<shared_object_type>( _var ).insert( it.first, it.second );
+				std::get<shared_object_type>( _var ).push_back( it.first, it.second );
 			}
 
 			return *this;
 		}
 		template <class K, class C, class A> json_impl & operator=( const std::unordered_map<K, json_impl<_Elem, _Traits, _Alloc>, C, A> & val )
 		{
-			if ( _var )
-				_var.clear();
-			else
-				_var = std::make_shared<object_type>();
+			_var = std::make_shared<object_type>();
 
 			for ( const auto & it : val )
 			{
-				std::get<shared_object_type>( _var ).insert( it.first, it.second );
+				std::get<shared_object_type>( _var ).push_back( it.first, it.second );
 			}
+
+			return *this;
+		}
+		template <class A> json_impl & operator=( const std::vector<std::pair<string_type, json_impl<_Elem, _Traits, _Alloc>>, A> & val )
+		{
+			_var = std::make_shared<object_type>( val.begin(), val.end() );
 
 			return *this;
 		}
@@ -377,6 +387,16 @@ namespace x
 		bool is_string() const
 		{
 			return _var.index() == 6;
+		}
+		bool contains( string_view_type key ) const
+		{
+			if ( is_object() )
+			{
+				const auto & obj = to_object();
+				return std::find_if( obj.begin(), obj.end(), [&key]( const auto & val ) { return val.first == key; } ) != obj.end();
+			}
+
+			return false;
 		}
 
 	public:
@@ -543,15 +563,22 @@ namespace x
 			if ( empty() )
 				_var = std::make_shared<object_type>();
 
-			return ( *std::get<shared_object_type>( _var ) )[key];
+			auto obj = std::get<shared_object_type>( _var );
+
+			auto it = std::find_if( obj->begin(), obj->end(), [&key]( const auto & val ) { return val.first == key; } );
+			if ( it != obj->end() )
+				return it->second;
+
+
+			obj->push_back( { key, {} } );
+			return obj->back().second;
 		}
 		template<typename U, std::enable_if_t<!std::is_integral_v<U>, int> = 0> json_impl operator[]( U key ) const
 		{
-			if ( empty() )
-				_var = std::make_shared<object_type>();
+			auto obj = std::get<shared_object_type>( _var );
 
-			auto it = to_object().find( key );
-			if ( it != to_object().end() )
+			auto it = std::find_if( obj->begin(), obj->end(), [&key]( const auto & val ) { return val.first == key; } );
+			if ( it != obj->end() )
 				return it->second;
 			return {};
 		}
@@ -573,15 +600,15 @@ namespace x
 			if ( empty() )
 				_var = std::make_shared<object_type>();
 
-			std::get<shared_object_type>( _var )->insert( { string_type( key.begin(), key.end() ), val } );
+			std::get<shared_object_type>( _var )->push_back( { string_type( key.begin(), key.end() ), val } );
 		}
 
 	public:
 		json_impl & load( istream_type & is )
 		{
-			auto beg = is.peek();
+			auto beg = is.tellg();
 			is.seekg( 0, std::ios::end );
-			auto end = is.peek();
+			auto end = is.tellg();
 			is.seekg( beg );
 
 			auto data = string_type( end - beg, 0 );
@@ -719,7 +746,7 @@ namespace x
 
 				for ( auto it = val->begin(); it != val->end(); )
 				{
-					os << tab() << it->first;
+					os << tab() << constexpr_flags_type::string_flag << it->first << constexpr_flags_type::string_flag;
 					
 					os << constexpr_flags_type::pair_flag << constexpr_flags_type::space_flag;
 					
@@ -850,7 +877,15 @@ namespace x
 				it = __loadop::confirm( it, constexpr_flags_type::string_flag );
 
 				auto beg = it;
-				while ( *it != constexpr_flags_type::string_flag ) ++it;
+				while ( 1 )
+				{
+					if ( *it == constexpr_flags_type::string_flag )
+						break;
+					else if ( *it == '\\' )
+						++it;
+
+					++it;
+				}
 				auto end = it;
 
 				it = __loadop::confirm( it, constexpr_flags_type::string_flag );
@@ -896,7 +931,7 @@ namespace x
 
 					it = unserialization( it, end, value );
 
-					object->insert( { std::get<string_type>( key ), x::json_impl( value ) } );
+					object->push_back( { std::get<string_type>( key ), x::json_impl( value ) } );
 
 					if ( __loadop::skip( it, constexpr_flags_type::comma_flag ) )
 						it = __loadop::confirm( it, constexpr_flags_type::comma_flag );

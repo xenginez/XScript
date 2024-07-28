@@ -167,8 +167,8 @@ namespace
             ULONG_PTR key = 0;
             overlapped * overlap = nullptr;
 
-            sockaddr * localaddr = nullptr, * remoteaddr = nullptr;
             int localaddr_len = 0, remoteaddr_len = 0;
+            sockaddr * localaddr = nullptr, * remoteaddr = nullptr;
 
             while ( !token.stop_requested() )
             {
@@ -329,7 +329,7 @@ namespace
         case VK_F12: return x_input::INPUT_KEY_F12;
         }
 
-        return x_input::NONE;
+        return x_input::INPUT_NONE;
     }
 	LRESULT x_windows_process( HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam )
 	{

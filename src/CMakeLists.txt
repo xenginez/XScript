@@ -1,6 +1,8 @@
 set(SRC_FILES 
 "url.hpp"
 "json.hpp"
+"zip.h"
+"zip.cpp"
 "xlib.h"
 "xlib.cpp"
 "float16.h"
@@ -45,9 +47,7 @@ set(SRC_FILES
 "interpreter.h"
 "interpreter.cpp"
 "virtual_machine.h"
-"virtual_machine.cpp"
-"language_server.h"
-"language_server.cpp")
+"virtual_machine.cpp")
 
 add_library(xs STATIC ${SRC_FILES})
 set_property(TARGET xs PROPERTY CXX_STANDARD 20)

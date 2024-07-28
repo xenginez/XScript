@@ -4,7 +4,7 @@
 
 namespace x
 {
-	class buffer
+	class buffer : public std::enable_shared_from_this<x::buffer>
 	{
 	public:
 		buffer();

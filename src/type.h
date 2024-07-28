@@ -413,6 +413,105 @@ namespace x
         SUSPEND,
         READY,
     };
+    enum class http_header_t
+    {
+        Accept,
+        Accept_CH,
+        Accept_Charset,
+        Accept_Encoding,
+        Accept_Language,
+        Accept_Patch,
+        Accept_Post,
+        Accept_Ranges,
+        Access_Control_Allow_Credentials,
+        Access_Control_Allow_Headers,
+        Access_Control_Allow_Methods,
+        Access_Control_Allow_Origin,
+        Access_Control_Expose_Headers,
+        Access_Control_Max_Age,
+        Access_Control_Request_Headers,
+        Access_Control_Request_Method,
+        Age,
+        Allow,
+        Alt_Svc,
+        Alt_Used,
+        Authorization,
+        Cache_Control,
+        Clear_Site_Data,
+        Connection,
+        Content_Disposition,
+        Content_Encoding,
+        Content_Language,
+        Content_Length,
+        Content_Location,
+        Content_Range,
+        Content_Security_Policy,
+        Content_Security_Policy_Report_Only,
+        Content_Type,
+        Cookie,
+        Cross_Origin_Embedder_Policy,
+        Cross_Origin_Opener_Policy,
+        Cross_Origin_Resource_Policy,
+        Date,
+        Device_Memory,
+        ETag,
+        Expect,
+        Expect_CT,
+        Expires,
+        Forwarded,
+        From,
+        Host,
+        If_Match,
+        If_Modified_Since,
+        If_None_Match,
+        If_Range,
+        If_Unmodified_Since,
+        Keep_Alive,
+        Last_Modified,
+        Link,
+        Location,
+        Max_Forwards,
+        Origin,
+        Permissions_Policy,
+        Priority,
+        Proxy_Authenticate,
+        Proxy_Authorization,
+        Range,
+        Referer,
+        Referrer_Policy,
+        Reporting_Endpoints,
+        Retry_After,
+        Sec_Fetch_Dest,
+        Sec_Fetch_Mode,
+        Sec_Fetch_Site,
+        Sec_Fetch_User,
+        Sec_Purpose,
+        Sec_WebSocket_Accept,
+        Server,
+        Server_Timing,
+        Service_Worker_Navigation_Preload,
+        Set_Cookie,
+        SourceMap,
+        Strict_Transport_Security,
+        TE,
+        Timing_Allow_Origin,
+        Trailer,
+        Transfer_Encoding,
+        Upgrade,
+        Upgrade_Insecure_Requests,
+        User_Agent,
+        Vary,
+        Via,
+        WWW_Authenticate,
+        X_Content_Type_Options,
+        X_Frame_Options,
+    };
+    enum class http_version_t
+    {
+        HTTP_1_0,
+        HTTP_1_1,
+        HTTP_2_0,
+    };
 
     using value_flags = flags<x::value_t>;
     using valloc_flags = flags<x::valloc_t>;
@@ -432,6 +531,7 @@ namespace x
     class meta_namespace;
     class meta_attribute;
 
+    PTR( buffer );
     PTR( module );
     PTR( grammar );
     PTR( visitor );
@@ -523,6 +623,11 @@ namespace x
     PTR( float32_const_expr_ast );
     PTR( float64_const_expr_ast );
     PTR( string_const_expr_ast );
+
+    PTR( http_client );
+    PTR( http_server );
+    PTR( http_request );
+    PTR( http_respone );
 
     struct location
     {

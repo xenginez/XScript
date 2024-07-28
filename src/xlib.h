@@ -32,20 +32,20 @@ extern "C"{
     typedef float float32;
     typedef double float64;
     typedef void * intptr;
+    typedef intptr x_zip;
     typedef intptr x_file;
     typedef intptr x_lock;
     typedef intptr x_atomic;
     typedef intptr x_buffer;
     typedef intptr x_window;
     typedef intptr x_socket;
-    typedef intptr x_device;
     typedef intptr x_condition;
     typedef intptr x_coroutine;
     typedef const char * x_string;
 
     typedef enum
     {
-        NONE,
+        INPUT_NONE,
         INPUT_KEY_TAB,
         INPUT_KEY_LEFT_ARROW,
         INPUT_KEY_RIGHT_ARROW,
@@ -193,6 +193,7 @@ extern "C"{
         INPUT_UNICODE_CHAR,
         INPUT_MAX_ELEMENT_COUNT,
     } x_input;
+
     typedef struct { int32 x; int32 y; } x_pos;
     typedef struct { int32 w; int32 h; } x_size;
     typedef struct { float32 x; float32 y; } x_offset;
@@ -226,6 +227,11 @@ extern "C"{
     int x_main( int argc, const char ** argv );
     uint8 x_os_arch();
     x_string x_os_name();
+
+    // zip
+    x_zip x_zip_create();
+    void x_zip_load( x_string path );
+
 
     // path
     x_string x_path_app_path();
