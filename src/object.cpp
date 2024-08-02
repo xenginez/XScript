@@ -86,32 +86,108 @@ void x::object::set_gcstatus( x::gcstatus_t status )
 	*( reinterpret_cast<x::uint8 *>( this ) - 1 ) &= static_cast<x::uint8>( status );
 }
 
-void x::array_object::finalize()
+void x::array::finalize()
 {
 
 }
 
-bool x::array_object::is_array() const
+bool x::array::is_array() const
 {
 	return true;
 }
 
-void x::callable_object::finalize()
+void x::callable::finalize()
 {
 
 }
 
-bool x::callable_object::is_callable() const
+bool x::callable::is_callable() const
 {
 	return true;
 }
 
-void x::coroutine_object::finalize()
+void x::coroutine::finalize()
 {
 
 }
 
-bool x::coroutine_object::is_coroutine() const
+bool x::coroutine::is_coroutine() const
 {
 	return true;
+}
+
+bool x::coroutine::done() const
+{
+	return _status == x::corostatus_t::READY;
+}
+
+bool x::coroutine::next() const
+{
+	return _status == x::corostatus_t::SUSPEND;
+}
+
+bool x::coroutine::error() const
+{
+	return _status == x::corostatus_t::EXCEPT;
+}
+
+x::corostatus_t x::coroutine::status() const
+{
+	return _status;
+}
+
+const x::value & x::coroutine::wait() const
+{
+	return value();
+}
+
+const x::value & x::coroutine::value() const
+{
+	return *( (x::value *)_data.data() + 1 );
+}
+
+const x::runtime_exception & x::coroutine::exception() const
+{
+	return *( (x::runtime_exception *)_data.data() + 1 );
+}
+
+void x::coroutine::clear()
+{
+	_step = 0;
+	_data[0] = {};
+	_status = x::corostatus_t::RESUME;;
+}
+
+void x::coroutine::resume( const x::value & val )
+{
+	switch ( (x::uint8)_data[0] )
+	{
+	case 1:
+		( (x::value *)_data.data() + 1 )->~value();
+		break;
+	case 2:
+		( (x::runtime_exception *)_data.data() + 1 )->~runtime_exception();
+		break;
+	}
+
+	_data[0] = (x::byte)1;
+	new ( _data.data() + 1 )x::value( val );
+	_status = x::corostatus_t::SUSPEND;
+}
+
+void x::coroutine::except( const x::runtime_exception & val )
+{
+	switch ( (x::uint8)_data[0] )
+	{
+	case 1:
+		( (x::value *)_data.data() + 1 )->~value();
+		break;
+	case 2:
+		( (x::runtime_exception *)_data.data() + 1 )->~runtime_exception();
+		break;
+	}
+
+	_data[0] = (x::byte)1;
+	new ( _data.data() + 1 )x::runtime_exception( val );
+	_status = x::corostatus_t::EXCEPT;
 }

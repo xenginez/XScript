@@ -604,7 +604,7 @@ namespace x
 		}
 
 	public:
-		json_impl & load( istream_type & is )
+		static json_impl load( istream_type & is )
 		{
 			auto beg = is.tellg();
 			is.seekg( 0, std::ios::end );
@@ -614,17 +614,17 @@ namespace x
 			auto data = string_type( end - beg, 0 );
 			is.read( data.data(), end - beg );
 
-			unserialization( data.begin(), data.end(), _var );
-
-			return *this;
+			variant_type var;
+			unserialization( data.begin(), data.end(), var );
+			return var;
 		}
-		json_impl & load( string_view_type str )
+		static json_impl load( string_view_type str )
 		{
 			auto data = string_type( str.begin(), str.end() );
 
-			unserialization( data.begin(), data.end(), _var );
-
-			return *this;
+			variant_type var;
+			unserialization( data.begin(), data.end(), var );
+			return var;
 		}
 		string_type save( bool compact = false ) const
 		{

@@ -17,7 +17,18 @@
 
 #if defined(_MSC_VER) || defined(__MINGW64__)
 #include <sys/utime.h>
-#define MZ_FOPEN fopen
+FILE * MZ_FOPEN( char const * _FileName, char const * _Mode )
+{
+    FILE * result = nullptr;
+    fopen_s( &result, _FileName, _Mode );
+    return result;
+}
+FILE * __cdecl MZ_FREOPEN( char const * _FileName, char const * _Mode, FILE * _Stream )
+{
+    FILE * result = nullptr;
+    freopen_s( &result, _FileName, _Mode, _Stream );
+    return result;
+}
 #define MZ_FCLOSE fclose
 #define MZ_FREAD fread
 #define MZ_FWRITE fwrite
@@ -26,7 +37,6 @@
 #define MZ_FILE_STAT_STRUCT _stat64
 #define MZ_FILE_STAT _stat64
 #define MZ_FFLUSH fflush
-#define MZ_FREOPEN freopen
 #define MZ_DELETE_FILE remove
 #elif defined(__MINGW32__)
 #include <sys/utime.h>

@@ -7,29 +7,35 @@ int main()
 {
 	x::json json, json2;
 
-	std::fstream fs( std::filesystem::current_path() / "language_server.json" );
+	std::fstream fs( std::filesystem::current_path() / "xlserver.json" );
 	if ( fs.is_open() )
 	{
-		json.load( fs );
+		json = x::json::load( fs );
 
-		auto obj = json.to_object();
-		for ( const auto & it : obj )
+		auto requests = json["requests"].to_object();
+		for ( const auto & it : requests )
 		{
-			x::json elem2;
-			auto elem = it.second.to_array();
-			for ( const auto & it2 : elem )
+			auto s = it.first;
+			size_t p = s.find( '/' );
+			while ( p != std::string::npos )
 			{
-				if ( it2.contains( "method" ) )
-					elem2[it2["method"].to_string()] = it2;
-				else if ( it2.contains( "name" ) )
-					elem2[it2["name"].to_string()] = it2;
+				s.replace( p, 1, "_" );
+				p = s.find( '/' );
 			}
-			json2[it.first] = elem2;
+			std::cout << "_methods[\"" << it.first << "\"] = &xlserver::" << s << ";" << std::endl;
 		}
-
-		std::fstream fs2( std::filesystem::current_path() / "language_server.json", std::ios::out | std::ios::trunc );
-
-		json2.save( fs2 );
+		auto notifications = json["notifications"].to_object();
+		for ( const auto & it : notifications )
+		{
+			auto s = it.first;
+			size_t p = s.find( '/' );
+			while ( p != std::string::npos )
+			{
+				s.replace( p, 1, "_" );
+				p = s.find( '/' );
+			}
+			std::cout << "_methods[\"" << it.first << "\"] = &xlserver::" << s << ";" << std::endl;
+		}
 	}
 
 	return 0;

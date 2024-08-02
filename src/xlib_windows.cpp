@@ -35,6 +35,10 @@ namespace
     struct window_info;
     struct socket_info;
     struct windows_scheduler;
+    uint32 key_event( WPARAM wParam );
+    std::string get_last_error_as_string();
+    std::string get_last_wsa_error_as_string();
+    LRESULT x_windows_process( HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam );
 
     struct overlapped
     {
@@ -43,7 +47,7 @@ namespace
         DWORD bytes = 0;
         DWORD flags = 0;
         WSABUF buffer = {};
-        x::coroutine_object * result;
+        x::coroutine * result;
         union
         {
             file_info * file;
@@ -82,31 +86,21 @@ namespace
 	};
     struct socket_info
     {
-        uint32 type = 0;
+        uint32 family = 0;
+        uint32 protocol = 0;
         SOCKET handle = 0;
         addrinfo info = {};
         sockaddr_in sockaddr = {};
         sockaddr_in peeraddr = {};
+        LPFN_ACCEPTEX AcceptEx = nullptr;
+        LPFN_CONNECTEX ConnectEx = nullptr;
+        LPFN_GETACCEPTEXSOCKADDRS GetAcceptExSockaddrs = nullptr;
     };
     struct windows_scheduler
     {
     public:
         windows_scheduler()
         {
-            ( void )::WSAStartup( MAKEWORD( 2, 2 ), &_wsadata );
-
-            _iocp = ::CreateIoCompletionPort( INVALID_HANDLE_VALUE, NULL, 0, 0 );
-
-            DWORD bytes = 0;
-            GUID AcceptExGuid = WSAID_ACCEPTEX;
-            GUID ConnectExGuid = WSAID_CONNECTEX;
-            GUID GetAcceptExSockaddrsGuid = WSAID_GETACCEPTEXSOCKADDRS;
-
-            WSAIoctl( 0, SIO_GET_EXTENSION_FUNCTION_POINTER, &AcceptExGuid, sizeof( AcceptExGuid ), &_AcceptEx, sizeof( _AcceptEx ), &bytes, nullptr, nullptr );
-            WSAIoctl( 0, SIO_GET_EXTENSION_FUNCTION_POINTER, &ConnectExGuid, sizeof( ConnectExGuid ), &_ConnectEx, sizeof( _ConnectEx ), &bytes, nullptr, nullptr );
-            WSAIoctl( 0, SIO_GET_EXTENSION_FUNCTION_POINTER, &GetAcceptExSockaddrsGuid, sizeof( GetAcceptExSockaddrsGuid ), &_GetAcceptExSockaddrs, sizeof( _GetAcceptExSockaddrs ), &bytes, nullptr, nullptr );
-
-            _thread = std::jthread( run );
         }
         ~windows_scheduler()
         {
@@ -125,6 +119,21 @@ namespace
         }
 
     public:
+        static void init()
+        {
+            if ( !instance()->_init )
+            {
+                auto _p = instance();
+
+                _p->_init = true;
+
+                XTHROW( x::runtime_exception, ::WSAStartup( MAKEWORD( 2, 2 ), &_p->_wsadata ) != 0, get_last_error_as_string() );
+
+                _p->_iocp = ::CreateIoCompletionPort( INVALID_HANDLE_VALUE, NULL, 0, 0 );
+
+                _p->_thread = std::jthread( run );
+            }
+        }
         static HANDLE iocp_handle()
         {
             return instance()->_iocp;
@@ -146,20 +155,6 @@ namespace
             return result;
         }
 
-    public:
-        static BOOL AcceptEx( SOCKET sListenSocket, SOCKET sAcceptSocket, PVOID lpOutputBuffer, DWORD dwReceiveDataLength, DWORD dwLocalAddressLength, DWORD dwRemoteAddressLength, LPDWORD lpdwBytesReceived, LPOVERLAPPED lpOverlapped )
-        {
-            return instance()->_AcceptEx( sListenSocket, sAcceptSocket, lpOutputBuffer, dwReceiveDataLength, dwLocalAddressLength, dwRemoteAddressLength, lpdwBytesReceived, lpOverlapped );
-        }
-        static BOOL ConnectEx( SOCKET s, const struct sockaddr * name, int namelen, PVOID lpSendBuffer, DWORD dwSendDataLength, LPDWORD lpdwBytesSent, LPOVERLAPPED lpOverlapped )
-        {
-            return instance()->_ConnectEx( s, name, namelen, lpSendBuffer, dwSendDataLength, lpdwBytesSent, lpOverlapped );
-        }
-        static void GetAcceptExSockaddrs( PVOID lpOutputBuffer, DWORD dwReceiveDataLength, DWORD dwLocalAddressLength, DWORD dwRemoteAddressLength, struct sockaddr ** LocalSockaddr, LPINT LocalSockaddrLength, struct sockaddr ** RemoteSockaddr, LPINT RemoteSockaddrLength )
-        {
-            instance()->_GetAcceptExSockaddrs( lpOutputBuffer, dwReceiveDataLength, dwLocalAddressLength, dwReceiveDataLength, LocalSockaddr, LocalSockaddrLength, RemoteSockaddr, RemoteSockaddrLength );
-        }
-
     private:
         static void run( std::stop_token token )
         {
@@ -172,7 +167,7 @@ namespace
 
             while ( !token.stop_requested() )
             {
-                if ( ::GetQueuedCompletionStatus( windows_scheduler::iocp_handle(), &bytes, &key, (LPOVERLAPPED *)&overlap, 10 ) )
+                if ( ::GetQueuedCompletionStatus( windows_scheduler::iocp_handle(), &bytes, &key, (LPOVERLAPPED *)&overlap, INFINITE ) )
                 {
                     switch ( overlap->type )
                     {
@@ -189,10 +184,10 @@ namespace
                         overlap->result->resume( (x::uint64)overlap->bytes );
                         break;
                     case IOCP_EVENT_ACCEPT:
-                        GetAcceptExSockaddrs( overlap->buffer.buf, overlap->buffer.len, sizeof( sockaddr_in ), sizeof( sockaddr_in ), &localaddr, &localaddr_len, &remoteaddr, &remoteaddr_len );
+                        overlap->socket->GetAcceptExSockaddrs( overlap->buffer.buf, overlap->buffer.len, sizeof( sockaddr_in ), sizeof( sockaddr_in ), &localaddr, &localaddr_len, &remoteaddr, &remoteaddr_len );
 
-                        memcpy_s( &overlap->accept.client->sockaddr, sizeof( sockaddr_in ), localaddr, localaddr_len );
-                        memcpy_s( &overlap->accept.client->peeraddr, sizeof( sockaddr_in ), remoteaddr, remoteaddr_len );
+                        memcpy( &overlap->accept.client->sockaddr, localaddr, sizeof( sockaddr_in ) );
+                        memcpy( &overlap->accept.client->peeraddr, remoteaddr, sizeof( sockaddr_in ) );
 
                         delete[] overlap->buffer.buf;
                         overlap->result->resume( overlap->accept.client );
@@ -206,20 +201,22 @@ namespace
 
                     enqueue( overlap );
                 }
+                else
+                {
+                    auto s = get_last_error_as_string();
+                    int i = 0;
+                }
             }
         }
 
     private:
-        HANDLE _iocp;
-        WSADATA _wsadata;
-        std::jthread _thread;
+        bool _init = false;
+        HANDLE _iocp = {};
+        WSADATA _wsadata = {};
+        std::jthread _thread = {};
         x::concurrent_queue<overlapped *> _overlaps;
-
-    private:
-        LPFN_ACCEPTEX _AcceptEx;
-        LPFN_CONNECTEX _ConnectEx;
-        LPFN_GETACCEPTEXSOCKADDRS _GetAcceptExSockaddrs;
     };
+
     uint32 key_event( WPARAM wParam )
     {
         switch ( wParam )
@@ -330,6 +327,36 @@ namespace
         }
 
         return x_input::INPUT_NONE;
+    }
+    std::string get_last_error_as_string()
+    {
+        DWORD id = ::GetLastError();
+        if ( id == 0 )
+            return std::string();
+
+        LPSTR buf = nullptr;
+        size_t size = FormatMessageA( FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, id, MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ), (LPSTR)&buf, 0, NULL );
+
+        std::string message( buf, size );
+
+        LocalFree( buf );
+
+        return message;
+    }
+    std::string get_last_wsa_error_as_string()
+    {
+        DWORD id = ::WSAGetLastError();
+        if ( id == 0 )
+            return std::string();
+
+        LPSTR buf = nullptr;
+        size_t size = FormatMessageA( FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, id, MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ), (LPSTR)&buf, 0, NULL );
+
+        std::string message( buf, size );
+
+        LocalFree( buf );
+
+        return message;
     }
 	LRESULT x_windows_process( HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam )
 	{
@@ -986,9 +1013,12 @@ x_buffer x_socket_getaddrinfo( uint32 protocol, x_string name, x_string service 
 }
 x_socket x_socket_create( uint32 protocol, uint32 family )
 {
+    windows_scheduler::init();
+
     auto info = new socket_info;
 
-    info->type = protocol;
+    info->family = family;
+    info->protocol = protocol;
     switch ( family )
     {
     case SOCKET_AF_INET:
@@ -1018,9 +1048,16 @@ x_socket x_socket_create( uint32 protocol, uint32 family )
         break;
     }
 
-    info->handle = ::socket( info->info.ai_family, info->info.ai_socktype, info->info.ai_protocol );
+    DWORD bytes = 0;
+    GUID AcceptExGuid = WSAID_ACCEPTEX;
+    GUID ConnectExGuid = WSAID_CONNECTEX;
+    GUID GetAcceptExSockaddrsGuid = WSAID_GETACCEPTEXSOCKADDRS;
 
-    ::CreateIoCompletionPort( (HANDLE)info->handle, windows_scheduler::iocp_handle(), (ULONG_PTR)info, 0 );
+    XTHROW( x::runtime_exception, ( info->handle = ::WSASocketW( info->info.ai_family, info->info.ai_socktype, info->info.ai_protocol, nullptr, 0, WSA_FLAG_OVERLAPPED ) ) == 0, get_last_wsa_error_as_string() );
+    XTHROW( x::runtime_exception, ::CreateIoCompletionPort( (HANDLE)info->handle, windows_scheduler::iocp_handle(), (ULONG_PTR)info, 0 ) == nullptr, get_last_error_as_string() );
+    XTHROW( x::runtime_exception, WSAIoctl( info->handle, SIO_GET_EXTENSION_FUNCTION_POINTER, &AcceptExGuid, sizeof( AcceptExGuid ), &info->AcceptEx, sizeof( info->AcceptEx ), &bytes, nullptr, nullptr ) != 0, get_last_error_as_string() );
+    XTHROW( x::runtime_exception, WSAIoctl( info->handle, SIO_GET_EXTENSION_FUNCTION_POINTER, &ConnectExGuid, sizeof( ConnectExGuid ), &info->ConnectEx, sizeof( info->ConnectEx ), &bytes, nullptr, nullptr ) != 0, get_last_error_as_string() );
+    XTHROW( x::runtime_exception, WSAIoctl( info->handle, SIO_GET_EXTENSION_FUNCTION_POINTER, &GetAcceptExSockaddrsGuid, sizeof( GetAcceptExSockaddrsGuid ), &info->GetAcceptExSockaddrs, sizeof( info->GetAcceptExSockaddrs ), &bytes, nullptr, nullptr ) != 0, get_last_error_as_string() );
 
     return info;
 }
@@ -1032,26 +1069,29 @@ int32 x_socket_bind( x_socket socket, x_string sockname, uint16 port )
     info->sockaddr.sin_port = ::htons( port );
     ::inet_pton( info->sockaddr.sin_family, sockname, &info->sockaddr.sin_addr.s_addr );
 
-    return ::bind( info->handle, (sockaddr *)&info->sockaddr, sizeof( info->sockaddr ) );
+    XTHROW( x::runtime_exception, ::bind( info->handle, (sockaddr *)&info->sockaddr, sizeof( info->sockaddr ) ) != 0, get_last_wsa_error_as_string() );
+
+    return 0;
 }
 int32 x_socket_listen( x_socket socket )
 {
     auto info = reinterpret_cast<socket_info *>( socket );
 
-    return ::listen( info->handle, SOMAXCONN );
+    XTHROW( x::runtime_exception, ::listen( info->handle, SOMAXCONN ) != 0, get_last_wsa_error_as_string() );
+
+    return 0;
 }
 x_socket x_socket_accept( x_socket socket )
 {
     auto info = reinterpret_cast<socket_info *>( socket );
 
-    auto client_info = new socket_info;
+    auto client_info = (socket_info *)x_socket_create( info->protocol, info->family );
+    client_info->sockaddr = info->sockaddr;
 
     int len = sizeof( client_info->peeraddr );
-    client_info->info = info->info;
-    client_info->sockaddr = info->sockaddr;
-    client_info->handle = ::accept( info->handle, (sockaddr *)&client_info->peeraddr, &len );
-
-    CreateIoCompletionPort( (HANDLE)client_info->handle, windows_scheduler::iocp_handle(), (ULONG_PTR)client_info, 0 );
+    
+    XTHROW( x::runtime_exception, ( client_info->handle = ::accept( info->handle, (sockaddr *)&client_info->peeraddr, &len ) ) == INVALID_SOCKET, get_last_wsa_error_as_string() );
+    XTHROW( x::runtime_exception, ::CreateIoCompletionPort( (HANDLE)client_info->handle, windows_scheduler::iocp_handle(), (ULONG_PTR)client_info, 0 ) == nullptr, get_last_error_as_string() );
 
     return client_info;
 }
@@ -1070,7 +1110,7 @@ uint64 x_socket_recv( x_socket socket, intptr buffer, uint64 size )
     auto info = reinterpret_cast<socket_info *>( socket );
 
     int len = 0, fromlen = sizeof( info->peeraddr );
-    if ( info->type == SOCKET_PROTOCOL_TCP )
+    if ( info->protocol == SOCKET_PROTOCOL_TCP )
         len = ::recv( info->handle, (char *)buffer, (int)size, 0 );
     else
         len = ::recvfrom( info->handle, (char *)buffer, (int)size, 0, (sockaddr *)&info->peeraddr, &fromlen );
@@ -1163,7 +1203,7 @@ void x_coroutine_file_read( x_coroutine coroutine, x_file file, intptr buffer, u
     lap->buffer.buf = reinterpret_cast<CHAR *>( buffer );
     lap->buffer.len = (ULONG)size;
 
-    lap->result = reinterpret_cast<x::coroutine_object *>( coroutine );
+    lap->result = reinterpret_cast<x::coroutine *>( coroutine );
 
     (void)ReadFile( lap->file->handle, lap->buffer.buf, lap->buffer.len, &lap->bytes, (LPOVERLAPPED)lap );
 }
@@ -1176,7 +1216,7 @@ void x_coroutine_file_write( x_coroutine coroutine, x_file file, intptr buffer, 
     lap->file = info;
     lap->buffer.buf = reinterpret_cast<CHAR *>( buffer );
     lap->buffer.len = (ULONG)size;
-    lap->result = reinterpret_cast<x::coroutine_object *>( coroutine );
+    lap->result = reinterpret_cast<x::coroutine *>( coroutine );
 
     (void)WriteFile( lap->file->handle, lap->buffer.buf, lap->buffer.len, &lap->bytes, (LPOVERLAPPED)lap );
 }
@@ -1187,13 +1227,17 @@ void x_coroutine_socket_accept( x_coroutine coroutine, x_socket socket )
     auto lap = windows_scheduler::dequeue();
     lap->socket = info;
     lap->type = IOCP_EVENT_ACCEPT;
-    lap->accept.client = reinterpret_cast<socket_info *>( x_socket_create( info->type, SOCKET_AF_INET ) );
+    lap->accept.client = reinterpret_cast<socket_info *>( x_socket_create( info->protocol, info->family ) );
     lap->accept.client->sockaddr = info->sockaddr;
-    lap->result = reinterpret_cast<x::coroutine_object *>( coroutine );
+    lap->result = reinterpret_cast<x::coroutine *>( coroutine );
     lap->buffer.buf = new char[512];
     lap->buffer.len = 512;
 
-    (void)windows_scheduler::AcceptEx( lap->socket->handle, lap->accept.client->handle, lap->buffer.buf, 0, sizeof( sockaddr_in ), sizeof( sockaddr_in ), &lap->bytes, (LPOVERLAPPED)lap );
+    if ( !info->AcceptEx( lap->socket->handle, lap->accept.client->handle, lap->buffer.buf, 0, sizeof( SOCKADDR_IN ) + 16, sizeof( SOCKADDR_IN ) + 16, &lap->bytes, (LPOVERLAPPED)lap ) )
+    {
+        auto s = get_last_wsa_error_as_string();
+        int i = 0;
+    }
 }
 void x_coroutine_socket_connect( x_coroutine coroutine, x_socket socket, x_string peername, uint16 port )
 {
@@ -1206,9 +1250,9 @@ void x_coroutine_socket_connect( x_coroutine coroutine, x_socket socket, x_strin
     auto lap = windows_scheduler::dequeue();
     lap->socket = info;
     lap->type = IOCP_EVENT_CONNECT;
-    lap->result = reinterpret_cast<x::coroutine_object *>( coroutine );
+    lap->result = reinterpret_cast<x::coroutine *>( coroutine );
 
-    (void)windows_scheduler::ConnectEx( lap->socket->handle, (sockaddr *)&lap->socket->peeraddr, sizeof( lap->socket->peeraddr ), &lap->buffer, 1, &lap->bytes, (LPOVERLAPPED)lap );
+    info->ConnectEx( lap->socket->handle, (sockaddr *)&lap->socket->peeraddr, sizeof( lap->socket->peeraddr ), &lap->buffer, 1, &lap->bytes, (LPOVERLAPPED)lap );
 }
 void x_coroutine_socket_recv( x_coroutine coroutine, x_socket socket, intptr buffer, uint64 size )
 {
@@ -1219,9 +1263,9 @@ void x_coroutine_socket_recv( x_coroutine coroutine, x_socket socket, intptr buf
     lap->socket = info;
     lap->buffer.buf = reinterpret_cast<CHAR *>( buffer );
     lap->buffer.len = (ULONG)size;
-    lap->result = reinterpret_cast<x::coroutine_object *>( coroutine );
+    lap->result = reinterpret_cast<x::coroutine *>( coroutine );
 
-    if ( lap->socket->type == SOCKET_PROTOCOL_TCP )
+    if ( lap->socket->protocol == SOCKET_PROTOCOL_TCP )
         ( void )::WSARecv( lap->socket->handle, &lap->buffer, 1, &lap->bytes, &lap->flags, (LPOVERLAPPED)lap, nullptr );
     else
         ( void )::WSARecvFrom( lap->socket->handle, &lap->buffer, 1, &lap->bytes, &lap->flags, (sockaddr *)&lap->socket->peeraddr, &lap->sendto.size, (LPOVERLAPPED)lap, nullptr );
@@ -1236,7 +1280,7 @@ void x_coroutine_socket_send( x_coroutine coroutine, x_socket socket, intptr buf
     lap->buffer.buf = reinterpret_cast<CHAR *>( buffer );
     lap->buffer.len = (ULONG)size;
     lap->sendto.size = sizeof( sockaddr_in );
-    lap->result = reinterpret_cast<x::coroutine_object *>( coroutine );
+    lap->result = reinterpret_cast<x::coroutine *>( coroutine );
 
     ( void )::WSASend( lap->socket->handle, &lap->buffer, 1, &lap->bytes, lap->flags, (LPOVERLAPPED)lap, nullptr );
 }
@@ -1254,7 +1298,7 @@ void x_coroutine_socket_sendto( x_coroutine coroutine, x_socket socket, x_string
     lap->buffer.buf = reinterpret_cast<CHAR *>( buffer );
     lap->buffer.len = (ULONG)size;
     lap->sendto.size = sizeof( sockaddr_in );
-    lap->result = reinterpret_cast<x::coroutine_object *>( coroutine );
+    lap->result = reinterpret_cast<x::coroutine *>( coroutine );
 
     ( void )::WSASendTo( lap->socket->handle, &lap->buffer, 1, &lap->bytes, lap->flags, (sockaddr *)&lap->socket->peeraddr, lap->sendto.size, (LPOVERLAPPED)lap, nullptr );
 }

@@ -412,6 +412,7 @@ namespace x
         RESUME,
         SUSPEND,
         READY,
+        EXCEPT,
     };
     enum class http_header_t
     {
@@ -531,7 +532,6 @@ namespace x
     class meta_namespace;
     class meta_attribute;
 
-    PTR( buffer );
     PTR( module );
     PTR( grammar );
     PTR( visitor );

@@ -10,6 +10,7 @@ namespace x
 	{
 	public:
 		lexical_exception( std::string_view message, const x::location & location );
+		~lexical_exception() = default;
 
 	public:
 		char const * what() const override;
@@ -21,6 +22,7 @@ namespace x
 	{
 	public:
 		syntax_exception( std::string_view message, const x::location & location );
+		~syntax_exception() = default;
 
 	public:
 		char const * what() const override;
@@ -32,6 +34,7 @@ namespace x
 	{
 	public:
 		semantic_exception( std::string_view message );
+		~semantic_exception() = default;
 
 	public:
 		char const * what() const override;
@@ -43,6 +46,7 @@ namespace x
 	{
 	public:
 		compile_exception( std::string_view message );
+		~compile_exception() = default;
 
 	public:
 		char const * what() const override;
@@ -54,6 +58,7 @@ namespace x
 	{
 	public:
 		bad_value_access( std::string_view message );
+		~bad_value_access() = default;
 
 	public:
 		char const * what() const override;
@@ -65,6 +70,7 @@ namespace x
 	{
 	public:
 		runtime_exception( std::string_view message );
+		~runtime_exception() = default;
 
 	public:
 		char const * what() const override;

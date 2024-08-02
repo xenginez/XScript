@@ -10,25 +10,25 @@ namespace x
 		virtual x::ast_ptr transferred( const x::symbols_ptr & sym, const x::ast_ptr & ast ) const = 0;
 	};
 
-	// uint64 builtin_sizeof( type | var )
+	// uint64 builtin_sizeof( protocol | var )
 	class builtin_sizeof : public x::builtin
 	{
 	public:
 		x::ast_ptr transferred( const x::symbols_ptr & sym, const x::ast_ptr & ast ) const override;
 	};
-	// meta_type builtin_typeof( type | var )
+	// meta_type builtin_typeof( protocol | var )
 	class builtin_typeof : public x::builtin
 	{
 	public:
 		x::ast_ptr transferred( const x::symbols_ptr & sym, const x::ast_ptr & ast ) const override;
 	};
-	// type builtin_list_sizeof( list_type )
+	// protocol builtin_list_sizeof( list_type )
 	class builtin_list_sizeof : public x::builtin
 	{
 	public:
 		x::ast_ptr transferred( const x::symbols_ptr & sym, const x::ast_ptr & ast ) const override;
 	};
-	// type builtin_list_typeof( list_type, index )
+	// protocol builtin_list_typeof( list_type, index )
 	class builtin_list_typeof : public x::builtin
 	{
 	public:
@@ -40,25 +40,25 @@ namespace x
 	public:
 		x::ast_ptr transferred( const x::symbols_ptr & sym, const x::ast_ptr & ast ) const override;
 	};
-	// bool builtin_is_enum( type )
+	// bool builtin_is_enum( protocol )
 	class builtin_is_enum : public x::builtin
 	{
 	public:
 		x::ast_ptr transferred( const x::symbols_ptr & sym, const x::ast_ptr & ast ) const override;
 	};
-	// bool builtin_is_class( type )
+	// bool builtin_is_class( protocol )
 	class builtin_is_class : public x::builtin
 	{
 	public:
 		x::ast_ptr transferred( const x::symbols_ptr & sym, const x::ast_ptr & ast ) const override;
 	};
-	// bool builtin_is_base_of( type, base_type )
+	// bool builtin_is_base_of( protocol, base_type )
 	class builtin_is_base_of : public x::builtin
 	{
 	public:
 		x::ast_ptr transferred( const x::symbols_ptr & sym, const x::ast_ptr & ast ) const override;
 	};
-	// type builtin_conditional( cond, then_type, else_type )
+	// protocol builtin_conditional( cond, then_type, else_type )
 	class builtin_conditional : public x::builtin
 	{
 	public:

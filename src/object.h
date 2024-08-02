@@ -1,6 +1,7 @@
 #pragma once
 
-#include "type.h"
+#include <array>
+
 #include "exception.h"
 
 namespace x
@@ -34,7 +35,7 @@ namespace x
 		void set_gcstatus( x::gcstatus_t status );
 	};
 
-	class array_object : public object
+	class array : public object
 	{
 		friend class runtime;
 
@@ -45,7 +46,7 @@ namespace x
 		bool is_array() const override;
 	};
 
-	class callable_object : public object
+	class callable : public object
 	{
 		friend class runtime;
 
@@ -56,7 +57,7 @@ namespace x
 		bool is_callable() const override;
 	};
 
-	class coroutine_object : public object
+	class coroutine : public object
 	{
 		friend class runtime;
 
@@ -78,11 +79,13 @@ namespace x
 		const x::runtime_exception & exception() const;
 
 	public:
+		void clear();
 		void resume( const x::value & val );
 		void except( const x::runtime_exception & val );
 
 	private:
 		int _step = 0;
+		std::array<x::byte, 64> _data = {};
 		x::corostatus_t _status = x::corostatus_t::RESUME;
 	};
 }

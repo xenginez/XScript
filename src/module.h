@@ -52,12 +52,12 @@ namespace x
             {
                 struct
                 {
-                    x::uint64 type; // type section index
+                    x::uint64 type; // protocol section index
                 } type;
 
                 struct
                 {
-                    x::uint64 type; // type section index
+                    x::uint64 type; // protocol section index
                 } reftype;
 
                 struct
@@ -135,7 +135,7 @@ namespace x
             bool is_virtual = false;
             x::range name; // stringdata section range
             x::uint64 code; // opcodedata section index
-            x::uint64 owner; // type section index
+            x::uint64 owner; // protocol section index
             x::uint64 result; // desc section index
             std::vector<x::uint64> parameters; // desc section index
         };
@@ -157,7 +157,7 @@ namespace x
             flag_t flag;
             x::uint64 idx;
             x::range name; // stringdata section range
-            x::uint64 owner; // type section index
+            x::uint64 owner; // protocol section index
             x::uint64 value; // desc section index
         };
 
@@ -168,7 +168,7 @@ namespace x
     {
         struct item
         {
-            x::uint64 type; // type section index
+            x::uint64 type; // protocol section index
             x::range key; // stringdata section range
             x::range value; // stringdata section range
         };

@@ -283,11 +283,11 @@ x::symbols_ptr x::module_compiler::make_symbols()
 	END();
 	BEG( object );
 	END();
-	NBEG( array_object, array );
+	BEG( array );
 	END();
-	NBEG( callable_object, callable );
+	BEG( callable );
 	END();
-	NBEG( coroutine_object, coroutine );
+	BEG( coroutine );
 	END();
 
 #undef BEG

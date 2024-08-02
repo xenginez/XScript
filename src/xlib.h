@@ -368,7 +368,7 @@ extern "C"{
     void x_condition_release( x_condition cond );
 
     // coroutine
-    void x_coroutine_sleep_for( x_coroutine coroutine, int64 milliseconds );
+    x_coroutine x_coroutine_create( uint64 size );
     void x_coroutine_sleep_until( x_coroutine coroutine, int64 time );
     void x_coroutine_file_read( x_coroutine coroutine, x_file file, intptr buffer, uint64 size );
     void x_coroutine_file_write( x_coroutine coroutine, x_file file, intptr buffer, uint64 size );
@@ -377,6 +377,7 @@ extern "C"{
     void x_coroutine_socket_recv( x_coroutine coroutine, x_socket socket, intptr buffer, uint64 size );
     void x_coroutine_socket_send( x_coroutine coroutine, x_socket socket, intptr buffer, uint64 size );
     void x_coroutine_socket_sendto( x_coroutine coroutine, x_socket socket, x_string peername, uint16 port, intptr buffer, uint64 size );
+    void x_coroutine_release( x_coroutine coroutine );
     
 #ifdef __cplusplus
 }
