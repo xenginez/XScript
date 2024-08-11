@@ -20,6 +20,7 @@ namespace x
 		using char_type = _Elem;
 		using string_type = std::basic_string<_Elem, _Traits, _Alloc>;
 		using string_view_type = std::basic_string_view<_Elem, _Traits>;
+		using streambuf_type = std::basic_streambuf<_Elem, _Traits>;
 		using istream_type = std::basic_istream<_Elem, _Traits>;
 		using ostream_type = std::basic_ostream<_Elem, _Traits>;
 		using isstream_type = std::basic_istringstream<_Elem, _Traits, _Alloc>;
@@ -606,10 +607,11 @@ namespace x
 	public:
 		static json_impl load( istream_type & is )
 		{
+			is.seekg( 0, std::ios::beg );
 			auto beg = is.tellg();
 			is.seekg( 0, std::ios::end );
 			auto end = is.tellg();
-			is.seekg( beg );
+			is.seekg( beg, std::ios::beg );
 
 			auto data = string_type( end - beg, 0 );
 			is.read( data.data(), end - beg );
@@ -617,6 +619,11 @@ namespace x
 			variant_type var;
 			unserialization( data.begin(), data.end(), var );
 			return var;
+		}
+		static json_impl load( streambuf_type * buf )
+		{
+			std::istream is( buf );
+			return load( is );
 		}
 		static json_impl load( string_view_type str )
 		{
@@ -638,6 +645,26 @@ namespace x
 		{
 			serialization( os, _var, 1, compact );
 
+			return os;
+		}
+		streambuf_type * save( streambuf_type * buf, bool compact = false ) const
+		{
+			std::ostream os( buf );
+
+			serialization( os, _var, 1, compact );
+
+			return buf;
+		}
+
+	public:
+		friend static istream_type & operator >>( istream_type & is, json_impl<_Elem, _Traits, _Alloc> & json )
+		{
+			json = json_impl<_Elem, _Traits, _Alloc>::load( is );
+			return is;
+		}
+		friend static ostream_type & operator <<( ostream_type & os, const json_impl<_Elem, _Traits, _Alloc> & json )
+		{
+			json.save( os );
 			return os;
 		}
 

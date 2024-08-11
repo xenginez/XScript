@@ -2,7 +2,6 @@
 
 #include <bit>
 #include <list>
-#include <array>
 #include <deque>
 #include <bitset>
 #include <thread>

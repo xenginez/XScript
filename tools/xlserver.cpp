@@ -1,3 +1,4 @@
+#include <list>
 #include <functional>
 
 #include <xlib.h>
@@ -11,16 +12,23 @@
 
 namespace
 {
+	enum class client_status
+	{
+		READ,
+		WRITE,
+		CLOSE,
+	};
+
 	struct json_parse
 	{
-		std::pair<bool, x::byte *> operator()( x::byte * beg, x::byte * end )
+		template<typename Iterator> bool operator()( Iterator beg, Iterator end )
 		{
 			x::uint64 layer = 0;
 			while ( beg != end )
 			{
-				if ( (char)*beg == '{' || (char)*beg == '[' )
+				if ( *beg == '{' || *beg == '[' )
 					layer++;
-				else if ( (char)*beg == '}' || (char)*beg == ']' )
+				else if ( *beg == '}' || *beg == ']' )
 					layer--;
 
 				++beg;
@@ -29,10 +37,7 @@ namespace
 					break;
 			}
 
-			if ( layer == 0 )
-				return { true, beg };
-
-			return { false, nullptr };
+			return ( layer == 0 );
 		}
 	};
 
@@ -45,21 +50,23 @@ namespace
 	struct workspace
 	{
 		std::string id = {};
-		x::coroutine * co = {};
 		x::symbols symbols = {};
 		document_map documents = {};
 	};
 	using workspace_map = std::map<std::string, workspace>;
 
-	struct client
+	struct client : public std::enable_shared_from_this<client>
 	{
 		x_socket socket;
 		json_parse parse;
-		x::coroutine * co = {};
-		x::stream_buffer buf;
+		x::coroutine coro = {};
+		client_status status = client_status::READ;
+		x::stream_buffer rbuf = {};
+		x::stream_buffer wbuf = {};
 		workspace_map workspaces;
 	};
-	using client_map = std::map<x_socket, client>;
+	using client_ptr = std::shared_ptr<client>;
+	using client_map = std::map<x_socket, client_ptr>;
 
 }
 
@@ -73,10 +80,9 @@ private:
 
 	client_map _clients;
 	x_socket _socket = nullptr;
-	x_condition _condition = nullptr;
-	x::coroutine * _coaccept = nullptr;
+	x::coroutine _coaccept = {};
+	std::list<client_ptr> _closes = {};
 	std::map<std::string, method_type> _methods;
-	x::concurrent_queue<std::function<bool()>> _taskqueue;
 
 public:
 	xlserver()
@@ -178,123 +184,140 @@ public:
 	~xlserver() = default;
 
 public:
-	int run( x::uint16 port = 8080 )
+	int run( x::uint16 port = 18080 )
 	{
 		_grammar = std::make_shared<x::grammar>();
-		_socket = x_socket_create( SOCKET_PROTOCOL_TCP, SOCKET_AF_INET );
-		_condition = x_condition_create();
-		_coaccept = new x::coroutine;
 
-		x_socket_bind( _socket, "127.0.0.1", port );
-		x_socket_listen( _socket );
-		accept();
+		if ( _socket = x_socket_create( SOCKET_PROTOCOL_TCP, SOCKET_AF_INET ) )
+		{
+			x_socket_bind( _socket, "127.0.0.1", port );
+			x_socket_listen( _socket );
+			x_coroutine_socket_accept( &_coaccept, _socket );
+		}
 
-		std::function<bool()> task;
 		while ( 1 )
 		{
-			if ( _taskqueue.try_dequeue( task ) )
-				if ( !task() )
-					_taskqueue.enqueue( task );
-			else
-				x_condition_wait( _condition );
+			while ( !_closes.empty() )
+			{
+				auto client = _closes.front();
+
+				auto it = _clients.find( client->socket );
+				if ( it != _clients.end() )
+					_clients.erase( it );
+
+				x_socket_close( client->socket );
+				x_socket_release( client->socket );
+
+				_closes.pop_front();
+			}
+
+			if ( _coaccept.next() )
+			{
+				auto socket = _coaccept.value().to_intptr();
+				_coaccept.reset();
+
+				if ( auto c = std::make_shared<client>() )
+				{
+					c->socket = socket;
+					_clients.insert( { c->socket, c } );
+
+					x_coroutine_socket_recv( &c->coro, c->socket, c->rbuf.prepare( 512 ), 512 );
+				}
+
+				x_coroutine_socket_accept( &_coaccept, _socket );
+			}
+			else if ( _coaccept.error() )
+			{
+				std::cout << _coaccept.exception().what() << std::endl;
+			}
+
+			for ( auto & it : _clients )
+			{
+				auto client = it.second;
+
+				if ( client->coro.next() )
+				{
+					if ( client->status == client_status::READ )
+					{
+						client->rbuf.commit( client->coro.value().to_uint64() );
+						client->coro.reset();
+
+						if ( client->parse( client->rbuf.begin(), client->rbuf.end() ) )
+						{
+							auto request = x::json::load( &client->rbuf );
+
+							auto response = dispatch( request, client );
+
+							if ( !response.empty() )
+							{
+								response.save( &client->wbuf, true );
+
+								std::cout << "request: " << request << "\n" << "response: " << response << std::endl;
+
+								client->status = client_status::WRITE;
+								x_coroutine_socket_send( &client->coro, client->socket, (intptr)( client->wbuf.data() ), client->wbuf.size() );
+							}
+							else
+							{
+								client->status = client_status::READ;
+								x_coroutine_socket_recv( &client->coro, client->socket, client->rbuf.prepare( 512 ), 512 );
+							}
+						}
+					}
+					else if( client->status == client_status::WRITE )
+					{
+						client->wbuf.consume( client->coro.value().to_uint64() );
+						client->coro.reset();
+
+						if ( client->wbuf.size() != 0 )
+						{
+							client->status = client_status::WRITE;
+							x_coroutine_socket_send( &client->coro, client->socket, (intptr)( client->wbuf.data() ), client->wbuf.size() );
+						}
+						else
+						{
+							client->status = client_status::READ;
+							x_coroutine_socket_recv( &client->coro, client->socket, client->rbuf.prepare( 512 ), 512 );
+						}
+					}
+				}
+				else if ( client->coro.error() )
+				{
+					std::cout << client->coro.exception().what() << std::endl;
+
+					client->status = client_status::CLOSE;
+
+					_closes.push_back( client );
+				}
+			}
 		}
 
 		x_socket_close( _socket );
 		x_socket_release( _socket );
-		x_condition_release( _condition );
 
 		return 0;
 	}
-	template<typename F> void post( F && task )
-	{
-		_taskqueue.enqueue( task );
-
-		x_condition_notify_one( _condition );
-	}
 
 private:
-	void accept()
+	x::json dispatch( const x::json & request, const client_ptr & client )
 	{
-		x_coroutine_socket_accept( _coaccept, _socket );
+		x::json response;
 
-		post( [this]()
-		{
-			if ( _coaccept->next() )
-			{
-				client c;
-
-				c.co = new x::coroutine;
-				c.socket = _coaccept->value().to_intptr();
-				_clients.insert( { c.socket, c } );
-
-				read( _clients[c.socket] );
-
-				_coaccept->clear();
-
-				accept();
-
-				return true;
-			}
-			else if ( _coaccept->error() )
-			{
-
-			}
-
-			return false;
-		} );
-	}
-
-	void read( client & client )
-	{
-		x_coroutine_socket_recv( client.co, client.socket, client.buf.prepare( 512 ), 512 );
-
-		post( [this, &client]()
-		{
-			if ( client.co->next() )
-			{
-				client.buf.commit( client.co->value().to_uint64() );
-				auto result = client.parse( client.buf.data(), client.buf.data() + client.buf.size() );
-				if ( result.first )
-				{
-					x::json request = x::json::load( { (const char *)client.buf.data(), (const char *)result.second } );
-					auto respone = dispatch( request, client );
-					write( client, respone );
-				}
-
-				read( client );
-
-				return true;
-			}
-			else if ( client.co->error() )
-			{
-
-			}
-
-			return false;
-		} );
-	}
-
-	void write( client & client, const x::json & respone )
-	{
-
-	}
-
-	x::json dispatch( const x::json & request, client & client )
-	{
 		if ( request.contains( "method" ) )
 		{
 			auto it = _methods.find( request["method"] );
 			if ( it != _methods.end() )
 			{
-				return ( this->*it->second )( request["params"] );
+				response = ( this->*it->second )( request["params"] );
 			}
 		}
 		else // err
 		{
-
+			response["code"] = -1;
+			response["message"] = "";
 		}
 
-		return {};
+		return response;
 	}
 
 private:

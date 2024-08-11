@@ -2,6 +2,7 @@
 
 #include <map>
 #include <span>
+#include <array>
 #include <memory>
 #include <vector>
 #include <string>
@@ -23,7 +24,7 @@
 #ifdef _DEBUG
 #define _WSTR_(s) L ## s
 #define _WSTR(s) _WSTR_( s )
-#define XTHROW( EX, COND, ... ) if( ( COND ) ) _wassert( _WSTR( #COND ), _WSTR( __FILE__ ), __LINE__ );
+#define XTHROW( EX, COND, ... ) if( ( COND ) ){ printf("%s", EX( __VA_ARGS__ ).what() ); _wassert( _WSTR( #COND ), _WSTR( __FILE__ ), __LINE__ ); }
 #else
 #define XTHROW( EX, COND, ... ) if( ( COND ) ) throw EX( __VA_ARGS__ );
 #endif // _DEBUG
@@ -409,7 +410,7 @@ namespace x
     };
     enum class corostatus_t
     {
-        RESUME,
+        EMPTY,
         SUSPEND,
         READY,
         EXCEPT,

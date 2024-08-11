@@ -131,6 +131,11 @@ bool x::coroutine::error() const
 	return _status == x::corostatus_t::EXCEPT;
 }
 
+bool x::coroutine::empty() const
+{
+	return _status == x::corostatus_t::EMPTY;
+}
+
 x::corostatus_t x::coroutine::status() const
 {
 	return _status;
@@ -143,19 +148,29 @@ const x::value & x::coroutine::wait() const
 
 const x::value & x::coroutine::value() const
 {
-	return *( (x::value *)_data.data() + 1 );
+	return *( (x::value *)( _data.data() + 1 ) );
 }
 
 const x::runtime_exception & x::coroutine::exception() const
 {
-	return *( (x::runtime_exception *)_data.data() + 1 );
+	return *( (x::runtime_exception *)( _data.data() + 1 ) );
 }
 
-void x::coroutine::clear()
+void x::coroutine::reset()
 {
+	switch ( (x::uint8)_data[0] )
+	{
+	case 1:
+		( (x::value *)( _data.data() + 1 ) )->~value();
+		break;
+	case 2:
+		( (x::runtime_exception *)( _data.data() + 1 ) )->~runtime_exception();
+		break;
+	}
+
 	_step = 0;
 	_data[0] = {};
-	_status = x::corostatus_t::RESUME;;
+	_status = x::corostatus_t::EMPTY;
 }
 
 void x::coroutine::resume( const x::value & val )
@@ -163,15 +178,17 @@ void x::coroutine::resume( const x::value & val )
 	switch ( (x::uint8)_data[0] )
 	{
 	case 1:
-		( (x::value *)_data.data() + 1 )->~value();
+		( (x::value *)( _data.data() + 1 ) )->~value();
 		break;
 	case 2:
-		( (x::runtime_exception *)_data.data() + 1 )->~runtime_exception();
+		( (x::runtime_exception *)( _data.data() + 1 ) )->~runtime_exception();
 		break;
 	}
 
 	_data[0] = (x::byte)1;
 	new ( _data.data() + 1 )x::value( val );
+
+	++_step;
 	_status = x::corostatus_t::SUSPEND;
 }
 
@@ -189,5 +206,6 @@ void x::coroutine::except( const x::runtime_exception & val )
 
 	_data[0] = (x::byte)1;
 	new ( _data.data() + 1 )x::runtime_exception( val );
+
 	_status = x::corostatus_t::EXCEPT;
 }

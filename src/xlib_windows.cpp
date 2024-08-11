@@ -2,7 +2,6 @@
 
 #include "xlib.h"
 
-#include <array>
 #include <deque>
 
 #define NOMINMAX
@@ -28,6 +27,8 @@
 #define IOCP_EVENT_CONNECT                uint32( 7 )
 #define IOCP_EVENT_ADDRINFO               uint32( 8 )
 
+#define OVERLAPPED_ACCEPT_BUF_SIZE        512
+
 namespace
 {
     struct overlapped;
@@ -36,8 +37,8 @@ namespace
     struct socket_info;
     struct windows_scheduler;
     uint32 key_event( WPARAM wParam );
-    std::string get_last_error_as_string();
-    std::string get_last_wsa_error_as_string();
+    std::string get_last_error_as_string( DWORD id = 0 );
+    std::string get_last_wsa_error_as_string( DWORD id = 0 );
     LRESULT x_windows_process( HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam );
 
     struct overlapped
@@ -62,6 +63,7 @@ namespace
             } sendto;
             struct
             {
+                char buf[OVERLAPPED_ACCEPT_BUF_SIZE];
                 socket_info * client;
             } accept;
         };
@@ -172,24 +174,23 @@ namespace
                     switch ( overlap->type )
                     {
                     case IOCP_EVENT_READ:
-                        overlap->result->resume( (x::uint64)overlap->bytes );
+                        overlap->result->resume( (x::uint64)bytes );
                         break;
                     case IOCP_EVENT_WRITE:
-                        overlap->result->resume( (x::uint64)overlap->bytes );
+                        overlap->result->resume( (x::uint64)bytes );
                         break;
                     case IOCP_EVENT_RECV:
-                        overlap->result->resume( (x::uint64)overlap->bytes );
+                        overlap->result->resume( (x::uint64)bytes );
                         break;
                     case IOCP_EVENT_SEND:
-                        overlap->result->resume( (x::uint64)overlap->bytes );
+                        overlap->result->resume( (x::uint64)bytes );
                         break;
                     case IOCP_EVENT_ACCEPT:
                         overlap->socket->GetAcceptExSockaddrs( overlap->buffer.buf, overlap->buffer.len, sizeof( sockaddr_in ), sizeof( sockaddr_in ), &localaddr, &localaddr_len, &remoteaddr, &remoteaddr_len );
 
-                        memcpy( &overlap->accept.client->sockaddr, localaddr, sizeof( sockaddr_in ) );
-                        memcpy( &overlap->accept.client->peeraddr, remoteaddr, sizeof( sockaddr_in ) );
+                        memcpy( &overlap->accept.client->sockaddr, localaddr, std::min<int>( sizeof( sockaddr_in ), localaddr_len ) );
+                        memcpy( &overlap->accept.client->peeraddr, remoteaddr, std::min<int>( sizeof( sockaddr_in ), remoteaddr_len ) );
 
-                        delete[] overlap->buffer.buf;
                         overlap->result->resume( overlap->accept.client );
                         break;
                     case IOCP_EVENT_CONNECT:
@@ -203,8 +204,26 @@ namespace
                 }
                 else
                 {
-                    auto s = get_last_error_as_string();
-                    int i = 0;
+                    if ( overlap )
+                    {
+                        switch ( overlap->type )
+                        {
+                        case IOCP_EVENT_READ:
+                        case IOCP_EVENT_WRITE:
+                        case IOCP_EVENT_RECV:
+                        case IOCP_EVENT_SEND:
+                        case IOCP_EVENT_ACCEPT:
+                        case IOCP_EVENT_CONNECT:
+                            overlap->result->except( x::runtime_exception( get_last_error_as_string() ) );
+                            break;
+                        }
+
+                        enqueue( overlap );
+                    }
+                    else
+                    {
+                        printf( "WIN32 IOCP ERROR: %s", get_last_error_as_string().c_str() );
+                    }
                 }
             }
         }
@@ -328,9 +347,11 @@ namespace
 
         return x_input::INPUT_NONE;
     }
-    std::string get_last_error_as_string()
+    std::string get_last_error_as_string( DWORD id )
     {
-        DWORD id = ::GetLastError();
+        if ( id == 0 )
+            id = ::GetLastError();
+
         if ( id == 0 )
             return std::string();
 
@@ -343,9 +364,11 @@ namespace
 
         return message;
     }
-    std::string get_last_wsa_error_as_string()
+    std::string get_last_wsa_error_as_string( DWORD id )
     {
-        DWORD id = ::WSAGetLastError();
+        if ( id == 0 )
+            id = ::WSAGetLastError();
+
         if ( id == 0 )
             return std::string();
 
@@ -1230,13 +1253,14 @@ void x_coroutine_socket_accept( x_coroutine coroutine, x_socket socket )
     lap->accept.client = reinterpret_cast<socket_info *>( x_socket_create( info->protocol, info->family ) );
     lap->accept.client->sockaddr = info->sockaddr;
     lap->result = reinterpret_cast<x::coroutine *>( coroutine );
-    lap->buffer.buf = new char[512];
-    lap->buffer.len = 512;
+    lap->buffer.buf = lap->accept.buf;
+    lap->buffer.len = OVERLAPPED_ACCEPT_BUF_SIZE;
 
     if ( !info->AcceptEx( lap->socket->handle, lap->accept.client->handle, lap->buffer.buf, 0, sizeof( SOCKADDR_IN ) + 16, sizeof( SOCKADDR_IN ) + 16, &lap->bytes, (LPOVERLAPPED)lap ) )
     {
-        auto s = get_last_wsa_error_as_string();
-        int i = 0;
+        auto id = WSAGetLastError();
+        if ( id != WSA_IO_PENDING )
+            XTHROW( x::runtime_exception, true, get_last_wsa_error_as_string( id ) );
     }
 }
 void x_coroutine_socket_connect( x_coroutine coroutine, x_socket socket, x_string peername, uint16 port )

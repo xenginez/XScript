@@ -1,7 +1,5 @@
 #pragma once
 
-#include <array>
-
 #include "exception.h"
 
 namespace x
@@ -71,6 +69,7 @@ namespace x
 		bool done() const;
 		bool next() const;
 		bool error() const;
+		bool empty() const;
 		x::corostatus_t status() const;
 
 	public:
@@ -79,13 +78,13 @@ namespace x
 		const x::runtime_exception & exception() const;
 
 	public:
-		void clear();
+		void reset();
 		void resume( const x::value & val );
 		void except( const x::runtime_exception & val );
 
 	private:
 		int _step = 0;
 		std::array<x::byte, 64> _data = {};
-		x::corostatus_t _status = x::corostatus_t::RESUME;
+		x::corostatus_t _status = x::corostatus_t::EMPTY;
 	};
 }
