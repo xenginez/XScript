@@ -533,6 +533,7 @@ namespace x
     class meta_namespace;
     class meta_attribute;
 
+    PTR( logger );
     PTR( module );
     PTR( grammar );
     PTR( visitor );

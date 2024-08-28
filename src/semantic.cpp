@@ -4,7 +4,7 @@
 
 namespace
 {
-	class checker
+	class analyzer
 	{
 	public:
 		virtual void statement( x::symbols * symbols, x::stat_ast * ast ) const

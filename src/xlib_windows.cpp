@@ -1024,7 +1024,9 @@ x_buffer x_socket_getaddrinfo( uint32 protocol, x_string name, x_string service 
             
             ip[63] = 0;
 
-            buf->write( (const x::byte *)ip, ::strlen( ip ) + 1 );
+            std::ostream os( buf );
+
+            os.write( ip, ::strlen( ip ) + 1 );
 
             result = result->ai_next;
         }

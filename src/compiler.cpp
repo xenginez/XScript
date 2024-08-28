@@ -59,7 +59,7 @@ bool x::compiler::compile( const std::filesystem::path & file )
 
 		scanner();
 
-		checker();
+		analyzer();
 
 		instant();
 
@@ -85,12 +85,12 @@ void x::compiler::scanner()
 		scanner.scanner( _symbols, it->ast );
 }
 
-void x::compiler::checker()
+void x::compiler::analyzer()
 {
-	x::semantics_analyzer_visitor checker;
+	x::semantics_analyzer_visitor analyzer;
 
 	for ( const auto & it : _objects )
-		checker.analysis( _symbols, it->ast );
+		analyzer.analysis( _symbols, it->ast );
 }
 
 void x::compiler::instant()

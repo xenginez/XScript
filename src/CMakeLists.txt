@@ -8,6 +8,8 @@ set(SRC_FILES
 "float16.h"
 "float16.cpp"
 "type.h"
+"logger.h"
+"logger.cpp"
 "buffer.h"
 "buffer.cpp"
 "ast.h"

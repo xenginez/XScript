@@ -17,246 +17,39 @@ namespace
 	};
 }
 
-void x::buffer::resize( x::uint64 size )
-{
-	_data.resize( size, (x::byte)0 );
-}
-
-x::uint64 x::buffer::seekp() const
-{
-	return _ppos;
-}
-
-x::uint64 x::buffer::seekg() const
-{
-	return _gpos;
-}
-
-void x::buffer::tellp( x::uint64 i )
-{
-	_ppos = i;
-}
-
-void x::buffer::tellg( x::uint64 i )
-{
-	_gpos = i;
-}
-
-x::uint64 x::buffer::size() const
-{
-	return _data.size();
-}
-
-x::byte * x::buffer::data()
-{
-	return _data.data();
-}
-
-const x::byte * x::buffer::data() const
-{
-	return _data.data();
-}
-
-x::uint64 x::buffer::read( x::value & val )
-{
-	auto gpos = _gpos;
-
-	switch ( val.type() )
-	{
-	case x::value_t::BOOL:
-		val = *reinterpret_cast<bool *>( get( sizeof( bool ) ) );
-		break;
-	case x::value_t::INT8:
-		val = *reinterpret_cast<x::int8 *>( get( sizeof( x::int8 ) ) );
-		break;
-	case x::value_t::INT16:
-		val = *reinterpret_cast<x::int16 *>( get( sizeof( x::int16 ) ) );
-		break;
-	case x::value_t::INT32:
-		val = *reinterpret_cast<x::int32 *>( get( sizeof( x::int32 ) ) );
-		break;
-	case x::value_t::INT64:
-		val = *reinterpret_cast<x::int64 *>( get( sizeof( x::int64 ) ) );
-		break;
-	case x::value_t::UINT8:
-		val = *reinterpret_cast<x::uint8 *>( get( sizeof( x::uint8 ) ) );
-		break;
-	case x::value_t::UINT16:
-		val = *reinterpret_cast<x::uint16 *>( get( sizeof( x::uint16 ) ) );
-		break;
-	case x::value_t::UINT32:
-		val = *reinterpret_cast<x::uint32 *>( get( sizeof( x::uint32 ) ) );
-		break;
-	case x::value_t::UINT64:
-		val = *reinterpret_cast<x::uint64 *>( get( sizeof( x::uint64 ) ) );
-		break;
-	case x::value_t::FLOAT16:
-		val = *reinterpret_cast<x::uint16 *>( get( sizeof( x::uint16 ) ) );
-		break;
-	case x::value_t::FLOAT32:
-		val = *reinterpret_cast<x::float32 *>( get( sizeof( x::float32 ) ) );
-		break;
-	case x::value_t::FLOAT64:
-		val = *reinterpret_cast<x::float64 *>( get( sizeof( x::float64 ) ) );
-		break;
-	case x::value_t::STRING:
-	{
-		x::uint32 sz = *reinterpret_cast<x::uint32 *>( get( sizeof( x::uint32 ) ) );
-
-		val = x::allocator::salloc( std::string_view{ reinterpret_cast<const char *>( get( sz ) ), sz } );
-	}
-		break;
-	case x::value_t::OBJECT:
-	{
-		x::uint32 sz = *reinterpret_cast<x::uint32 *>( get( sizeof( x::uint32 ) ) );
-
-		auto str = x::allocator::salloc( std::string_view{ reinterpret_cast<const char *>( get( sz ) ), sz } );
-
-		val.to_object()->from_string( str );
-	}
-		break;
-	default:
-		break;
-	}
-
-	return _gpos - gpos;
-}
-
-x::uint64 x::buffer::write( const x::value & val )
-{
-	auto ppos = _ppos;
-
-	switch ( val.type() )
-	{
-	case x::value_t::BOOL:
-		*reinterpret_cast<bool *>( put( sizeof( bool ) ) ) = val.to_bool();
-		break;
-	case x::value_t::INT8:
-		*reinterpret_cast<bool *>( put( sizeof( x::int8 ) ) ) = val.to_int8();
-		break;
-	case x::value_t::INT16:
-		*reinterpret_cast<bool *>( put( sizeof( x::int16 ) ) ) = val.to_int16();
-		break;
-	case x::value_t::INT32:
-		*reinterpret_cast<bool *>( put( sizeof( x::int32 ) ) ) = val.to_int32();
-		break;
-	case x::value_t::INT64:
-		*reinterpret_cast<bool *>( put( sizeof( x::int64 ) ) ) = val.to_int64();
-		break;
-	case x::value_t::UINT8:
-		*reinterpret_cast<bool *>( put( sizeof( x::uint8 ) ) ) = val.to_uint8();
-		break;
-	case x::value_t::UINT16:
-		*reinterpret_cast<bool *>( put( sizeof( x::uint16 ) ) ) = val.to_uint16();
-		break;
-	case x::value_t::UINT32:
-		*reinterpret_cast<bool *>( put( sizeof( x::uint32 ) ) ) = val.to_uint32();
-		break;
-	case x::value_t::UINT64:
-		*reinterpret_cast<bool *>( put( sizeof( x::uint64 ) ) ) = val.to_uint64();
-		break;
-	case x::value_t::FLOAT16:
-		*reinterpret_cast<bool *>( put( sizeof( x::uint16 ) ) ) = val.to_float16().to_uint16();
-		break;
-	case x::value_t::FLOAT32:
-		*reinterpret_cast<bool *>( put( sizeof( x::float32 ) ) ) = val.to_float32();
-		break;
-	case x::value_t::FLOAT64:
-		*reinterpret_cast<bool *>( put( sizeof( x::float64 ) ) ) = val.to_float64();
-		break;
-	case x::value_t::STRING:
-	{
-		std::string_view view( val.to_string() );
-		*reinterpret_cast<x::uint32 *>( put( sizeof( x::uint32 ) ) ) = static_cast<x::uint32>( view.size() );
-		char * buf = reinterpret_cast<char *>( put( view.size() ) );
-		memcpy( buf, view.data(), view.size() );
-	}
-		break;
-	case x::value_t::OBJECT:
-		write( val.to_object()->to_string() );
-		break;
-	default:
-		break;
-	}
-
-	return _ppos - ppos;
-}
-
-x::uint64 x::buffer::read( x::byte * data, x::uint64 size )
-{
-	size = std::min( size, _data.size() - _gpos );
-
-	memcpy( data, get( size ), size );
-
-	return size;
-}
-
-x::uint64 x::buffer::write( const x::byte * data, x::uint64 size )
-{
-	auto dst = put( size );
-	memcpy( dst, data, size );
-	return size;
-}
-
-x::byte * x::buffer::get( x::uint64 size )
-{
-	XTHROW( x::runtime_exception, ( _gpos + size ) > _data.size(), "" );
-
-	auto p = _data.data() + _gpos;
-
-	_gpos += size;
-
-	return p;
-}
-
-x::byte * x::buffer::put( x::uint64 size )
-{
-	if ( ( _ppos + size ) > _data.size() )
-	{
-		_data.resize( _ppos + size );
-	}
-
-	auto p = _data.data() + _ppos;
-
-	_ppos += size;
-
-	return p;
-}
-
-
-x::stream_buffer::stream_buffer()
+x::buffer::buffer()
 	: _Seekhigh( nullptr ), _Mystate( _Getstate( std::ios_base::in | std::ios_base::out ) )
 {
 }
 
-x::stream_buffer::stream_buffer( stream_buffer && _Right ) noexcept
+x::buffer::buffer( buffer && _Right ) noexcept
 	: _Mystate( 0 )
 {
 	_Assign_rv( std::move( _Right ) );
 }
 
-x::stream_buffer::stream_buffer( std::ios_base::openmode _Mode )
+x::buffer::buffer( std::ios_base::openmode _Mode )
 	: _Seekhigh( nullptr ), _Mystate( _Getstate( _Mode ) )
 {
 }
 
-x::stream_buffer::stream_buffer( const buf_type & _Str, std::ios_base::openmode _Mode )
+x::buffer::buffer( const buf_type & _Str, std::ios_base::openmode _Mode )
 {
 	_Init( _Str.data(), _Str.size(), _Getstate( _Mode ) );
 }
 
-x::stream_buffer & x::stream_buffer::operator=( stream_buffer && _Right ) noexcept
+x::buffer & x::buffer::operator=( buffer && _Right ) noexcept
 {
 	_Assign_rv( std::move( _Right ) );
 	return *this;
 }
 
-x::stream_buffer::~stream_buffer() noexcept
+x::buffer::~buffer() noexcept
 {
 	_Tidy();
 }
 
-void x::stream_buffer::swap( stream_buffer & _Right ) noexcept
+void x::buffer::swap( buffer & _Right ) noexcept
 {
 	if ( this != std::addressof( _Right ) )
 	{
@@ -268,45 +61,45 @@ void x::stream_buffer::swap( stream_buffer & _Right ) noexcept
 	}
 }
 
-x::stream_buffer::element_type * x::stream_buffer::prepare( size_type size )
+x::buffer::element_type * x::buffer::prepare( size_type size )
 {
 	_Prepare.resize( size );
 	return _Prepare.data();
 }
 
-void x::stream_buffer::commit( size_type size )
+void x::buffer::commit( size_type size )
 {
 	this->sputn( _Prepare.data(), size );
 	std::move( _Prepare.begin() + size, _Prepare.end(), _Prepare.begin() );
 	_Prepare.resize( _Prepare.size() - size );
 }
 
-void x::stream_buffer::consume( size_type size )
+void x::buffer::consume( size_type size )
 {
 	streambuf_type::setg( streambuf_type::eback(), streambuf_type::gptr() + size, std::max( _Seekhigh, pptr() ) );
 }
 
-x::stream_buffer::size_type x::stream_buffer::size() const
+x::buffer::size_type x::buffer::size() const
 {
 	return pptr() - gptr();
 }
 
-const x::stream_buffer::element_type * x::stream_buffer::data() const
+const x::buffer::element_type * x::buffer::data() const
 {
 	return streambuf_type::gptr();
 }
 
-x::stream_buffer::istreambuf_iterator x::stream_buffer::begin()
+x::buffer::istreambuf_iterator x::buffer::begin()
 {
 	return istreambuf_iterator( this );
 }
 
-x::stream_buffer::istreambuf_iterator x::stream_buffer::end()
+x::buffer::istreambuf_iterator x::buffer::end()
 {
 	return istreambuf_iterator();
 }
 
-x::stream_buffer::int_type x::stream_buffer::overflow( int_type _Meta )
+x::buffer::int_type x::buffer::overflow( int_type _Meta )
 {
 	if ( _Mystate & _Constant )
 	{
@@ -372,7 +165,7 @@ x::stream_buffer::int_type x::stream_buffer::overflow( int_type _Meta )
 	return _Meta;
 }
 
-x::stream_buffer::int_type x::stream_buffer::pbackfail( int_type _Meta )
+x::buffer::int_type x::buffer::pbackfail( int_type _Meta )
 {
 	const auto _Gptr = streambuf_type::gptr();
 	if ( !_Gptr || _Gptr <= streambuf_type::eback() || ( !traits_type::eq_int_type( traits_type::eof(), _Meta ) && !traits_type::eq( traits_type::to_char_type( _Meta ), _Gptr[-1] ) && ( _Mystate & _Constant ) ) )
@@ -390,7 +183,7 @@ x::stream_buffer::int_type x::stream_buffer::pbackfail( int_type _Meta )
 	return traits_type::not_eof( _Meta );
 }
 
-x::stream_buffer::int_type x::stream_buffer::underflow()
+x::buffer::int_type x::buffer::underflow()
 {
 	const auto _Gptr = streambuf_type::gptr();
 	if ( !_Gptr )
@@ -420,7 +213,7 @@ x::stream_buffer::int_type x::stream_buffer::underflow()
 	return traits_type::to_int_type( *streambuf_type::gptr() );
 }
 
-x::stream_buffer::pos_type x::stream_buffer::seekoff( off_type _Off, std::ios_base::seekdir _Way, std::ios_base::openmode _Mode )
+x::buffer::pos_type x::buffer::seekoff( off_type _Off, std::ios_base::seekdir _Way, std::ios_base::openmode _Mode )
 {
 	const bool _Need_read_but_cannot = ( _Mode & std::ios_base::in ) != 0 && ( _Mystate & _Noread ) != 0;
 	const bool _Need_write_but_cannot = ( _Mode & std::ios_base::out ) != 0 && ( _Mystate & _Constant ) != 0;
@@ -498,7 +291,7 @@ x::stream_buffer::pos_type x::stream_buffer::seekoff( off_type _Off, std::ios_ba
 	return pos_type{ _Off };
 }
 
-x::stream_buffer::pos_type x::stream_buffer::seekpos( pos_type _Pos, std::ios_base::openmode _Mode )
+x::buffer::pos_type x::buffer::seekpos( pos_type _Pos, std::ios_base::openmode _Mode )
 {
 	const bool _Need_read_but_cannot = ( _Mode & std::ios_base::in ) != 0 && ( _Mystate & _Noread ) != 0;
 	const bool _Need_write_but_cannot = ( _Mode & std::ios_base::out ) != 0 && ( _Mystate & _Constant ) != 0;
@@ -541,7 +334,7 @@ x::stream_buffer::pos_type x::stream_buffer::seekpos( pos_type _Pos, std::ios_ba
 	return pos_type{ _Off };
 }
 
-void x::stream_buffer::_Init( const element_type * _Ptr, const size_type _Count, int _State )
+void x::buffer::_Init( const element_type * _Ptr, const size_type _Count, int _State )
 {
 	_State &= ~_From_rvalue;
 
@@ -577,7 +370,7 @@ void x::stream_buffer::_Init( const element_type * _Ptr, const size_type _Count,
 	_Mystate = _State;
 }
 
-void x::stream_buffer::_Assign_rv( stream_buffer && _Right ) noexcept
+void x::buffer::_Assign_rv( buffer && _Right ) noexcept
 {
 	if ( this != std::addressof( _Right ) )
 	{
@@ -586,7 +379,7 @@ void x::stream_buffer::_Assign_rv( stream_buffer && _Right ) noexcept
 	}
 }
 
-void x::stream_buffer::_Tidy() noexcept
+void x::buffer::_Tidy() noexcept
 {
 	streambuf_type::setg( nullptr, nullptr, nullptr );
 	streambuf_type::setp( nullptr, nullptr );
@@ -595,7 +388,7 @@ void x::stream_buffer::_Tidy() noexcept
 	_Seekhigh = nullptr;
 }
 
-int x::stream_buffer::_Getstate( std::ios_base::openmode _Mode ) noexcept
+int x::buffer::_Getstate( std::ios_base::openmode _Mode ) noexcept
 {
 	int _State = 0;
 

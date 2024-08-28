@@ -5,6 +5,7 @@
 #include <functional>
 
 #include "type.h"
+#include "url.hpp"
 
 namespace x
 {
@@ -36,11 +37,12 @@ namespace x
 		void add_search_path( const std::filesystem::path & path );
 
 	private:
-		void scanner();
-		void checker();
-		void instant();
-		void genunit();
-		void linking();
+		virtual void scanner();
+		virtual void analyzer();
+		virtual void instant();
+		virtual void genunit();
+		virtual void linking();
+		void loading( const x::url & url );
 		void loading( const std::filesystem::path & file );
 
 	protected:

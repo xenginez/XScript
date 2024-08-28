@@ -4,46 +4,7 @@
 
 namespace x
 {
-	class buffer
-	{
-	public:
-		buffer() = default;
-
-	public:
-		void resize( x::uint64 size );
-
-	public:
-		x::uint64 seekp() const;
-		x::uint64 seekg() const;
-		void tellp( x::uint64 i );
-		void tellg( x::uint64 i );
-
-	public:
-		x::uint64 size() const;
-
-	public:
-		x::byte * data();
-		const x::byte * data() const;
-
-	public:
-		x::uint64 read( x::value & val );
-		x::uint64 write( const x::value & val );
-
-	public:
-		x::uint64 read( x::byte * data, x::uint64 size );
-		x::uint64 write( const x::byte * data, x::uint64 size );
-
-	private:
-		x::byte * get( x::uint64 size );
-		x::byte * put( x::uint64 size );
-
-	private:
-		x::uint64 _ppos = 0;
-		x::uint64 _gpos = 0;
-		std::vector<x::byte> _data;
-	};
-
-    class stream_buffer : public std::basic_streambuf<char, std::char_traits<char>>
+    class buffer : public std::basic_streambuf<char, std::char_traits<char>>
     {
     public:
         using element_type = char;
@@ -61,23 +22,23 @@ namespace x
         using size_type = typename buf_type::size_type;
 
     public:
-        stream_buffer();
-        stream_buffer( stream_buffer && _Right ) noexcept;
-        stream_buffer( std::ios_base::openmode _Mode );
-        stream_buffer( const buf_type & _Str, std::ios_base::openmode _Mode = std::ios_base::in | std::ios_base::out );
-        template <class _Alloc2> stream_buffer( const std::vector<element_type, _Alloc2> & _Str, std::ios_base::openmode _Mode = std::ios_base::in | std::ios_base::out )
+        buffer();
+        buffer( buffer && _Right ) noexcept;
+        buffer( std::ios_base::openmode _Mode );
+        buffer( const buf_type & _Str, std::ios_base::openmode _Mode = std::ios_base::in | std::ios_base::out );
+        template <class _Alloc2> buffer( const std::vector<element_type, _Alloc2> & _Str, std::ios_base::openmode _Mode = std::ios_base::in | std::ios_base::out )
         {
             _Init( _Str.c_str(), _Str.size(), _Getstate( _Mode ) );
         }
-        stream_buffer & operator=( stream_buffer && _Right ) noexcept;
-        ~stream_buffer() noexcept override;
+        buffer & operator=( buffer && _Right ) noexcept;
+        ~buffer() noexcept override;
 
     private:
-        stream_buffer( const stream_buffer & ) = delete;
-        stream_buffer & operator=( const stream_buffer & ) = delete;
+        buffer( const buffer & ) = delete;
+        buffer & operator=( const buffer & ) = delete;
 
     public:
-        void swap( stream_buffer & _Right ) noexcept;
+        void swap( buffer & _Right ) noexcept;
 
     public:
         element_type * prepare( size_type size );
@@ -101,7 +62,7 @@ namespace x
 
     private:
         void _Init( const element_type * _Ptr, const size_type _Count, int _State );
-        void _Assign_rv( stream_buffer && _Right ) noexcept;
+        void _Assign_rv( buffer && _Right ) noexcept;
         void _Tidy() noexcept;
         static int _Getstate( std::ios_base::openmode _Mode ) noexcept;
 

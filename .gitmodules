@@ -1,0 +1,9 @@
+[submodule "3rdparty/win-iconv"]
+	path = 3rdparty/win-iconv
+	url = https://github.com/win-iconv/win-iconv.git
+[submodule "3rdparty/uchardet"]
+	path = 3rdparty/uchardet
+	url = https://github.com/BYVoid/uchardet.git
+[submodule "3rdparty/stb"]
+	path = 3rdparty/stb
+	url = https://github.com/nothings/stb.git

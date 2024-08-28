@@ -61,8 +61,8 @@ namespace
 		json_parse parse;
 		x::coroutine coro = {};
 		client_status status = client_status::READ;
-		x::stream_buffer rbuf = {};
-		x::stream_buffer wbuf = {};
+		x::buffer rbuf = {};
+		x::buffer wbuf = {};
 		workspace_map workspaces;
 	};
 	using client_ptr = std::shared_ptr<client>;
