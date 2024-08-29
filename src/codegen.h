@@ -10,7 +10,7 @@ namespace x
 		using scope_scanner_visitor::visit;
 
 	public:
-		void scanner( const x::module_ptr & module, const x::symbols_ptr & symbols, x::ast_ptr ast );
+		void scanner( const x::module_ptr & module, const x::logger_ptr & logger, const x::symbols_ptr & symbols, x::ast_ptr ast );
 
 	private:
 		x::module_ptr _module;
@@ -22,7 +22,7 @@ namespace x
 		using scope_scanner_visitor::visit;
 
 	public:
-		void generate( const x::module_ptr & module, const x::symbols_ptr & symbols, x::ast_ptr ast );
+		void generate( const x::module_ptr & module, const x::logger_ptr & logger, const x::symbols_ptr & symbols, x::ast_ptr ast );
 
 	private:
 		x::module_ptr _module;
@@ -34,7 +34,7 @@ namespace x
 		using scope_scanner_visitor::visit;
 
 	public:
-		void scanner( const llvm::module_ptr & module, const x::symbols_ptr & symbols, x::ast_ptr ast );
+		void scanner( const llvm::module_ptr & module, const x::logger_ptr & logger, const x::symbols_ptr & symbols, x::ast_ptr ast );
 
 	private:
 		llvm::module_ptr _module;
@@ -46,7 +46,7 @@ namespace x
 		using scope_scanner_visitor::visit;
 
 	public:
-		void generate( const llvm::module_ptr & module, const x::symbols_ptr & symbols, x::ast_ptr ast );
+		void generate( const llvm::module_ptr & module, const x::logger_ptr & logger, const x::symbols_ptr & symbols, x::ast_ptr ast );
 
 	private:
 		llvm::module_ptr _module;
@@ -58,7 +58,7 @@ namespace x
 		using scope_scanner_visitor::visit;
 
 	public:
-		void scanner( const spirv::module_ptr & module, const x::symbols_ptr & symbols, x::ast_ptr ast );
+		void scanner( const spirv::module_ptr & module, const x::logger_ptr & logger, const x::symbols_ptr & symbols, x::ast_ptr ast );
 
 	private:
 		spirv::module_ptr _module;
@@ -70,7 +70,7 @@ namespace x
 		using scope_scanner_visitor::visit;
 
 	public:
-		void generate( const spirv::module_ptr & module, const x::symbols_ptr & symbols, x::ast_ptr ast );
+		void generate( const spirv::module_ptr & module, const x::logger_ptr & logger, const x::symbols_ptr & symbols, x::ast_ptr ast );
 
 	private:
 		spirv::module_ptr _module;

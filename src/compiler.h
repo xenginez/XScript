@@ -23,13 +23,14 @@ namespace x
 		using log_callback_t = std::function<void( std::string_view )>;
 
 	public:
-		compiler( const log_callback_t & callback = nullptr );
+		compiler( const x::logger_ptr & logger = nullptr );
 		virtual ~compiler();
 
 	public:
 		bool compile( const std::filesystem::path & file );
 
 	public:
+		x::logger_ptr logger() const;
 		x::symbols_ptr symbols() const;
 		std::span<const x::compiler::object_ptr> objects() const;
 
@@ -39,23 +40,18 @@ namespace x
 	private:
 		virtual void scanner();
 		virtual void analyzer();
-		virtual void instant();
-		virtual void genunit();
-		virtual void linking();
+		virtual void translate();
+		virtual void genmodule() = 0;
+		virtual void linkmodule() = 0;
 		void loading( const x::url & url );
 		void loading( const std::filesystem::path & file );
 
 	protected:
-		void logger( std::string_view val ) const;
-
-	protected:
-		virtual void genmodule() = 0;
-		virtual void linkmodule() = 0;
 		virtual x::symbols_ptr make_symbols() = 0;
 		virtual x::compiler::object_ptr make_object() = 0;
 
 	private:
-		log_callback_t _logger;
+		x::logger_ptr _logger;
 		x::grammar_ptr _grammar;
 		x::symbols_ptr _symbols;
 		std::vector<object_ptr> _objects;
@@ -72,7 +68,7 @@ namespace x
 		};
 
 	public:
-		module_compiler( const log_callback_t & callback = nullptr );
+		module_compiler( const x::logger_ptr & logger = nullptr );
 		~module_compiler() override;
 
 	public:
@@ -97,7 +93,7 @@ namespace x
 		};
 
 	public:
-		llvm_compiler( const log_callback_t & callback = nullptr );
+		llvm_compiler( const x::logger_ptr & logger = nullptr );
 		~llvm_compiler() override;
 
 	public:
@@ -123,7 +119,7 @@ namespace x
 		};
 
 	public:
-		spirv_compiler( const log_callback_t & callback = nullptr );
+		spirv_compiler( const x::logger_ptr & logger = nullptr );
 		~spirv_compiler() override;
 
 	public:

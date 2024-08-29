@@ -6,6 +6,7 @@
 #include "xlib.h"
 #include "value.h"
 #include "object.h"
+#include "logger.h"
 #include "module.h"
 #include "grammar.h"
 #include "builtin.h"
@@ -19,18 +20,23 @@ namespace
 	using any = x::value;
 }
 
-x::compiler::compiler( const log_callback_t & callback )
+x::compiler::compiler( const x::logger_ptr & logger )
 {
 	_grammar = std::make_shared<x::grammar>();
 
-	if ( callback )
-		_logger = callback;
+	if ( logger )
+		_logger = logger;
 	else
-		_logger = []( std::string_view message ) { std::cout << message << std::endl; };
+		_logger = std::make_shared<x::logger>();
 }
 
 x::compiler::~compiler()
 {
+}
+
+x::logger_ptr x::compiler::logger() const
+{
+	return _logger;
 }
 
 x::symbols_ptr x::compiler::symbols() const
@@ -61,15 +67,15 @@ bool x::compiler::compile( const std::filesystem::path & file )
 
 		analyzer();
 
-		instant();
+		translate();
 
-		genunit();
+		genmodule();
 
-		linking();
+		linkmodule();
 	}
 	catch ( const std::exception & e )
 	{
-		_logger( e.what() );
+		_logger->error( e.what() );
 
 		return false;
 	}
@@ -82,7 +88,7 @@ void x::compiler::scanner()
 	x::symbol_scanner_visitor scanner;
 
 	for ( const auto & it : _objects )
-		scanner.scanner( _symbols, it->ast );
+		scanner.scanner( _logger, _symbols, it->ast );
 }
 
 void x::compiler::analyzer()
@@ -90,32 +96,19 @@ void x::compiler::analyzer()
 	x::semantics_analyzer_visitor analyzer;
 
 	for ( const auto & it : _objects )
-		analyzer.analysis( _symbols, it->ast );
+		analyzer.analysis( _logger, _symbols, it->ast );
 }
 
-void x::compiler::instant()
+void x::compiler::translate()
 {
-	x::instantiate_translate_visitor instant;
+	x::instantiate_translate_visitor translate;
 	
 	for ( const auto & it : _objects )
-		instant.translate( _symbols, it->ast );
+		translate.translate( _logger, _symbols, it->ast );
 }
 
-void x::compiler::genunit()
+void x::compiler::loading( const x::url & url )
 {
-	genmodule();
-
-	for ( auto & it : _objects )
-		it->reset = false;
-
-	logger( std::format( "gen all object success" ) );
-}
-
-void x::compiler::linking()
-{
-	linkmodule();
-
-	logger( std::format( "link all module success" ) );
 }
 
 void x::compiler::loading( const std::filesystem::path & file )
@@ -178,24 +171,19 @@ void x::compiler::loading( const std::filesystem::path & file )
 
 		obj->ast = x::grammar().parse( ifs, path.string() );
 
-		logger( std::format( "loading script {}", path.string() ) );
+		logger()->info( std::format( "loading script {}", path.string() ) );
 	}
 
 	_relative_paths.push_back( path.parent_path() );
 	for ( const auto & it : obj->ast->imports )
 	{
-		loading( it->path );
+		loading( std::filesystem::path( it->path ) );
 	}
 	_relative_paths.pop_back();
 }
 
-void x::compiler::logger( std::string_view val ) const
-{
-	_logger( val );
-}
-
-x::module_compiler::module_compiler( const log_callback_t & callback )
-	: compiler( callback )
+x::module_compiler::module_compiler( const x::logger_ptr & logger )
+	: compiler( logger )
 {
 }
 
@@ -213,15 +201,16 @@ void x::module_compiler::genmodule()
 	for ( auto & it : objects() )
 	{
 		auto obj = std::static_pointer_cast<x::module_compiler::object>( it );
-		if ( obj->module == nullptr )
+		if ( obj->reset )
 		{
+			obj->reset = false;
 			obj->module = std::make_shared<x::module>();
 
-			x::module_scanner_visitor().scanner( obj->module, symbols(), obj->ast );
+			x::module_scanner_visitor().scanner( obj->module, logger(), symbols(), obj->ast );
 
-			x::module_generater_visitor().generate( obj->module, symbols(), obj->ast );
+			x::module_generater_visitor().generate( obj->module, logger(), symbols(), obj->ast );
 
-			logger( std::format( "gen module: {}", obj->path.string() ) );
+			logger()->info( std::format( "gen module: {}", obj->path.string() ) );
 		}
 	}
 }
@@ -234,7 +223,7 @@ void x::module_compiler::linkmodule()
 	{
 		_module->merge( std::static_pointer_cast<x::module_compiler::object>( it )->module );
 
-		logger( std::format( "link module: {}", it->path.string() ) );
+		logger()->info( std::format( "link module: {}", it->path.string() ) );
 	}
 }
 
@@ -365,8 +354,8 @@ x::compiler::object_ptr x::module_compiler::make_object()
 	return std::make_shared<x::module_compiler::object>();
 }
 
-x::llvm_compiler::llvm_compiler( const log_callback_t & callback )
-	: compiler( callback )
+x::llvm_compiler::llvm_compiler( const x::logger_ptr & logger )
+	: compiler( logger )
 {
 	// _context = std::make_shared<llvm::context>();
 }
@@ -388,11 +377,12 @@ void x::llvm_compiler::genmodule()
 		auto obj = std::static_pointer_cast<x::llvm_compiler::object>( it );
 		if ( obj->reset )
 		{
+			obj->reset = false;
 			//obj->module = std::make_shared<llvm::module>( obj->path.string(), *_context );
 
-			x::llvm_scanner_visitor().scanner( obj->module, symbols(), obj->ast );
+			x::llvm_scanner_visitor().scanner( obj->module, logger(), symbols(), obj->ast );
 
-			x::llvm_generater_visitor().generate( obj->module, symbols(), obj->ast );
+			x::llvm_generater_visitor().generate( obj->module, logger(), symbols(), obj->ast );
 		}
 	}
 }
@@ -419,8 +409,8 @@ x::compiler::object_ptr x::llvm_compiler::make_object()
 	return std::make_shared<x::llvm_compiler::object>();
 }
 
-x::spirv_compiler::spirv_compiler( const log_callback_t & callback )
-	: compiler( callback )
+x::spirv_compiler::spirv_compiler( const x::logger_ptr & logger )
+	: compiler( logger )
 {
 }
 
@@ -440,11 +430,12 @@ void x::spirv_compiler::genmodule()
 		auto obj = std::static_pointer_cast<x::spirv_compiler::object>( it );
 		if ( obj->reset )
 		{
+			obj->reset = false;
 			//obj->module = std::make_shared<spirv::module>( obj->path.string(), *_context );
 
-			x::spirv_scanner_visitor().scanner( obj->module, symbols(), obj->ast );
+			x::spirv_scanner_visitor().scanner( obj->module, logger(), symbols(), obj->ast );
 
-			x::spirv_generater_visitor().generate( obj->module, symbols(), obj->ast );
+			x::spirv_generater_visitor().generate( obj->module, logger(), symbols(), obj->ast );
 		}
 	}
 }

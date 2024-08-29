@@ -26,6 +26,9 @@
 #include <shared_mutex>
 #include <condition_variable>
 
+#include <iconv.h>
+#include <uchardet.h>
+
 #include "buffer.h"
 #include "allocator.h"
 #include "exception.h"
@@ -743,6 +746,29 @@ void x_lock_release( x_lock lock )
 	delete reinterpret_cast<std::shared_mutex *>( lock );
 }
 
+x_iconv x_iconv_create( x_string fromcode, x_string tocode )
+{
+	return iconv_open( tocode, fromcode );
+}
+uint64 x_iconv_iconv( x_iconv iconv, x_string inbuf, uint64 inbytes, x_buffer outbuf )
+{
+	auto buf = (x::buffer *)outbuf;
+
+	auto sz = ::iconv( iconv, &inbuf, &inbytes, nullptr, nullptr );
+
+	auto out = buf->prepare( sz );
+
+	sz = ::iconv( iconv, &inbuf, &inbytes, &out, &sz );
+
+	buf->commit( sz );
+
+	return sz;
+}
+void x_iconv_release( x_iconv iconv )
+{
+	iconv_close( iconv );
+}
+
 x_atomic x_atomic_create()
 {
 	return new std::atomic<x_atomic>( 0 );
@@ -766,6 +792,27 @@ void x_atomic_store( x_atomic atomic, intptr val )
 void x_atomic_release( x_atomic atomic )
 {
 	delete reinterpret_cast<std::atomic<intptr> *>( atomic );
+}
+
+x_uchardet x_uchardet_create()
+{
+	return uchardet_new();
+}
+int32 x_uchardet_handle_data( x_uchardet uchardet, x_string data, uint32 len )
+{
+	return uchardet_handle_data( (uchardet_t)uchardet, data, len );
+}
+void x_uchardet_data_end( x_uchardet uchardet )
+{
+	uchardet_data_end( (uchardet_t)uchardet );
+}
+x_string x_uchardet_get_charset( x_uchardet uchardet )
+{
+	return uchardet_get_charset( (uchardet_t)uchardet );
+}
+void x_uchardet_release( x_uchardet uchardet )
+{
+	uchardet_delete( (uchardet_t)uchardet );
 }
 
 x_condition x_condition_create()

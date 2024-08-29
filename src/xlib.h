@@ -35,12 +35,15 @@ extern "C"{
     typedef intptr x_zip;
     typedef intptr x_file;
     typedef intptr x_lock;
+    typedef intptr x_iconv;
     typedef intptr x_atomic;
     typedef intptr x_buffer;
     typedef intptr x_window;
     typedef intptr x_socket;
+    typedef intptr x_uchardet;
     typedef intptr x_condition;
     typedef intptr x_coroutine;
+    
     typedef const char * x_string;
 
     typedef enum
@@ -232,7 +235,6 @@ extern "C"{
     x_zip x_zip_create();
     void x_zip_load( x_string path );
 
-
     // path
     x_string x_path_app_path();
     x_string x_path_temp_path();
@@ -298,6 +300,11 @@ extern "C"{
     bool x_lock_shared_trylock( x_lock lock );
     void x_lock_release( x_lock lock );
 
+    // iconv
+    x_iconv x_iconv_create( x_string fromcode, x_string tocode );
+    uint64 x_iconv_iconv( x_iconv iconv, x_string inbuf, uint64 inbytes, x_buffer outbuf );
+    void x_iconv_release( x_iconv iconv );
+
     // atomic
     x_atomic x_atomic_create();
     bool x_atomic_compare_exchange( x_atomic atomic, intptr exp, intptr val );
@@ -305,15 +312,6 @@ extern "C"{
     intptr x_atomic_load( x_atomic atomic );
     void x_atomic_store( x_atomic atomic, intptr val );
     void x_atomic_release( x_atomic atomic );
-
-    // locale
-    uint32 x_locale_codepage();
-    x_string x_locale_utf8_local( x_string utf8_str );
-    x_string x_locale_utf8_utf16( x_string utf8_str );
-    x_string x_locale_local_utf8( x_string local_str );
-    x_string x_locale_local_utf16( x_string local_str );
-    x_string x_locale_utf16_utf8( x_string utf16_str );
-    x_string x_locale_utf16_local( x_string utf16_str );
 
     // window
     x_window x_window_create();
@@ -358,7 +356,14 @@ extern "C"{
     int32 x_socket_setsockopt( x_socket socket, int32 key, x_string value );
     void x_socket_close( x_socket socket );
     void x_socket_release( x_socket socket );
-    
+
+    // uchardet
+    x_uchardet x_uchardet_create();
+    int32 x_uchardet_handle_data( x_uchardet uchardet, x_string data, uint32 len );
+    void x_uchardet_data_end( x_uchardet uchardet );
+    x_string x_uchardet_get_charset( x_uchardet uchardet );
+    void x_uchardet_release( x_uchardet uchardet );
+
     // condition
     x_condition x_condition_create();
     void x_condition_wait( x_condition cond );

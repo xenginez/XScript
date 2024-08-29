@@ -288,11 +288,15 @@ void x::visitor::visit( x::string_const_expr_ast * val )
 {
 }
 
-void x::scope_scanner_visitor::scanner( const x::symbols_ptr & symbols, const x::ast_ptr & ast )
+void x::scope_scanner_visitor::scanner( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast )
 {
+	_logger = logger;
 	_symbols = symbols;
+
 	ast->accept( this );
+
 	_symbols = nullptr;
+	_logger = nullptr;
 }
 
 void x::scope_scanner_visitor::visit( x::unit_ast * val )
@@ -376,14 +380,19 @@ void x::scope_scanner_visitor::visit( x::foreach_stat_ast * val )
 	symbols()->pop_scope();
 }
 
+const x::logger_ptr & x::scope_scanner_visitor::logger() const
+{
+	return _logger;
+}
+
 const x::symbols_ptr & x::scope_scanner_visitor::symbols() const
 {
 	return _symbols;
 }
 
-void x::symbol_scanner_visitor::scanner( const x::symbols_ptr & symbols, const x::ast_ptr & ast )
+void x::symbol_scanner_visitor::scanner( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast )
 {
-	scope_scanner_visitor::scanner( symbols, ast );
+	scope_scanner_visitor::scanner( logger, symbols, ast );
 }
 
 void x::symbol_scanner_visitor::visit( x::unit_ast * val )

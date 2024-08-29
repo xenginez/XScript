@@ -68,7 +68,7 @@ namespace x
 		using visitor::visit;
 
 	public:
-		void scanner( const x::symbols_ptr & val, const x::ast_ptr & ast );
+		void scanner( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast );
 
 	public:
 		void visit( x::unit_ast * val ) override;
@@ -83,9 +83,11 @@ namespace x
 		void visit( x::foreach_stat_ast * val ) override;
 
 	protected:
+		const x::logger_ptr & logger() const;
 		const x::symbols_ptr & symbols() const;
 
 	private:
+		x::logger_ptr _logger;
 		x::symbols_ptr _symbols;
 	};
 
@@ -95,7 +97,7 @@ namespace x
 		using scope_scanner_visitor::visit;
 
 	public:
-		void scanner( const x::symbols_ptr & val, const x::ast_ptr & ast );
+		void scanner( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast );
 
 	public:
 		void visit( x::unit_ast * val ) override;
