@@ -29,6 +29,7 @@
 #include <iconv.h>
 #include <uchardet.h>
 
+#include "zip.h"
 #include "buffer.h"
 #include "allocator.h"
 #include "exception.h"
@@ -36,6 +37,10 @@
 
 namespace
 {
+	struct image_info
+	{
+
+	};
 	struct condition_info
 	{
 		std::mutex lock;
@@ -48,15 +53,112 @@ namespace
 	static const char * ddd[7] = { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
 }
 
-x_string x_path_app_path()
+x_zip x_zip_create()
+{
+	return new x::zip;
+}
+void x_zip_load( x_zip zip, x_path path )
+{
+	auto z = (x::zip *)zip;
+
+	z->load( std::filesystem::path( path ) );
+}
+void x_zip_save( x_zip zip, x_path path )
+{
+	auto z = (x::zip *)zip;
+
+	z->save( std::filesystem::path( path ) );
+}
+bool x_zip_exist( x_zip zip, x_string name )
+{
+	auto z = (x::zip *)zip;
+		
+	return z->exist( name );
+}
+uint64 x_zip_file_size( x_zip zip, x_string name )
+{
+	auto z = (x::zip *)zip;
+
+	return z->file_size( name );
+}
+uint64 x_zip_compress_size( x_zip zip, x_string name )
+{
+	auto z = (x::zip *)zip;
+
+	return z->compress_size( name );
+}
+void x_zip_extract( x_zip zip, x_string name, x_path path )
+{
+	auto z = (x::zip *)zip;
+
+	z->extract( std::filesystem::path( path ), name );
+}
+void x_zip_extract_all( x_zip zip, x_path path )
+{
+	auto z = (x::zip *)zip;
+
+	z->extractall( std::filesystem::path( path ) );
+}
+uint64 x_zip_read( x_zip zip, x_string name, x_buffer buf )
+{
+	auto z = (x::zip *)zip;
+
+	std::ostream os( (x::buffer *)buf );
+
+	return z->read( name, os );
+}
+void x_zip_write( x_zip zip, x_string name, x_buffer buf )
+{
+	auto z = (x::zip *)zip;
+
+	std::istream is( (x::buffer *)buf );
+
+	z->write( is, name );
+}
+void x_zip_write_str( x_zip zip, x_string name, x_string str )
+{
+	auto z = (x::zip *)zip;
+
+	z->write_str( name, str );
+}
+void x_zip_release( x_zip zip )
+{
+	delete (x::zip *)zip;
+}
+void x_zip_compression( x_buffer inbuf, x_buffer outbuf )
+{
+	std::istream is( (x::buffer *)inbuf );
+	std::ostream os( (x::buffer *)outbuf );
+
+	x::zip::compression( is, os );
+}
+void x_zip_decompression( x_buffer inbuf, x_buffer outbuf )
+{
+	std::istream is( (x::buffer *)inbuf );
+	std::ostream os( (x::buffer *)outbuf );
+
+	x::zip::decompression( is, os );
+}
+
+x_path x_path_app_path()
 {
 	return x::allocator::salloc( std::filesystem::current_path().string() );
 }
-x_string x_path_temp_path()
+x_path x_path_temp_path()
 {
 	return x::allocator::salloc( std::filesystem::temp_directory_path().string() );
 }
-void x_path_copy( x_string frompath, x_string topath, bool recursive, bool overwrite )
+x_path x_path_home_path()
+{
+	char homedir[MAX_PATH];
+#ifdef _WIN32
+	snprintf( homedir, MAX_PATH, "%s%s", getenv( "HOMEDRIVE" ), getenv( "HOMEPATH" ) );
+#else
+	snprintf( homedir, MAX_PATH, "%s", getenv( "HOME" ) );
+#endif
+	return x::allocator::salloc( homedir );
+}
+void x_path_copy( x_path frompath, x_path topath, bool recursive, bool overwrite )
 {
 	std::error_code ec;
 	auto opt = std::filesystem::copy_options::none;
@@ -68,7 +170,7 @@ void x_path_copy( x_string frompath, x_string topath, bool recursive, bool overw
 
 	XTHROW( x::runtime_exception, ec, ec.message() );
 }
-void x_path_create( x_string path, bool recursive )
+void x_path_create( x_path path, bool recursive )
 {
 	std::error_code ec;
 
@@ -76,7 +178,7 @@ void x_path_create( x_string path, bool recursive )
 
 	XTHROW( x::runtime_exception, ec, ec.message() );
 }
-void x_path_remove( x_string path )
+void x_path_remove( x_path path )
 {
 	std::error_code ec;
 
@@ -84,24 +186,24 @@ void x_path_remove( x_string path )
 
 	XTHROW( x::runtime_exception, ec, ec.message() );
 }
-bool x_path_exists( x_string path )
+bool x_path_exists( x_path path )
 {
 	return std::filesystem::exists( path );
 }
-bool x_path_is_file( x_string path )
+bool x_path_is_file( x_path path )
 {
 	return !std::filesystem::is_directory( path );
 }
-bool x_path_is_directory( x_string path )
+bool x_path_is_directory( x_path path )
 {
 	return std::filesystem::is_directory( path );
 }
-uint64 x_path_entry_count( x_string path )
+uint64 x_path_entry_count( x_path path )
 {
 	std::filesystem::directory_iterator it( path ), end;
 	return std::distance( it, end );
 }
-x_string x_path_at_entry_name( x_string path, uint64 idx )
+x_path x_path_at_entry( x_path path, uint64 idx )
 {
 	std::filesystem::directory_iterator it( path ), end;
 

@@ -146,6 +146,8 @@ namespace x
 
 	public:
 		x::type_ast_ptr base;
+		x::function_decl_ast_ptr construct;
+		x::function_decl_ast_ptr finalize;
 		std::vector<x::using_decl_ast_ptr> usings;
 		std::vector<x::variable_decl_ast_ptr> variables;
 		std::vector<x::function_decl_ast_ptr> functions;
@@ -169,6 +171,8 @@ namespace x
 		x::type_ast_ptr base;
 		x::compound_stat_ast_ptr where;
 		std::vector<x::template_element_ast_ptr> elements;
+		x::function_decl_ast_ptr construct;
+		x::function_decl_ast_ptr finalize;
 		std::vector<x::using_decl_ast_ptr> usings;
 		std::vector<x::variable_decl_ast_ptr> variables;
 		std::vector<x::function_decl_ast_ptr> functions;

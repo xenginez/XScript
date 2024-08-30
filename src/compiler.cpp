@@ -308,7 +308,7 @@ x::symbols_ptr x::module_compiler::make_symbols()
 	END();
 	BEG( x_path_entry_count );
 	END();
-	BEG( x_path_at_entry_name );
+	BEG( x_path_at_entry );
 	END();
 
 

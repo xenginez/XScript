@@ -7400,23 +7400,39 @@ x::uint64 x::zip::read( const std::string & name, std::ostream & stream )
 
 void x::zip::write( const std::filesystem::path & path )
 {
-    auto split = detail::split_path( path.string() );
-    if ( split.size() > 1 )
+    write( path, path.filename().string() );
+}
+
+void x::zip::write( std::istream & istream, const std::string & name )
+{
+    auto archive_ = reinterpret_cast<mz_zip_archive *>( _archive );
+
+    if ( archive_->m_zip_mode != MZ_ZIP_MODE_WRITING )
     {
-        split.erase( split.begin() );
+        start_write();
     }
-    auto name = detail::join_path( split );
-    write( path, name );
+
+    char buf[4096];
+    std::streamsize size = 0;
+
+    while ( !istream.eof() )
+    {
+        size = istream.readsome( buf, 4096 );
+
+        if ( !mz_zip_writer_add_mem( archive_, name.c_str(), buf, size, MZ_BEST_COMPRESSION ) )
+        {
+            throw std::runtime_error( "write error" );
+        }
+    }
 }
 
 void x::zip::write( const std::filesystem::path & path, const std::string & name )
 {
     std::fstream file( path, std::ios::binary | std::ios::in );
-    std::stringstream ss;
-    ss << file.rdbuf();
-    std::string bytes = ss.str();
-
-    write_str( name, bytes );
+    if ( file.is_open() )
+    {
+        write( file, name );
+    }
 }
 
 void x::zip::write_str( const std::string & name, const std::string & bytes )

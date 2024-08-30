@@ -27,6 +27,8 @@ namespace x
 		x::template_decl_ast_ptr template_decl();
 		x::variable_decl_ast_ptr variable_decl();
 		x::function_decl_ast_ptr function_decl();
+		x::function_decl_ast_ptr finalize_decl();
+		x::function_decl_ast_ptr construct_decl();
 		x::parameter_element_ast_ptr parameter_decl();
 		x::namespace_decl_ast_ptr namespace_decl();
 

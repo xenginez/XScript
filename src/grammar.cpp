@@ -247,6 +247,22 @@ x::class_decl_ast_ptr x::grammar::class_decl()
             ast->functions.emplace_back( decl );
         }
         break;
+        case x::token_t::TK_CONSTRUCT:
+        {
+            auto decl = construct_decl();
+            decl->attr = attr;
+            decl->access = acce;
+            ast->construct = decl;
+        }
+        break;
+        case x::token_t::TK_FINALIZE:
+        {
+            auto decl = finalize_decl();
+            decl->attr = attr;
+            decl->access = acce;
+            ast->finalize = decl;
+        }
+        break;
         case x::token_t::TK_SEMICOLON:
             next();
             break;
@@ -332,6 +348,22 @@ x::template_decl_ast_ptr x::grammar::template_decl()
             decl->attr = attr;
             decl->access = acce;
             ast->functions.emplace_back( decl );
+        }
+        break;
+        case x::token_t::TK_CONSTRUCT:
+        {
+            auto decl = construct_decl();
+            decl->attr = attr;
+            decl->access = acce;
+            ast->construct = decl;
+        }
+        break;
+        case x::token_t::TK_FINALIZE:
+        {
+            auto decl = finalize_decl();
+            decl->attr = attr;
+            decl->access = acce;
+            ast->finalize = decl;
         }
         break;
         case x::token_t::TK_SEMICOLON:
@@ -431,6 +463,41 @@ x::function_decl_ast_ptr x::grammar::function_decl()
         ast->stat = extern_stat();
     else
         ast->stat = compound_stat();
+
+    return ast;
+}
+
+x::function_decl_ast_ptr x::grammar::finalize_decl()
+{
+    validity( x::token_t::TK_FINALIZE );
+
+    auto ast = std::make_shared<x::function_decl_ast>();
+    ast->location = _location;
+
+    ast->name = "finalize";
+
+    ast->stat = compound_stat();
+
+    return ast;
+}
+
+x::function_decl_ast_ptr x::grammar::construct_decl()
+{
+    validity( x::token_t::TK_CONSTRUCT );
+
+    auto ast = std::make_shared<x::function_decl_ast>();
+    ast->location = _location;
+
+    ast->name = "construct";
+
+    verify_list( x::token_t::TK_LEFT_BRACKETS, x::token_t::TK_RIGHT_BRACKETS, x::token_t::TK_COMMA, [&]() -> bool
+    {
+        if ( ast->parameters.emplace_back( parameter_decl() )->value_type->ast_type() == x::ast_t::LIST_TYPE )
+            return true;
+        return false;
+    } );
+
+    ast->stat = compound_stat();
 
     return ast;
 }

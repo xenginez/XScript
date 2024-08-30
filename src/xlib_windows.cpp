@@ -469,6 +469,80 @@ namespace
 
         return DefWindowProcA( hWnd, Msg, wParam, lParam );
 	}
+
+
+    x_string x_locale_utf8_local( x_string utf8_str )
+    {
+        int len = MultiByteToWideChar( CP_UTF8, 0, utf8_str, -1, NULL, 0 );
+
+        std::wstring utf16_str( len + 1, 0 );
+
+        len = MultiByteToWideChar( CP_UTF8, 0, utf8_str, -1, utf16_str.data(), len );
+
+        len = WideCharToMultiByte( CP_ACP, 0, utf16_str.data(), -1, NULL, 0, NULL, 0 );
+
+        std::string local_str( len + 1, 0 );
+
+        len = WideCharToMultiByte( CP_ACP, 0, utf16_str.data(), -1, local_str.data(), len, NULL, 0 );
+
+        return x::allocator::salloc( local_str.c_str() );
+    }
+    x_string x_locale_utf8_utf16( x_string utf8_str )
+    {
+        int len = MultiByteToWideChar( CP_UTF8, 0, utf8_str, -1, NULL, 0 );
+
+        std::wstring utf16_str( len + 1, 0 );
+
+        len = MultiByteToWideChar( CP_UTF8, 0, utf8_str, -1, utf16_str.data(), len );
+
+        return x::allocator::salloc( (const char *)utf16_str.c_str() );
+    }
+    x_string x_locale_local_utf8( x_string local_str )
+    {
+        int len = MultiByteToWideChar( CP_ACP, 0, local_str, -1, NULL, 0 );
+
+        std::wstring utf16_str( len + 1, 0 );
+
+        len = MultiByteToWideChar( CP_ACP, 0, local_str, -1, utf16_str.data(), len );
+
+        len = WideCharToMultiByte( CP_UTF8, 0, utf16_str.data(), -1, NULL, 0, NULL, 0 );
+
+        std::string utf8_str( len + 1, 0 );
+
+        len = WideCharToMultiByte( CP_UTF8, 0, utf16_str.data(), -1, utf8_str.data(), len, NULL, 0 );
+
+        return x::allocator::salloc( utf8_str.c_str() );
+    }
+    x_string x_locale_local_utf16( x_string local_str )
+    {
+        int len = MultiByteToWideChar( CP_ACP, 0, local_str, -1, NULL, 0 );
+
+        std::wstring utf16_str( len + 1, 0 );
+
+        len = MultiByteToWideChar( CP_ACP, 0, local_str, -1, utf16_str.data(), len );
+
+        return x::allocator::salloc( (const char *)utf16_str.c_str() );
+    }
+    x_string x_locale_utf16_utf8( x_string utf16_str )
+    {
+        int len = WideCharToMultiByte( CP_UTF8, 0, (const wchar_t *)utf16_str, -1, NULL, 0, NULL, 0 );
+
+        std::string utf8_str( len + 1, 0 );
+
+        len = WideCharToMultiByte( CP_UTF8, 0, (const wchar_t *)utf16_str, -1, utf8_str.data(), len, NULL, 0 );
+
+        return x::allocator::salloc( utf8_str.c_str() );
+    }
+    x_string x_locale_utf16_local( x_string utf16_str )
+    {
+        int len = WideCharToMultiByte( CP_ACP, 0, (const wchar_t *)utf16_str, -1, NULL, 0, NULL, 0 );
+
+        std::string local_str( len + 1, 0 );
+
+        len = WideCharToMultiByte( CP_ACP, 0, (const wchar_t *)utf16_str, -1, local_str.data(), len, NULL, 0 );
+
+        return x::allocator::salloc( local_str.c_str() );
+    }
 }
 
 int x_main( int argc, const char ** argv )
@@ -517,7 +591,7 @@ x_file x_file_create()
 {
     return new file_info;
 }
-bool x_file_open( x_file file, x_string path, uint32 mode )
+bool x_file_open( x_file file, x_path path, uint32 mode )
 {
     auto info = (file_info *)file;
 
@@ -741,6 +815,21 @@ x_window x_window_get_parent( x_window window )
 	auto win = (window_info *)window;
 
 	return win->parent;
+}
+x_string x_window_get_title( x_window window )
+{
+    auto win = (window_info *)window;
+
+    char buf[256];
+    ::GetWindowTextA( win->hwnd, buf, 255 );
+
+    return x_locale_local_utf8( buf );
+}
+void x_window_set_title( x_window window, x_string title )
+{
+    auto win = (window_info *)window;
+
+    ::SetWindowTextA( win->hwnd, title );
 }
 x_pos x_window_get_pos( x_window window )
 {

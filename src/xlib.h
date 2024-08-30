@@ -32,10 +32,16 @@ extern "C"{
     typedef float float32;
     typedef double float64;
     typedef void * intptr;
+    typedef const char * strptr;
+
     typedef intptr x_zip;
+    typedef strptr x_path;
     typedef intptr x_file;
     typedef intptr x_lock;
+    typedef intptr x_font;
+    typedef intptr x_image;
     typedef intptr x_iconv;
+    typedef strptr x_string;
     typedef intptr x_atomic;
     typedef intptr x_buffer;
     typedef intptr x_window;
@@ -43,8 +49,6 @@ extern "C"{
     typedef intptr x_uchardet;
     typedef intptr x_condition;
     typedef intptr x_coroutine;
-    
-    typedef const char * x_string;
 
     typedef enum
     {
@@ -213,8 +217,8 @@ extern "C"{
 #define FILE_MODE_APPAND                    uint32( 0x08 )
 #define FILE_MODE_TRUNCATE                  uint32( 0x10 )
 
-#define WINDOW_STATE_HIDDEN                 uint32( 1 )
-#define WINDOW_STATE_NORMAL                 uint32( 2 )
+#define WINDOW_STATE_NORMAL                 uint32( 1 )
+#define WINDOW_STATE_HIDDEN                 uint32( 2 )
 #define WINDOW_STATE_MINIMIZE               uint32( 3 )
 #define WINDOW_STATE_MAXIMIZE               uint32( 4 )
 #define WINDOW_STATE_FULLSCREEN             uint32( 5 )
@@ -233,23 +237,36 @@ extern "C"{
 
     // zip
     x_zip x_zip_create();
-    void x_zip_load( x_string path );
+    void x_zip_load( x_zip zip, x_path path );
+    void x_zip_save( x_zip zip, x_path path );
+    bool x_zip_exist( x_zip zip, x_string name );
+    uint64 x_zip_file_size( x_zip zip, x_string name );
+    uint64 x_zip_compress_size( x_zip zip, x_string name );
+    void x_zip_extract( x_zip zip, x_string name, x_path path );
+    void x_zip_extract_all( x_zip zip, x_path path );
+    uint64 x_zip_read( x_zip zip, x_string name, x_buffer buf );
+    void x_zip_write( x_zip zip, x_string name, x_buffer buf );
+    void x_zip_write_str( x_zip zip, x_string name, x_string str );
+    void x_zip_release( x_zip zip );
+    void x_zip_compression( x_buffer inbuf, x_buffer outbuf );
+    void x_zip_decompression( x_buffer inbuf, x_buffer outbuf );
 
     // path
-    x_string x_path_app_path();
-    x_string x_path_temp_path();
-    void x_path_copy( x_string frompath, x_string topath, bool recursive, bool overwrite );
-    void x_path_create( x_string path, bool recursive );
-    void x_path_remove( x_string path );
-    bool x_path_exists( x_string path );
-    bool x_path_is_file( x_string path );
-    bool x_path_is_directory( x_string path );
-    uint64 x_path_entry_count( x_string path );
-    x_string x_path_at_entry_name( x_string path, uint64 idx );
+    x_path x_path_app_path();
+    x_path x_path_temp_path();
+    x_path x_path_home_path();
+    void x_path_copy( x_path frompath, x_path topath, bool recursive, bool overwrite );
+    void x_path_create( x_path path, bool recursive );
+    void x_path_remove( x_path path );
+    bool x_path_exists( x_path path );
+    bool x_path_is_file( x_path path );
+    bool x_path_is_directory( x_path path );
+    uint64 x_path_entry_count( x_path path );
+    x_path x_path_at_entry( x_path path, uint64 idx );
 
 	// file
     x_file x_file_create();
-    bool x_file_open( x_file file, x_string path, uint32 mode );
+    bool x_file_open( x_file file, x_path path, uint32 mode );
     uint64 x_file_size( x_file file );
     x_string x_file_name( x_file file );
     int64 x_file_time( x_file file );
@@ -300,6 +317,12 @@ extern "C"{
     bool x_lock_shared_trylock( x_lock lock );
     void x_lock_release( x_lock lock );
 
+    // font
+    x_font x_font_create();
+
+    // image
+    x_image x_image_create();
+
     // iconv
     x_iconv x_iconv_create( x_string fromcode, x_string tocode );
     uint64 x_iconv_iconv( x_iconv iconv, x_string inbuf, uint64 inbytes, x_buffer outbuf );
@@ -318,6 +341,8 @@ extern "C"{
     float32 x_window_dpi_scale( x_window window );
     void x_window_set_parent( x_window window, x_window parent );
     x_window x_window_get_parent( x_window window );
+    x_string x_window_get_title( x_window window );
+    void x_window_set_title( x_window window, x_string title );
     x_pos x_window_get_pos( x_window window );
     void x_window_set_pos( x_window window, x_pos pos );
     x_size x_window_get_size( x_window window );

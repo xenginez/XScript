@@ -55,9 +55,10 @@ namespace x
     public:
         std::string read( const std::string & name );
         x::uint64 read( const std::string & name, std::ostream & stream );
-
+        
     public:
         void write( const std::filesystem::path & path );
+        void write( std::istream & istream, const std::string & name );
         void write( const std::filesystem::path & path, const std::string & name );
 
     public:
