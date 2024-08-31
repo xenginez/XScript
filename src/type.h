@@ -69,6 +69,7 @@ namespace x
         TEMPLATE_DECL,
         VARIABLE_DECL,
         FUNCTION_DECL,
+        INTERFACE_DECL,
         NAMESPACE_DECL,
 
         EMPTY_STAT,
@@ -117,6 +118,7 @@ namespace x
         CLASS,
         VARIABLE,
         FUNCTION,
+        INTERFACE,
         NAMESPACE,
         ENUM_ELEMENT,
         FLAG_ELEMENT,
@@ -125,126 +127,127 @@ namespace x
     enum class token_t : x::uint8
     {
         TK_EOF = 0,
-        TK_IDENTIFIER,           // identifier
-        TK_CONSTEXPR_INT,        // 1 -233 0x123456 0b1101001
-        TK_CONSTEXPR_FLOAT,      // 10.234 -432.01
-        TK_CONSTEXPR_STRING,     // "" "helloworld" R"(println("hello");)"
-        TK_SEMICOLON,            // ;
-        TK_COMMA,                // ,
-        TK_INC,                  // ++
-        TK_DEC,                  // --
-        TK_ADD,                  // +
-        TK_SUB,                  // - 
-        TK_MUL,                  // * 
-        TK_DIV,                  // / 
-        TK_MOD,                  // %
-        TK_AND,                  // &
-        TK_OR,                   // |
-        TK_XOR,                  // ^
-        TK_LEFT_SHIFT,           // <<
-        TK_RIGHT_SHIFT,          // >> 
-        TK_LAND,                 // &&
-        TK_LOR,                  // ||
-        TK_NOT,                  // !
-        TK_REV,                  // ~
-        TK_ASSIGN,               // =
-        TK_ADD_ASSIGN,           // +=
-        TK_SUB_ASSIGN,           // -= 
-        TK_MUL_ASSIGN,           // *=
-        TK_DIV_ASSIGN,           // /= 
-        TK_MOD_ASSIGN,           // %= 
-        TK_AND_ASSIGN,           // &= 
-        TK_OR_ASSIGN,            // |= 
-        TK_XOR_ASSIGN,           // ^= 
-        TK_LSHIFT_EQUAL,         // <<=
-        TK_RSHIFT_EQUAL,         // >>=
-        TK_EQUAL,                // ==
-        TK_NOT_EQUAL,            // !=
-        TK_LESS,                 // <
-        TK_LARG,                 // >
-        TK_LESS_OR_EQUAL,        // <=
-        TK_LARG_OR_EQUAL,        // >=
-        TK_COMPARE,              // <=>
-        TK_TYPECAST,             // :
-        TK_POINT,                // .
-        TK_QUESTION,             // ?
-        TK_VARIADIC_SIGN,        // ...
-        TK_LEFT_INDEX,           // [
-        TK_RIGHT_INDEX,          // ]
-        TK_FUNCTION_RESULT,      // ->
-        TK_LEFT_BRACKETS,        // (
-        TK_RIGHT_BRACKETS,       // )
-        TK_LEFT_CURLY_BRACES,    // {
-        TK_RIGHT_CURLY_BRACES,   // }
-        TK_ANY,                  // any
-        TK_VOID,                 // void
-        TK_BYTE,                 // byte
-        TK_BOOL,                 // bool
-        TK_INT8,                 // int8
-        TK_INT16,                // int16
-        TK_INT32,                // int32
-        TK_INT64,                // int64
-        TK_UINT8,                // uint8
-        TK_UINT16,               // uint16
-        TK_UINT32,               // uint32
-        TK_UINT64,               // uint64
-        TK_FLOAT16,              // float16
-        TK_FLOAT32,              // float32
-        TK_FLOAT64,              // float64
-        TK_STRING,               // string
-        TK_INTPTR,               // intptr
-        TK_OBJECT,               // object
-        TK_ARRAY,                // array
-        TK_COROUTINE,            // coroutine
-        TK_IMPORT,               // import
-        TK_ASSERT,               // assert
-        TK_TEMPLATE,             // template
-        TK_NAMESPACE,            // namespace
-        TK_ATTRIBUTE,            // attribute
-        TK_USING,                // using
-        TK_ENUM,                 // enum
-        TK_CLASS,                // class
-        TK_VARIABLE,             // var
-        TK_FUNCTION,             // func
-        TK_WHERE,                // where
-        TK_PRIVATE,              // private
-        TK_PUBLIC,               // public
-        TK_PROTECTED,            // protected
-        TK_REF,                  // ref
-        TK_LOCAL,                // local
-        TK_CONST,                // const
-        TK_FINAL,                // final
-        TK_STATIC,               // static
-        TK_EXTERN,               // extern
-        TK_VIRTUAL,              // virtual
-        TK_OVERRIDE,             // override
-        TK_THREAD,               // thread
-        TK_NEW,                  // new
-        TK_WHILE,                // while
-        TK_IF,                   // if
-        TK_ELSE,                 // else
-        TK_FOR,                  // for
-        TK_FOREACH,              // foreach
-        TK_SWITCH,               // switch
-        TK_CASE,                 // case
-        TK_DEFAULT,              // default
-        TK_ASYNC,                // async
-        TK_AWAIT,                // await
-        TK_YIELD,                // yield
-        TK_BREAK,                // break
-        TK_RETURN,               // return
-        TK_CONTINUE,             // continue
-        TK_AS,                   // as
-        TK_IS,                   // is
-        TK_SIZEOF,               // sizeof
-        TK_TYPEOF,               // typeof
-        TK_NULL,                 // null
-        TK_TRUE,                 // true
-        TK_FALSE,                // false
-        TK_THIS,                 // this
-        TK_BASE,                 // base
-        TK_CONSTRUCT,            // construct
-        TK_FINALIZE,             // finalize
+        TK_IDENTIFIER,          // identifier
+        TK_CONSTEXPR_INT,       // 1 -233 0x123456 0b1101001
+        TK_CONSTEXPR_FLOAT,     // 10.234 -432.01
+        TK_CONSTEXPR_STRING,    // "" "helloworld" R"(println("hello");)"
+        TK_SEMICOLON,           // ;
+        TK_COMMA,               // ,
+        TK_INC,                 // ++
+        TK_DEC,                 // --
+        TK_ADD,                 // +
+        TK_SUB,                 // - 
+        TK_MUL,                 // * 
+        TK_DIV,                 // / 
+        TK_MOD,                 // %
+        TK_AND,                 // &
+        TK_OR,                  // |
+        TK_XOR,                 // ^
+        TK_LEFT_SHIFT,          // <<
+        TK_RIGHT_SHIFT,         // >> 
+        TK_LAND,                // &&
+        TK_LOR,                 // ||
+        TK_NOT,                 // !
+        TK_REV,                 // ~
+        TK_ASSIGN,              // =
+        TK_ADD_ASSIGN,          // +=
+        TK_SUB_ASSIGN,          // -= 
+        TK_MUL_ASSIGN,          // *=
+        TK_DIV_ASSIGN,          // /= 
+        TK_MOD_ASSIGN,          // %= 
+        TK_AND_ASSIGN,          // &= 
+        TK_OR_ASSIGN,           // |= 
+        TK_XOR_ASSIGN,          // ^= 
+        TK_LSHIFT_EQUAL,        // <<=
+        TK_RSHIFT_EQUAL,        // >>=
+        TK_EQUAL,               // ==
+        TK_NOT_EQUAL,           // !=
+        TK_LESS,                // <
+        TK_LARG,                // >
+        TK_LESS_OR_EQUAL,       // <=
+        TK_LARG_OR_EQUAL,       // >=
+        TK_COMPARE,             // <=>
+        TK_TYPECAST,            // :
+        TK_POINT,               // .
+        TK_QUESTION,            // ?
+        TK_VARIADIC_SIGN,       // ...
+        TK_LEFT_INDEX,          // [
+        TK_RIGHT_INDEX,         // ]
+        TK_FUNCTION_RESULT,     // ->
+        TK_LEFT_BRACKETS,       // (
+        TK_RIGHT_BRACKETS,      // )
+        TK_LEFT_CURLY_BRACES,   // {
+        TK_RIGHT_CURLY_BRACES,  // }
+        TK_ANY,                 // any
+        TK_VOID,                // void
+        TK_BYTE,                // byte
+        TK_BOOL,                // bool
+        TK_INT8,                // int8
+        TK_INT16,               // int16
+        TK_INT32,               // int32
+        TK_INT64,               // int64
+        TK_UINT8,               // uint8
+        TK_UINT16,              // uint16
+        TK_UINT32,              // uint32
+        TK_UINT64,              // uint64
+        TK_FLOAT16,             // float16
+        TK_FLOAT32,             // float32
+        TK_FLOAT64,             // float64
+        TK_STRING,              // string
+        TK_INTPTR,              // intptr
+        TK_OBJECT,              // object
+        TK_ARRAY,               // array
+        TK_COROUTINE,           // coroutine
+        TK_IMPORT,              // import
+        TK_ASSERT,              // assert
+        TK_TEMPLATE,            // template
+        TK_NAMESPACE,           // namespace
+        TK_ATTRIBUTE,           // attribute
+        TK_USING,               // using
+        TK_ENUM,                // enum
+        TK_CLASS,               // class
+        TK_INTERFACE,           // interface
+        TK_VARIABLE,            // var
+        TK_FUNCTION,            // func
+        TK_WHERE,               // where
+        TK_CONSTRUCT,           // construct
+        TK_FINALIZE,            // finalize
+        TK_PRIVATE,             // private
+        TK_PUBLIC,              // public
+        TK_PROTECTED,           // protected
+        TK_REF,                 // ref
+        TK_LOCAL,               // local
+        TK_CONST,               // const
+        TK_FINAL,               // final
+        TK_STATIC,              // static
+        TK_EXTERN,              // extern
+        TK_VIRTUAL,             // virtual
+        TK_OVERRIDE,            // override
+        TK_THREAD,              // thread
+        TK_NEW,                 // new
+        TK_WHILE,               // while
+        TK_IF,                  // if
+        TK_ELSE,                // else
+        TK_FOR,                 // for
+        TK_FOREACH,             // foreach
+        TK_SWITCH,              // switch
+        TK_CASE,                // case
+        TK_DEFAULT,             // default
+        TK_ASYNC,               // async
+        TK_AWAIT,               // await
+        TK_YIELD,               // yield
+        TK_BREAK,               // break
+        TK_RETURN,              // return
+        TK_CONTINUE,            // continue
+        TK_AS,                  // as
+        TK_IS,                  // is
+        TK_SIZEOF,              // sizeof
+        TK_TYPEOF,              // typeof
+        TK_NULL,                // null
+        TK_TRUE,                // true
+        TK_FALSE,               // false
+        TK_THIS,                // this
+        TK_BASE,                // base
     };
     enum class value_t : x::int32
     {
@@ -297,6 +300,7 @@ namespace x
         FUNCTION,
         VARIABLE,
         TEMPLATE,
+        INTERFACE,
         NAMESPACE,
         FOUNDATION,
         NATIVEFUNC,
@@ -524,17 +528,6 @@ namespace x
     class object;
     class scheduler;
 
-    class meta;
-    class meta_type;
-    class meta_enum;
-    class meta_class;
-    class meta_element;
-    class meta_variable;
-    class meta_function;
-    class meta_parameter;
-    class meta_namespace;
-    class meta_attribute;
-
     PTR( logger );
     PTR( module );
     PTR( grammar );
@@ -545,6 +538,18 @@ namespace x
     PTR( runtime );
     PTR( interpreter );
     PTR( virtual_machine );
+
+    PTR( meta );
+    PTR( meta_type );
+    PTR( meta_enum );
+    PTR( meta_class );
+    PTR( meta_element );
+    PTR( meta_variable );
+    PTR( meta_function );
+    PTR( meta_parameter );
+    PTR( meta_interface );
+    PTR( meta_namespace );
+    PTR( meta_attribute );
 
     PTR( symbol );
     PTR( unit_symbol );
@@ -557,6 +562,7 @@ namespace x
     PTR( function_symbol );
     PTR( variable_symbol );
     PTR( template_symbol );
+    PTR( interface_symbol );
     PTR( namespace_symbol );
     PTR( foundation_symbol );
     PTR( nativefunc_symbol );
@@ -584,6 +590,7 @@ namespace x
     PTR( template_decl_ast );
     PTR( variable_decl_ast );
     PTR( function_decl_ast );
+    PTR( interface_decl_ast );
     PTR( namespace_decl_ast );
     PTR( stat_ast );
     PTR( empty_stat_ast );
@@ -627,11 +634,6 @@ namespace x
     PTR( float32_const_expr_ast );
     PTR( float64_const_expr_ast );
     PTR( string_const_expr_ast );
-
-    PTR( http_client );
-    PTR( http_server );
-    PTR( http_request );
-    PTR( http_respone );
 
     struct location
     {
@@ -764,9 +766,12 @@ namespace x
         { "using", x::token_t::TK_USING },
         { "enum", x::token_t::TK_ENUM },
         { "class", x::token_t::TK_CLASS },
+        { "interface", x::token_t::TK_INTERFACE },
         { "var", x::token_t::TK_VARIABLE },
         { "func", x::token_t::TK_FUNCTION },
         { "where", x::token_t::TK_WHERE },
+        { "construct", x::token_t::TK_CONSTRUCT },
+        { "finalize", x::token_t::TK_FINALIZE },
         { "private", x::token_t::TK_PRIVATE },
         { "public", x::token_t::TK_PUBLIC },
         { "protected", x::token_t::TK_PROTECTED },
@@ -803,8 +808,6 @@ namespace x
         { "false", x::token_t::TK_FALSE },
         { "this", x::token_t::TK_THIS },
         { "base", x::token_t::TK_BASE },
-        { "construct", x::token_t::TK_CONSTRUCT },
-        { "finalize", x::token_t::TK_FINALIZE },
     };
 }
 

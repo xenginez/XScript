@@ -4,7 +4,7 @@
 #include <thread>
 #include <functional>
 
-#include "concurrent_queue.hpp"
+#include <concurrentqueue.h>
 
 struct x::scheduler::time_executor
 {
@@ -129,9 +129,9 @@ private:
     time_point _now = {};
     std::jthread _thread;
     std::vector<timer> _timers;
-    x::concurrent_queue<timer> _queue;
     std::array<timewheel, N> _timewheels;
-    x::concurrent_queue<std::size_t> _freeidx;
+    moodycamel::ConcurrentQueue<timer> _queue;
+    moodycamel::ConcurrentQueue<std::size_t> _freeidx;
 };
 
 struct x::scheduler::private_p

@@ -172,6 +172,15 @@ void x::function_decl_ast::accept( visitor * val )
 	val->visit( this );
 }
 
+x::ast_t x::interface_decl_ast::ast_type()const
+{
+	return x::ast_t::INTERFACE_DECL;
+}
+void x::interface_decl_ast::accept( visitor * val )
+{
+	val->visit( this );
+}
+
 x::ast_t x::namespace_decl_ast::ast_type() const
 {
 	return x::ast_t::NAMESPACE_DECL;

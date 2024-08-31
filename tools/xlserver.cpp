@@ -8,7 +8,6 @@
 #include <json.hpp>
 #include <grammar.h>
 #include <symbols.h>
-#include <concurrent_queue.hpp>
 
 namespace
 {

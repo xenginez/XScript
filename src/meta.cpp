@@ -1,5 +1,7 @@
 #include "meta.h"
 
+#include "exception.h"
+
 std::string_view x::meta::attribute( std::string_view key ) const
 {
 	if ( _attribute )
@@ -262,6 +264,45 @@ std::string_view x::meta_parameter::fullname() const
 const x::meta_type * x::meta_parameter::value_type() const
 {
 	return _valuetype;
+}
+
+x::meta_interface::meta_interface()
+{
+}
+
+x::meta_t x::meta_interface::type() const
+{
+	return x::meta_t::INTERFACE;
+}
+
+x::uint64 x::meta_interface::hashcode() const
+{
+	return x::hash( fullname() );
+}
+
+std::string_view x::meta_interface::name() const
+{
+	return _name;
+}
+
+std::string_view x::meta_interface::fullname() const
+{
+	return _fullname;
+}
+
+x::uint64 x::meta_interface::size() const
+{
+	return 0;
+}
+
+void x::meta_interface::construct( void * ptr ) const
+{
+	XTHROW( x::runtime_exception, false, "" );
+}
+
+std::span<const x::meta_function * const> x::meta_interface::functions() const
+{
+	return _functions;
 }
 
 x::meta_namespace::meta_namespace()

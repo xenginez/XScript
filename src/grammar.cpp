@@ -210,6 +210,11 @@ x::class_decl_ast_ptr x::grammar::class_decl()
     if ( verify( x::token_t::TK_TYPECAST ) )
         ast->base = type();
 
+    while ( verify( x::token_t::TK_COMMA ) )
+    {
+        ast->interfaces.emplace_back( type() );
+    }
+
     x::access_t acce = x::access_t::PRIVATE;
     x::attribute_ast_ptr attr = nullptr;
     verify_list( x::token_t::TK_LEFT_CURLY_BRACES, x::token_t::TK_RIGHT_CURLY_BRACES, x::token_t::TK_SEMICOLON, [&]()
@@ -316,6 +321,11 @@ x::template_decl_ast_ptr x::grammar::template_decl()
     if ( verify( x::token_t::TK_TYPECAST ) )
         ast->base = type();
 
+    while ( verify( x::token_t::TK_COMMA ) )
+    {
+        ast->interfaces.emplace_back( type() );
+    }
+
     if ( verify( x::token_t::TK_WHERE ) )
         ast->where = compound_stat();
 
@@ -419,19 +429,22 @@ x::variable_decl_ast_ptr x::grammar::variable_decl()
     return ast;
 }
 
-x::function_decl_ast_ptr x::grammar::function_decl()
+x::function_decl_ast_ptr x::grammar::function_decl( bool interface_func )
 {
     validity( x::token_t::TK_FUNCTION );
 
     auto ast = std::make_shared<x::function_decl_ast>();
     ast->location = _location;
 
-    switch ( verify( { x::token_t::TK_FINAL, x::token_t::TK_STATIC, x::token_t::TK_VIRTUAL, x::token_t::TK_OVERRIDE } ).type )
+    if ( !interface_func )
     {
-    case x::token_t::TK_FINAL: ast->is_final = true; break;
-    case x::token_t::TK_STATIC: ast->is_static = true; break;
-    case x::token_t::TK_VIRTUAL: ast->is_virtual = true; break;
-    case x::token_t::TK_OVERRIDE: ast->is_virtual = true; break;
+        switch ( verify( { x::token_t::TK_FINAL, x::token_t::TK_STATIC, x::token_t::TK_VIRTUAL, x::token_t::TK_OVERRIDE } ).type )
+        {
+        case x::token_t::TK_FINAL: ast->is_final = true; break;
+        case x::token_t::TK_STATIC: ast->is_static = true; break;
+        case x::token_t::TK_VIRTUAL: ast->is_virtual = true; break;
+        case x::token_t::TK_OVERRIDE: ast->is_virtual = true; break;
+        }
     }
 
     BEG_VERIFYS( x::token_t::TK_CONST, x::token_t::TK_ASYNC )
@@ -459,10 +472,17 @@ x::function_decl_ast_ptr x::grammar::function_decl()
         }
     }
 
-    if ( verify( x::token_t::TK_ASSIGN ) )
-        ast->stat = extern_stat();
+    if ( !interface_func )
+    {
+        if ( verify( x::token_t::TK_ASSIGN ) )
+            ast->stat = extern_stat();
+        else
+            ast->stat = compound_stat();
+    }
     else
-        ast->stat = compound_stat();
+    {
+        verify( x::token_t::TK_SEMICOLON );
+    }
 
     return ast;
 }
@@ -502,21 +522,35 @@ x::function_decl_ast_ptr x::grammar::construct_decl()
     return ast;
 }
 
-x::parameter_element_ast_ptr x::grammar::parameter_decl()
+x::interface_decl_ast_ptr x::grammar::interface_decl()
 {
-    auto parameter = std::make_shared<x::parameter_element_ast>();
-    parameter->location = _location;
+    validity( x::token_t::TK_INTERFACE );
 
-    parameter->name = validity( x::token_t::TK_IDENTIFIER ).str;
-    
-    if ( verify( x::token_t::TK_TYPECAST ) )
-        parameter->value_type = type();
-    else if ( verify( x::token_t::TK_VARIADIC_SIGN ) )
-        parameter->value_type = std::make_shared<x::list_type_ast>();
-    else
-        parameter->value_type = anytype();
+    auto ast = std::make_shared<x::interface_decl_ast>();
+    ast->location = _location;
 
-    return parameter;
+    ast->name = validity( x::token_t::TK_IDENTIFIER ).str;
+
+    x::access_t acce = x::access_t::PRIVATE;
+    x::attribute_ast_ptr attr = nullptr;
+    validity( x::token_t::TK_LEFT_CURLY_BRACES );
+    {
+        if ( lookup().type == x::token_t::TK_ATTRIBUTE )
+            attr = attribute();
+        else
+            attr = nullptr;
+
+        acce = access();
+
+        auto decl = function_decl( true );
+        decl->attr = attr;
+        decl->access = acce;
+        decl->is_virtual = true;
+        ast->functions.emplace_back( decl );
+    }
+    validity( x::token_t::TK_RIGHT_CURLY_BRACES );
+
+    return ast;
 }
 
 x::namespace_decl_ast_ptr x::grammar::namespace_decl()
@@ -556,6 +590,9 @@ x::namespace_decl_ast_ptr x::grammar::namespace_decl()
         case x::token_t::TK_TEMPLATE:
             decl = template_decl();
             break;
+        case x::token_t::TK_INTERFACE:
+            decl = interface_decl();
+            break;
         case x::token_t::TK_NAMESPACE:
             decl = namespace_decl();
             break;
@@ -578,6 +615,23 @@ x::namespace_decl_ast_ptr x::grammar::namespace_decl()
     } );
 
     return ast;
+}
+
+x::parameter_element_ast_ptr x::grammar::parameter_decl()
+{
+    auto parameter = std::make_shared<x::parameter_element_ast>();
+    parameter->location = _location;
+
+    parameter->name = validity( x::token_t::TK_IDENTIFIER ).str;
+
+    if ( verify( x::token_t::TK_TYPECAST ) )
+        parameter->value_type = type();
+    else if ( verify( x::token_t::TK_VARIADIC_SIGN ) )
+        parameter->value_type = std::make_shared<x::list_type_ast>();
+    else
+        parameter->value_type = anytype();
+
+    return parameter;
 }
 
 x::stat_ast_ptr x::grammar::statement()

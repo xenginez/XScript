@@ -14,7 +14,7 @@
 #include "object.h"
 #include "buffer.h"
 #include "allocator.h"
-#include "concurrent_queue.hpp"
+#include <concurrentqueue.h>
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -233,7 +233,7 @@ namespace
         HANDLE _iocp = {};
         WSADATA _wsadata = {};
         std::jthread _thread = {};
-        x::concurrent_queue<overlapped *> _overlaps;
+        moodycamel::ConcurrentQueue<overlapped *> _overlaps;
     };
 
     uint32 key_event( WPARAM wParam )

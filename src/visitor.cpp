@@ -122,6 +122,12 @@ void x::visitor::visit( x::function_decl_ast * val )
 	val->stat->accept( this );
 }
 
+void x::visitor::visit( x::interface_decl_ast * val )
+{
+	for ( const auto & it : val->functions )
+		it->accept( this );
+}
+
 void x::visitor::visit( x::namespace_decl_ast * val )
 {
 	for ( const auto & it : val->members )
@@ -335,6 +341,15 @@ void x::scope_scanner_visitor::visit( x::function_decl_ast * val )
 	symbols()->pop_scope();
 }
 
+void x::scope_scanner_visitor::visit( x::interface_decl_ast * val )
+{
+	symbols()->push_scope( val->name );
+	{
+		visitor::visit( val );
+	}
+	symbols()->pop_scope();
+}
+
 void x::scope_scanner_visitor::visit( x::namespace_decl_ast * val )
 {
 	symbols()->push_scope( val->name );
@@ -461,6 +476,13 @@ void x::symbol_scanner_visitor::visit( x::function_decl_ast * val )
 void x::symbol_scanner_visitor::visit( x::template_decl_ast * val )
 {
 	symbols()->add_template( val );
+
+	scope_scanner_visitor::visit( val );
+}
+
+void x::symbol_scanner_visitor::visit( x::interface_decl_ast * val )
+{
+	symbols()->add_interface( val );
 
 	scope_scanner_visitor::visit( val );
 }
@@ -761,6 +783,21 @@ void x::ast_tree_printer_visitor::visit( x::function_decl_ast * val )
 
 		val->stat->accept( this );
 	}
+}
+
+void x::ast_tree_printer_visitor::visit( x::interface_decl_ast * val )
+{
+	if ( val->attr ) val->attr->accept( this );
+
+	outl( std::format( "{} interface {}", access( val->access ), val->name ) );
+	outl( "{" ); push();
+	{
+		for ( const auto & it : val->functions )
+		{
+			it->accept( this ); out( ";" );
+		}
+	}
+	pop(); outl( "};" );
 }
 
 void x::ast_tree_printer_visitor::visit( x::namespace_decl_ast * val )

@@ -207,6 +207,23 @@ namespace x
 		std::vector<x::class_symbol_wptr> specializeds;
 		std::vector<x::template_element_symbol_ptr> elements;
 	};
+	class interface_symbol : public x::symbol
+	{
+	public:
+		interface_symbol();
+		~interface_symbol() override;
+
+	public:
+		bool is_type() const override;
+		bool is_scope() const override;
+		x::ast_ptr ast() const override;
+		void add_child( const x::symbol_ptr & val ) override;
+		x::symbol_ptr find_child( std::string_view name ) const override;
+
+	public:
+		x::interface_decl_ast_ptr interface_ast;
+		std::vector<x::function_symbol_ptr> functions;
+	};
 	class namespace_symbol : public x::symbol
 	{
 	public:
@@ -341,6 +358,7 @@ namespace x
 		x::function_symbol_ptr add_function( x::function_decl_ast * val );
 		x::variable_symbol_ptr add_variable( x::variable_decl_ast * val );
 		x::template_symbol_ptr add_template( x::template_decl_ast * val );
+		x::interface_symbol_ptr add_interface( x::interface_decl_ast * val );
 		x::namespace_symbol_ptr add_namespace( x::namespace_decl_ast * val );
 		x::foundation_symbol_ptr add_foundation( std::string_view name, x::uint64 size );
 		x::nativefunc_symbol_ptr add_nativefunc( std::string_view name, void * callback );

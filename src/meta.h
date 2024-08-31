@@ -201,7 +201,33 @@ namespace x
 	private:
 		std::string_view _name;
 		std::string_view _fullname;
-		const x::meta_type * _valuetype;
+		const x::meta_type * _valuetype = nullptr;
+	};
+
+	class meta_interface : public meta_type
+	{
+		friend class context;
+
+	public:
+		meta_interface();
+
+	public:
+		x::meta_t type() const override;
+		x::uint64 hashcode() const override;
+		std::string_view name() const override;
+		std::string_view fullname() const override;
+
+	public:
+		x::uint64 size() const override;
+		void construct( void * ptr ) const override;
+
+	public:
+		std::span<const x::meta_function * const> functions() const;
+
+	private:
+		std::string_view _name;
+		std::string_view _fullname;
+		std::vector<const x::meta_function *> _functions;
 	};
 
 	class meta_namespace : public meta

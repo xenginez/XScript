@@ -30,6 +30,7 @@ namespace x
 		virtual void visit( x::template_decl_ast * val );
 		virtual void visit( x::variable_decl_ast * val );
 		virtual void visit( x::function_decl_ast * val );
+		virtual void visit( x::interface_decl_ast * val );
 		virtual void visit( x::namespace_decl_ast * val );
 
 		virtual void visit( x::empty_stat_ast * val );
@@ -75,6 +76,7 @@ namespace x
 		void visit( x::enum_decl_ast * val ) override;
 		void visit( x::class_decl_ast * val ) override;
 		void visit( x::function_decl_ast * val ) override;
+		void visit( x::interface_decl_ast * val ) override;
 		void visit( x::namespace_decl_ast * val ) override;
 
 		void visit( x::compound_stat_ast * val ) override;
@@ -112,6 +114,7 @@ namespace x
 		void visit( x::variable_decl_ast * val ) override;
 		void visit( x::function_decl_ast * val ) override;
 		void visit( x::template_decl_ast * val ) override;
+		void visit( x::interface_decl_ast * val ) override;
 		void visit( x::namespace_decl_ast * val ) override;
 
 		void visit( x::compound_stat_ast * val ) override;
@@ -147,6 +150,7 @@ namespace x
 		void visit( x::template_decl_ast * val ) override;
 		void visit( x::variable_decl_ast * val ) override;
 		void visit( x::function_decl_ast * val ) override;
+		void visit( x::interface_decl_ast * val ) override;
 		void visit( x::namespace_decl_ast * val ) override;
 
 		void visit( x::empty_stat_ast * val ) override;

@@ -26,11 +26,12 @@ namespace x
 		x::using_decl_ast_ptr using_decl();
 		x::template_decl_ast_ptr template_decl();
 		x::variable_decl_ast_ptr variable_decl();
-		x::function_decl_ast_ptr function_decl();
+		x::function_decl_ast_ptr function_decl( bool interface_func = false );
 		x::function_decl_ast_ptr finalize_decl();
 		x::function_decl_ast_ptr construct_decl();
-		x::parameter_element_ast_ptr parameter_decl();
+		x::interface_decl_ast_ptr interface_decl();
 		x::namespace_decl_ast_ptr namespace_decl();
+		x::parameter_element_ast_ptr parameter_decl();
 
 		x::stat_ast_ptr statement();
 		x::extern_stat_ast_ptr extern_stat();

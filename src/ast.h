@@ -138,6 +138,15 @@ namespace x
 	public:
 		std::vector<x::enum_element_ast_ptr> elements;
 	};
+	class using_decl_ast : public decl_ast
+	{
+	public:
+		x::ast_t ast_type()const override;
+		void accept( visitor * val ) override;
+
+	public:
+		x::type_ast_ptr retype;
+	};
 	class class_decl_ast : public decl_ast
 	{
 	public:
@@ -148,18 +157,10 @@ namespace x
 		x::type_ast_ptr base;
 		x::function_decl_ast_ptr construct;
 		x::function_decl_ast_ptr finalize;
+		std::vector<x::type_ast_ptr> interfaces;
 		std::vector<x::using_decl_ast_ptr> usings;
 		std::vector<x::variable_decl_ast_ptr> variables;
 		std::vector<x::function_decl_ast_ptr> functions;
-	};
-	class using_decl_ast : public decl_ast
-	{
-	public:
-		x::ast_t ast_type()const override;
-		void accept( visitor * val ) override;
-
-	public:
-		x::type_ast_ptr retype;
 	};
 	class template_decl_ast : public decl_ast
 	{
@@ -170,12 +171,13 @@ namespace x
 	public:
 		x::type_ast_ptr base;
 		x::compound_stat_ast_ptr where;
-		std::vector<x::template_element_ast_ptr> elements;
 		x::function_decl_ast_ptr construct;
 		x::function_decl_ast_ptr finalize;
+		std::vector<x::type_ast_ptr> interfaces;
 		std::vector<x::using_decl_ast_ptr> usings;
 		std::vector<x::variable_decl_ast_ptr> variables;
 		std::vector<x::function_decl_ast_ptr> functions;
+		std::vector<x::template_element_ast_ptr> elements;
 	};
 	class variable_decl_ast : public decl_ast
 	{
@@ -205,6 +207,15 @@ namespace x
 		x::stat_ast_ptr stat;
 		std::vector<x::type_ast_ptr> results;
 		std::vector<x::parameter_element_ast_ptr> parameters;
+	};
+	class interface_decl_ast : public decl_ast
+	{
+	public:
+		x::ast_t ast_type()const override;
+		void accept( visitor * val ) override;
+
+	public:
+		std::vector<x::function_decl_ast_ptr> functions;
 	};
 	class namespace_decl_ast : public decl_ast
 	{

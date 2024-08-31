@@ -51,8 +51,9 @@ set(SRC_FILES
 "virtual_machine.h"
 "virtual_machine.cpp")
 
+set(3RDPARTY ${CMAKE_SOURCE_DIR}/3rdparty)
 add_library(xs STATIC ${SRC_FILES})
 set_property(TARGET xs PROPERTY CXX_STANDARD 20)
 target_compile_definitions(xs PRIVATE -D_CRT_SECURE_NO_WARNINGS)
-target_include_directories(xs PRIVATE ${CMAKE_SOURCE_DIR}/3rdparty/stb ${CMAKE_SOURCE_DIR}/3rdparty/uchardet/src ${CMAKE_SOURCE_DIR}/3rdparty/win-iconv)
+target_include_directories(xs PRIVATE ${3RDPARTY}/stb ${3RDPARTY}/uchardet/src ${3RDPARTY}/win-iconv ${3RDPARTY}/concurrentqueue)
 target_link_libraries(xs PRIVATE libuchardet_static iconv-static)

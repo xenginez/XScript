@@ -21,9 +21,17 @@ fetchcontent_declare(
 	GIT_TAG v0.0.8
 	SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/win-iconv
 )
+fetchcontent_declare(
+	concurrentqueue
+	GIT_REPOSITORY https://github.com/cameron314/concurrentqueue.git
+	GIT_TAG v1.0.4
+	SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/concurrentqueue
+)
+
 fetchcontent_makeavailable(stb)
 fetchcontent_makeavailable(uchardet)
 fetchcontent_makeavailable(win-iconv)
+fetchcontent_makeavailable(concurrentqueue)
 
 add_subdirectory(src)
 add_subdirectory(tools)

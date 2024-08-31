@@ -514,6 +514,48 @@ x::symbol_ptr x::template_symbol::find_child( std::string_view name ) const
 	return nullptr;
 }
 
+x::interface_symbol::interface_symbol()
+{
+	type = x::symbol_t::INTERFACE;
+}
+
+x::interface_symbol::~interface_symbol()
+{
+
+}
+
+bool x::interface_symbol::is_type() const
+{
+	return true;
+}
+
+bool x::interface_symbol::is_scope() const
+{
+	return false;
+}
+
+x::ast_ptr x::interface_symbol::ast() const
+{
+	return interface_ast;
+}
+
+void x::interface_symbol::add_child( const x::symbol_ptr & val )
+{
+	functions.push_back( std::static_pointer_cast<x::function_symbol>( val ) );
+}
+
+x::symbol_ptr x::interface_symbol::find_child( std::string_view name ) const
+{
+	auto fit = std::find_if( functions.begin(), functions.end(), [name]( auto val )
+	{
+		return val->name == name;
+	} );
+	if ( fit != functions.end() )
+		return *fit;
+
+	return nullptr;
+}
+
 x::namespace_symbol::namespace_symbol()
 {
 	type = x::symbol_t::NAMESPACE;
@@ -967,6 +1009,23 @@ x::template_symbol_ptr x::symbols::add_template( x::template_decl_ast * ast )
 	sym->name = ast->name;
 	sym->fullname = fullname;
 	sym->template_ast = std::static_pointer_cast<x::template_decl_ast>( ast->shared_from_this() );
+
+	add_symbol( sym );
+
+	return sym;
+}
+
+x::interface_symbol_ptr x::symbols::add_interface( x::interface_decl_ast * ast )
+{
+	std::string fullname = calc_fullname( ast->name );
+
+	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
+
+	auto sym = std::make_shared<interface_symbol>();
+
+	sym->name = ast->name;
+	sym->fullname = fullname;
+	sym->interface_ast = std::static_pointer_cast<x::interface_decl_ast>( ast->shared_from_this() );
 
 	add_symbol( sym );
 
