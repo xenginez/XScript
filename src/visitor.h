@@ -46,6 +46,8 @@ namespace x
 		virtual void visit( x::switch_stat_ast * val );
 		virtual void visit( x::break_stat_ast * val );
 		virtual void visit( x::return_stat_ast * val );
+		virtual void visit( x::try_stat_ast * val );
+		virtual void visit( x::throw_stat_ast * val );
 		virtual void visit( x::continue_stat_ast * val );
 		virtual void visit( x::local_stat_ast * val );
 
@@ -166,6 +168,8 @@ namespace x
 		void visit( x::switch_stat_ast * val ) override;
 		void visit( x::break_stat_ast * val ) override;
 		void visit( x::return_stat_ast * val ) override;
+		void visit( x::try_stat_ast * val ) override;
+		void visit( x::throw_stat_ast * val ) override;
 		void visit( x::continue_stat_ast * val ) override;
 		void visit( x::local_stat_ast * val ) override;
 

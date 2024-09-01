@@ -359,6 +359,26 @@ namespace x
 	public:
 		std::vector<x::expr_stat_ast_ptr> exprs;
 	};
+	class try_stat_ast : public stat_ast
+	{
+	public:
+		x::ast_t ast_type()const override;
+		void accept( visitor * val ) override;
+
+	public:
+		x::compound_stat_ast_ptr stat;
+		x::compound_stat_ast_ptr final_stat;
+		std::vector<std::pair<x::parameter_element_ast_ptr, x::compound_stat_ast_ptr>> catchs;
+	};
+	class throw_stat_ast : public stat_ast
+	{
+	public:
+		x::ast_t ast_type()const override;
+		void accept( visitor * val ) override;
+
+	public:
+		x::new_stat_ast_ptr exception;
+	};
 	class continue_stat_ast : public stat_ast
 	{
 	public:

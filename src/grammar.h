@@ -46,6 +46,8 @@ namespace x
 		x::switch_stat_ast_ptr switch_stat();
 		x::break_stat_ast_ptr break_stat();
 		x::return_stat_ast_ptr return_stat();
+		x::try_stat_ast_ptr try_stat();
+		x::throw_stat_ast_ptr throw_stat();
 		x::continue_stat_ast_ptr continue_stat();
 		x::local_stat_ast_ptr local_stat();
 

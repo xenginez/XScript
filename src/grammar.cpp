@@ -664,6 +664,10 @@ x::stat_ast_ptr x::grammar::statement()
         return break_stat();
     case x::token_t::TK_RETURN:
         return return_stat();
+    case x::token_t::TK_TRY:
+        return try_stat();
+    case x::token_t::TK_THROW:
+        return throw_stat();
     case x::token_t::TK_CONTINUE:
         return continue_stat();
     case x::token_t::TK_VARIABLE:
@@ -895,6 +899,48 @@ x::return_stat_ast_ptr x::grammar::return_stat()
 
     return ast;
 }
+
+x::try_stat_ast_ptr x::grammar::try_stat()
+{
+    validity( x::token_t::TK_TRY );
+
+    auto ast = std::make_shared<x::try_stat_ast>();
+    ast->location = _location;
+
+    ast->stat = compound_stat();
+
+    while ( verify( x::token_t::TK_CATCH ) )
+    {
+        std::pair<x::parameter_element_ast_ptr, x::compound_stat_ast_ptr> cat;
+
+        validity( x::token_t::TK_LEFT_BRACKETS );
+        cat.first = parameter_decl();
+        validity( x::token_t::TK_RIGHT_BRACKETS );
+        cat.second = compound_stat();
+
+        ast->catchs.emplace_back( cat );
+    }
+
+    if ( verify( x::token_t::TK_FINAL ) )
+    {
+        ast->final_stat = compound_stat();
+    }
+
+    return ast;
+}
+
+x::throw_stat_ast_ptr x::grammar::throw_stat()
+{
+    validity( x::token_t::TK_THROW );
+
+    auto ast = std::make_shared<x::throw_stat_ast>();
+    ast->location = _location;
+
+    ast->exception = new_stat();
+
+    return ast;
+}
+
 
 x::continue_stat_ast_ptr x::grammar::continue_stat()
 {

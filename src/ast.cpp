@@ -321,6 +321,26 @@ void x::return_stat_ast::accept( visitor * val )
 	val->visit( this );
 }
 
+x::ast_t x::try_stat_ast::ast_type()const
+{
+	return x::ast_t::TRY_STAT;
+}
+
+void x::try_stat_ast::accept( visitor * val )
+{
+	val->visit( this );
+}
+
+x::ast_t x::throw_stat_ast::ast_type()const
+{
+	return x::ast_t::THROW_STAT;
+}
+
+void x::throw_stat_ast::accept( visitor * val )
+{
+	val->visit( this );
+}
+
 x::ast_t x::continue_stat_ast::ast_type() const
 {
 	return x::ast_t::CONTINUE_STAT;

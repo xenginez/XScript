@@ -85,6 +85,8 @@ namespace x
         SWITCH_STAT,
         BREAK_STAT,
         RETURN_STAT,
+        TRY_STAT,
+        THROW_STAT,
         CONTINUE_STAT,
         LOCAL_STAT,
 
@@ -238,6 +240,9 @@ namespace x
         TK_YIELD,               // yield
         TK_BREAK,               // break
         TK_RETURN,              // return
+        TK_TRY,                 // try
+        TK_CATCH,               // catch
+        TK_THROW,               // throw
         TK_CONTINUE,            // continue
         TK_AS,                  // as
         TK_IS,                  // is
@@ -607,6 +612,8 @@ namespace x
     PTR( switch_stat_ast );
     PTR( break_stat_ast );
     PTR( return_stat_ast );
+    PTR( try_stat_ast );
+    PTR( throw_stat_ast );
     PTR( continue_stat_ast );
     PTR( local_stat_ast );
     PTR( expr_stat_ast );
@@ -798,6 +805,9 @@ namespace x
         { "yield", x::token_t::TK_YIELD },
         { "break", x::token_t::TK_BREAK },
         { "return", x::token_t::TK_RETURN },
+        { "try", x::token_t::TK_TRY },
+        { "catch", x::token_t::TK_CATCH },
+        { "throw", x::token_t::TK_THROW },
         { "continue", x::token_t::TK_CONTINUE },
         { "as", x::token_t::TK_AS },
         { "is", x::token_t::TK_IS },

@@ -216,6 +216,25 @@ void x::visitor::visit( x::return_stat_ast * val )
 		it->accept( this );
 }
 
+void x::visitor::visit( x::try_stat_ast * val )
+{
+	val->stat->accept( this );
+
+	for ( auto & it : val->catchs )
+	{
+		it.first->accept( this );
+		it.second->accept( this );
+	}
+	
+	if ( val->final_stat )
+		val->final_stat->accept( this );
+}
+
+void x::visitor::visit( x::throw_stat_ast * val )
+{
+	val->exception->accept( this );
+}
+
 void x::visitor::visit( x::continue_stat_ast * val )
 {
 }
@@ -937,6 +956,33 @@ void x::ast_tree_printer_visitor::visit( x::return_stat_ast * val )
 				out( ", " );
 		}
 	}
+}
+
+void x::ast_tree_printer_visitor::visit( x::try_stat_ast * val )
+{
+	out( "try" );
+	val->stat->accept( this );
+
+	for ( auto & it : val->catchs )
+	{
+		out( "catch(" );
+		it.first->accept( this );
+		out( ")" );
+
+		it.second->accept( this );
+	}
+
+	if ( val->final_stat )
+	{
+		out( "final" );
+		val->final_stat->accept( this );
+	}
+}
+
+void x::ast_tree_printer_visitor::visit( x::throw_stat_ast * val )
+{
+	out( "throw " ); 
+	val->exception->accept( this );
 }
 
 void x::ast_tree_printer_visitor::visit( x::continue_stat_ast * val )
