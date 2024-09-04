@@ -40,8 +40,7 @@ namespace x
 	private:
 		virtual void scanner();
 		virtual void analyzer();
-		virtual void translate();
-		virtual void genmodule() = 0;
+		virtual void genmodules() = 0;
 		virtual void linkmodule() = 0;
 		void loading( const x::url & url );
 		void loading( const std::filesystem::path & file );
@@ -75,7 +74,7 @@ namespace x
 		x::module_ptr module() const;
 
 	protected:
-		void genmodule() override;
+		void genmodules() override;
 		void linkmodule() override;
 		x::symbols_ptr make_symbols() override;
 		x::compiler::object_ptr make_object() override;
@@ -100,7 +99,7 @@ namespace x
 		llvm::module_ptr module() const;
 
 	protected:
-		void genmodule() override;
+		void genmodules() override;
 		void linkmodule() override;
 		x::symbols_ptr make_symbols() override;
 		x::compiler::object_ptr make_object() override;
@@ -126,7 +125,7 @@ namespace x
 		spirv::module_ptr module() const;
 
 	protected:
-		void genmodule() override;
+		void genmodules() override;
 		void linkmodule() override;
 		x::symbols_ptr make_symbols() override;
 		x::compiler::object_ptr make_object() override;

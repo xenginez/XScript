@@ -38,7 +38,7 @@ x::unit_ast_ptr x::grammar::parse( std::istream & stream, std::string_view name,
 x::unit_ast_ptr x::grammar::unit()
 {
     auto ast = std::make_shared<x::unit_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
     x::attribute_ast_ptr attr = nullptr;
 
@@ -48,18 +48,20 @@ x::unit_ast_ptr x::grammar::unit()
         switch ( tk.type )
         {
         case x::token_t::TK_IMPORT:
-            ast->imports.emplace_back( import() );
+            ast->insert_import( import() );
             break;
         case x::token_t::TK_ATTRIBUTE:
             attr = attribute();
             break;
         case x::token_t::TK_NAMESPACE:
-            ast->namespaces.emplace_back( namespace_decl() );
-            ast->namespaces.back()->attr = std::move( attr );
+            ast->insert_namespace( namespace_decl() );
+            ast->get_namespaces().back()->set_attr( attr );
             break;
         case x::token_t::TK_SEMICOLON:
             break;
         }
+
+        attr = nullptr;
 
         tk = lookup();
     }
@@ -87,7 +89,7 @@ x::type_ast_ptr x::grammar::type()
     {
         auto func_type = std::make_shared<x::func_type_ast>();
 
-        do { func_type->parameters.emplace_back( type() ); } while ( verify( x::token_t::TK_COMMA ) );
+        do { func_type->insert_parameter( type() ); } while ( verify( x::token_t::TK_COMMA ) );
 
         verify( x::token_t::TK_RIGHT_BRACKETS );
 
@@ -97,7 +99,7 @@ x::type_ast_ptr x::grammar::type()
     {
         auto array_type = std::make_shared<x::array_type_ast>();
 
-        do { array_type->layer++; } while ( verify( x::token_t::TK_COMMA ) );
+        do { array_type->set_layer( array_type->get_layer() + 1 ); } while ( verify( x::token_t::TK_COMMA ) );
 
         verify( x::token_t::TK_RIGHT_INDEX );
 
@@ -107,7 +109,7 @@ x::type_ast_ptr x::grammar::type()
     {
         auto temp_type = std::make_shared<x::temp_type_ast>();
 
-        do { temp_type->elements.emplace_back( type() ); } while ( verify( x::token_t::TK_COMMA ) );
+        do { temp_type->insert_element( type() ); } while ( verify( x::token_t::TK_COMMA ) );
 
         verify( x::token_t::TK_LARG );
 
@@ -122,10 +124,10 @@ x::type_ast_ptr x::grammar::type()
         ast = std::make_shared<x::type_ast>();
     }
 
-    ast->location = location;
-    ast->is_const = is_const;
-    ast->is_ref = is_ref;
-    ast->name = name;
+    ast->set_location( location );
+    ast->set_is_const( is_const );
+    ast->set_is_ref( is_ref );
+    ast->set_name( name );
 
     return ast;
 }
@@ -135,10 +137,10 @@ x::import_ast_ptr x::grammar::import()
     validity( x::token_t::TK_IMPORT );
 
     auto ast = std::make_shared<x::import_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
     validity( x::token_t::TK_LEFT_BRACKETS );
-    ast->path = validity( x::token_t::TK_CONSTEXPR_STRING ).str;
+    ast->set_path( validity( x::token_t::TK_CONSTEXPR_STRING ).str );
     validity( x::token_t::TK_RIGHT_BRACKETS );
 
     return ast;
@@ -149,7 +151,7 @@ x::attribute_ast_ptr x::grammar::attribute()
     validity( x::token_t::TK_ATTRIBUTE );
 
     auto ast = std::make_shared<x::attribute_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
     verify_list( x::token_t::TK_LEFT_BRACKETS, x::token_t::TK_RIGHT_BRACKETS, x::token_t::TK_COMMA, [&]()
     {
@@ -165,7 +167,7 @@ x::attribute_ast_ptr x::grammar::attribute()
 
             value.second.append( next().str );
         }
-        ast->attributes.emplace_back( value );
+        ast->insert_attribute( value );
     } );
 
     return ast;
@@ -176,9 +178,9 @@ x::enum_decl_ast_ptr x::grammar::enum_decl()
     validity( x::token_t::TK_ENUM );
 
     auto ast = std::make_shared<x::enum_decl_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
-    ast->name = validity( x::token_t::TK_IDENTIFIER ).str;
+    ast->set_name( validity( x::token_t::TK_IDENTIFIER ).str );
 
     verify_list( x::token_t::TK_LEFT_CURLY_BRACES, x::token_t::TK_RIGHT_CURLY_BRACES, x::token_t::TK_COMMA, [&]()
     {
@@ -186,13 +188,13 @@ x::enum_decl_ast_ptr x::grammar::enum_decl()
             return;
 
         auto element = std::make_shared<x::enum_element_ast>();
-        element->location = _location;
+        element->set_location( _location );
 
-        element->name = validity( x::token_t::TK_IDENTIFIER ).str;
+        element->set_name( validity( x::token_t::TK_IDENTIFIER ).str );
 
-        if ( verify( x::token_t::TK_ASSIGN ) ) element->value = express();
+        if ( verify( x::token_t::TK_ASSIGN ) ) element->set_value( express() );
 
-        ast->elements.emplace_back( element );
+        ast->insert_element( element );
     } );
 
     return ast;
@@ -203,16 +205,16 @@ x::class_decl_ast_ptr x::grammar::class_decl()
     validity( x::token_t::TK_CLASS );
 
     auto ast = std::make_shared<x::class_decl_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
-    ast->name = validity( x::token_t::TK_IDENTIFIER ).str;
+    ast->set_name( validity( x::token_t::TK_IDENTIFIER ).str );
 
     if ( verify( x::token_t::TK_TYPECAST ) )
-        ast->base = type();
+        ast->set_base( type() );
 
     while ( verify( x::token_t::TK_COMMA ) )
     {
-        ast->interfaces.emplace_back( type() );
+        ast->insert_interface( type() );
     }
 
     x::access_t acce = x::access_t::PRIVATE;
@@ -231,41 +233,41 @@ x::class_decl_ast_ptr x::grammar::class_decl()
         case x::token_t::TK_USING:
         {
             auto decl = using_decl();
-            decl->attr = attr;
-            decl->access = acce;
-            ast->usings.emplace_back( decl );
+            decl->set_attr( attr );
+            decl->set_access( acce );
+            ast->insert_using( decl );
         }
         break;
         case x::token_t::TK_VARIABLE:
         {
             auto decl = variable_decl();
-            decl->attr = attr;
-            decl->access = acce;
-            ast->variables.emplace_back( decl );
+            decl->set_attr( attr );
+            decl->set_access( acce );
+            ast->insert_variable( decl );
         }
         break;
         case x::token_t::TK_FUNCTION:
         {
             auto decl = function_decl();
-            decl->attr = attr;
-            decl->access = acce;
-            ast->functions.emplace_back( decl );
+            decl->set_attr( attr );
+            decl->set_access( acce );
+            ast->insert_function( decl );
         }
         break;
         case x::token_t::TK_CONSTRUCT:
         {
             auto decl = construct_decl();
-            decl->attr = attr;
-            decl->access = acce;
-            ast->construct = decl;
+            decl->set_attr( attr );
+            decl->set_access( acce );
+            ast->set_construct( decl );
         }
         break;
         case x::token_t::TK_FINALIZE:
         {
             auto decl = finalize_decl();
-            decl->attr = attr;
-            decl->access = acce;
-            ast->finalize = decl;
+            decl->set_attr( attr );
+            decl->set_access( acce );
+            ast->set_finalize( decl );
         }
         break;
         case x::token_t::TK_SEMICOLON:
@@ -285,13 +287,13 @@ x::using_decl_ast_ptr x::grammar::using_decl()
     validity( x::token_t::TK_USING );
 
     auto ast = std::make_shared<x::using_decl_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
-    ast->name = validity( x::token_t::TK_IDENTIFIER ).str;
+    ast->set_name( validity( x::token_t::TK_IDENTIFIER ).str );
 
     validity( x::token_t::TK_ASSIGN );
 
-    ast->retype = type();
+    ast->set_retype( type() );
 
     return ast;
 }
@@ -301,33 +303,33 @@ x::template_decl_ast_ptr x::grammar::template_decl()
     validity( x::token_t::TK_TEMPLATE );
 
     auto ast = std::make_shared<x::template_decl_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
-    ast->name = validity( x::token_t::TK_IDENTIFIER ).str;
+    ast->set_name( validity( x::token_t::TK_IDENTIFIER ).str );
 
     verify_list( x::token_t::TK_LESS, x::token_t::TK_LARG, x::token_t::TK_COMMA, [&]() -> bool
     {
         auto elem = std::make_shared<x::template_element_ast>();
-        elem->location = _location;
+        elem->set_location( _location );
 
-        elem->name = validity( x::token_t::TK_IDENTIFIER ).str;
-        elem->is_multi = verify( x::token_t::TK_VARIADIC_SIGN );
+        elem->set_name( validity( x::token_t::TK_IDENTIFIER ).str );
+        elem->set_is_multi( verify( x::token_t::TK_VARIADIC_SIGN ) );
 
-        ast->elements.emplace_back( elem );
+        ast->insert_element( elem );
 
-        return elem->is_multi;
+        return elem->get_is_multi();
     } );
 
     if ( verify( x::token_t::TK_TYPECAST ) )
-        ast->base = type();
+        ast->set_base( type() );
 
     while ( verify( x::token_t::TK_COMMA ) )
     {
-        ast->interfaces.emplace_back( type() );
+        ast->insert_interface( type() );
     }
 
     if ( verify( x::token_t::TK_WHERE ) )
-        ast->where = compound_stat();
+        ast->set_where( compound_stat() );
 
     verify_list( x::token_t::TK_LEFT_CURLY_BRACES, x::token_t::TK_RIGHT_CURLY_BRACES, x::token_t::TK_COMMA, [&]()
     {
@@ -339,41 +341,41 @@ x::template_decl_ast_ptr x::grammar::template_decl()
         case x::token_t::TK_USING:
         {
             auto decl = using_decl();
-            decl->attr = attr;
-            decl->access = acce;
-            ast->usings.emplace_back( decl );
+            decl->set_attr( attr );
+            decl->set_access( acce );
+            ast->insert_using( decl );
         }
         break;
         case x::token_t::TK_VARIABLE:
         {
             auto decl = variable_decl();
-            decl->attr = attr;
-            decl->access = acce;
-            ast->variables.emplace_back( decl );
+            decl->set_attr( attr );
+            decl->set_access( acce );
+            ast->insert_variable( decl );
         }
         break;
         case x::token_t::TK_FUNCTION:
         {
             auto decl = function_decl();
-            decl->attr = attr;
-            decl->access = acce;
-            ast->functions.emplace_back( decl );
+            decl->set_attr( attr );
+            decl->set_access( acce );
+            ast->insert_function( decl );
         }
         break;
         case x::token_t::TK_CONSTRUCT:
         {
             auto decl = construct_decl();
-            decl->attr = attr;
-            decl->access = acce;
-            ast->construct = decl;
+            decl->set_attr( attr );
+            decl->set_access( acce );
+            ast->set_construct( decl );
         }
         break;
         case x::token_t::TK_FINALIZE:
         {
             auto decl = finalize_decl();
-            decl->attr = attr;
-            decl->access = acce;
-            ast->finalize = decl;
+            decl->set_attr( attr );
+            decl->set_access( acce );
+            ast->set_finalize( decl );
         }
         break;
         case x::token_t::TK_SEMICOLON:
@@ -393,37 +395,38 @@ x::variable_decl_ast_ptr x::grammar::variable_decl()
     validity( x::token_t::TK_VARIABLE );
 
     auto ast = std::make_shared<x::variable_decl_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
     switch ( verify( { x::token_t::TK_LOCAL, x::token_t::TK_STATIC, x::token_t::TK_THREAD } ).type )
     {
-    case x::token_t::TK_LOCAL: ast->is_local = true; break;
-    case x::token_t::TK_STATIC: ast->is_static = true; break;
-    case x::token_t::TK_THREAD: ast->is_thread = true; break;
+    case x::token_t::TK_LOCAL: ast->set_is_local( true ); break;
+    case x::token_t::TK_STATIC: ast->set_is_static( true ); break;
+    case x::token_t::TK_THREAD: ast->set_is_thread( true ); break;
     }
 
-    ast->name = validity( x::token_t::TK_IDENTIFIER ).str;
+    ast->set_name( validity( x::token_t::TK_IDENTIFIER ).str );
 
     if ( verify( x::token_t::TK_TYPECAST ) )
-        ast->value_type = type();
+        ast->set_valuetype( type() );
     else
-        ast->value_type = anytype();
+        ast->set_valuetype( anytype() );
 
     if ( verify( x::token_t::TK_ASSIGN ) )
     {
+        x::initializer_expr_ast_ptr init;
+
         if ( lookup().type == x::token_t::TK_LEFT_CURLY_BRACES )
         {
-            ast->init = initializer_exp();
+            init = initializer_exp();
         }
         else
         {
-            auto init = std::make_shared<x::initializer_expr_ast>();
-            init->location = _location;
-
-            init->args.emplace_back( express() );
-
-            ast->init = init;
+            init = std::make_shared<x::initializer_expr_ast>();
+            init->set_location( _location );
+            init->insert_arg( express() );
         }
+
+        ast->set_init( init );
     }
 
     return ast;
@@ -434,38 +437,39 @@ x::function_decl_ast_ptr x::grammar::function_decl( bool interface_func )
     validity( x::token_t::TK_FUNCTION );
 
     auto ast = std::make_shared<x::function_decl_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
     if ( !interface_func )
     {
         switch ( verify( { x::token_t::TK_FINAL, x::token_t::TK_STATIC, x::token_t::TK_VIRTUAL, x::token_t::TK_OVERRIDE } ).type )
         {
-        case x::token_t::TK_FINAL: ast->is_final = true; break;
-        case x::token_t::TK_STATIC: ast->is_static = true; break;
-        case x::token_t::TK_VIRTUAL: ast->is_virtual = true; break;
-        case x::token_t::TK_OVERRIDE: ast->is_virtual = true; break;
+        case x::token_t::TK_FINAL: ast->set_is_final( true ); break;
+        case x::token_t::TK_STATIC: ast->set_is_static( true ); break;
+        case x::token_t::TK_VIRTUAL: ast->set_is_virtual( true ); break;
+        case x::token_t::TK_OVERRIDE: ast->set_is_virtual( true ); break;
         }
     }
 
     BEG_VERIFYS( x::token_t::TK_CONST, x::token_t::TK_ASYNC )
-        case x::token_t::TK_CONST: ast->is_const = true; break;
-        case x::token_t::TK_ASYNC: ast->is_async = true; break;
+        case x::token_t::TK_CONST: ast->set_is_const( true ); break;
+        case x::token_t::TK_ASYNC: ast->set_is_async( true ); break;
     END_VERIFYS()
 
-    ast->name = validity( x::token_t::TK_IDENTIFIER ).str;
+    ast->set_name( validity(x::token_t::TK_IDENTIFIER).str );
 
     verify_list( x::token_t::TK_LEFT_BRACKETS, x::token_t::TK_RIGHT_BRACKETS, x::token_t::TK_COMMA, [&]() -> bool
     {
-        if ( ast->parameters.emplace_back( parameter_decl() )->value_type->ast_type() == x::ast_t::LIST_TYPE )
-            return true;
-        return false;
+        auto param = parameter_decl();
+        ast->insert_parameter( param );
+
+        return ( param->get_valuetype()->type() == x::ast_t::LIST_TYPE );
     } );
 
     if ( verify( x::token_t::TK_FUNCTION_RESULT ) )
     {
         while ( 1 )
         {
-            ast->results.emplace_back( type() );
+            ast->insert_result( type() );
 
             if ( !verify( x::token_t::TK_COMMA ) )
                 break;
@@ -475,9 +479,9 @@ x::function_decl_ast_ptr x::grammar::function_decl( bool interface_func )
     if ( !interface_func )
     {
         if ( verify( x::token_t::TK_ASSIGN ) )
-            ast->stat = extern_stat();
-        else
-            ast->stat = compound_stat();
+            ast->set_stat( extern_stat() );
+        else              
+            ast->set_stat( compound_stat() );
     }
     else
     {
@@ -490,13 +494,15 @@ x::function_decl_ast_ptr x::grammar::function_decl( bool interface_func )
 x::function_decl_ast_ptr x::grammar::finalize_decl()
 {
     validity( x::token_t::TK_FINALIZE );
+    validity( x::token_t::TK_LEFT_BRACKETS );
+    validity( x::token_t::TK_RIGHT_BRACKETS );
 
     auto ast = std::make_shared<x::function_decl_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
-    ast->name = "finalize";
+    ast->set_name( "finalize" );
 
-    ast->stat = compound_stat();
+    ast->set_stat( compound_stat() );
 
     return ast;
 }
@@ -506,18 +512,19 @@ x::function_decl_ast_ptr x::grammar::construct_decl()
     validity( x::token_t::TK_CONSTRUCT );
 
     auto ast = std::make_shared<x::function_decl_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
-    ast->name = "construct";
+    ast->set_name( "construct" );
 
     verify_list( x::token_t::TK_LEFT_BRACKETS, x::token_t::TK_RIGHT_BRACKETS, x::token_t::TK_COMMA, [&]() -> bool
     {
-        if ( ast->parameters.emplace_back( parameter_decl() )->value_type->ast_type() == x::ast_t::LIST_TYPE )
-            return true;
-        return false;
+        auto param = parameter_decl();
+        ast->insert_parameter( param );
+
+        return ( param->get_valuetype()->type() == x::ast_t::LIST_TYPE );
     } );
 
-    ast->stat = compound_stat();
+    ast->set_stat( compound_stat() );
 
     return ast;
 }
@@ -527,9 +534,9 @@ x::interface_decl_ast_ptr x::grammar::interface_decl()
     validity( x::token_t::TK_INTERFACE );
 
     auto ast = std::make_shared<x::interface_decl_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
-    ast->name = validity( x::token_t::TK_IDENTIFIER ).str;
+    ast->set_name( validity( x::token_t::TK_IDENTIFIER ).str );
 
     x::access_t acce = x::access_t::PRIVATE;
     x::attribute_ast_ptr attr = nullptr;
@@ -543,10 +550,10 @@ x::interface_decl_ast_ptr x::grammar::interface_decl()
         acce = access();
 
         auto decl = function_decl( true );
-        decl->attr = attr;
-        decl->access = acce;
-        decl->is_virtual = true;
-        ast->functions.emplace_back( decl );
+        decl->set_attr( attr );
+        decl->set_access( acce );
+        decl->set_is_virtual( true );
+        ast->insert_function( decl );
     }
     validity( x::token_t::TK_RIGHT_CURLY_BRACES );
 
@@ -558,9 +565,9 @@ x::namespace_decl_ast_ptr x::grammar::namespace_decl()
     validity( x::token_t::TK_NAMESPACE );
 
     auto ast = std::make_shared<x::namespace_decl_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
-    ast->name = validity( x::token_t::TK_IDENTIFIER ).str;
+    ast->set_name( validity( x::token_t::TK_IDENTIFIER ).str );
 
     x::access_t acce = x::access_t::PRIVATE;
     x::decl_ast_ptr decl = nullptr;
@@ -606,9 +613,9 @@ x::namespace_decl_ast_ptr x::grammar::namespace_decl()
 
         if ( decl )
         {
-            decl->attr = std::move( attr );
-            decl->access = acce;
-            ast->members.emplace_back( std::move( decl ) );
+            decl->set_attr( attr );
+            decl->set_access( acce );
+            ast->insert_member( std::move( decl ) );
 
             acce = x::access_t::PRIVATE;
         }
@@ -619,19 +626,19 @@ x::namespace_decl_ast_ptr x::grammar::namespace_decl()
 
 x::parameter_element_ast_ptr x::grammar::parameter_decl()
 {
-    auto parameter = std::make_shared<x::parameter_element_ast>();
-    parameter->location = _location;
+    auto ast = std::make_shared<x::parameter_element_ast>();
+    ast->set_location( _location );
 
-    parameter->name = validity( x::token_t::TK_IDENTIFIER ).str;
+    ast->set_name( validity( x::token_t::TK_IDENTIFIER ).str );
 
     if ( verify( x::token_t::TK_TYPECAST ) )
-        parameter->value_type = type();
+        ast->set_valuetype( type() );
     else if ( verify( x::token_t::TK_VARIADIC_SIGN ) )
-        parameter->value_type = std::make_shared<x::list_type_ast>();
+        ast->set_valuetype( std::make_shared<x::list_type_ast>() );
     else
-        parameter->value_type = anytype();
+        ast->set_valuetype( anytype() );
 
-    return parameter;
+    return ast;
 }
 
 x::stat_ast_ptr x::grammar::statement()
@@ -682,13 +689,13 @@ x::extern_stat_ast_ptr x::grammar::extern_stat()
     validity( x::token_t::TK_EXTERN );
 
     auto ast = std::make_shared<x::extern_stat_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
     verify_list( x::token_t::TK_LEFT_BRACKETS, x::token_t::TK_RIGHT_BRACKETS, x::token_t::TK_COMMA, [&]()
     {
-        ast->libname = validity( x::token_t::TK_CONSTEXPR_STRING ).str;
+        ast->set_libname( validity( x::token_t::TK_CONSTEXPR_STRING ).str );
         validity( x::token_t::TK_COMMA );
-        ast->funcname = validity( x::token_t::TK_CONSTEXPR_STRING ).str;
+        ast->set_funcname( validity( x::token_t::TK_CONSTEXPR_STRING ).str );
     } );
 
     validity( x::token_t::TK_SEMICOLON );
@@ -701,14 +708,14 @@ x::compound_stat_ast_ptr x::grammar::compound_stat()
     validity( x::token_t::TK_LEFT_CURLY_BRACES );
 
     auto ast = std::make_shared<x::compound_stat_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
     while ( !verify( x::token_t::TK_RIGHT_CURLY_BRACES ) )
     {
         auto s = statement();
 
         if ( s )
-            ast->stats.emplace_back( s );
+            ast->insert_stat( s );
 
         if ( lookup().type == x::token_t::TK_SEMICOLON )
             next();
@@ -722,9 +729,9 @@ x::await_stat_ast_ptr x::grammar::await_stat()
     validity( x::token_t::TK_AWAIT );
 
     auto ast = std::make_shared<x::await_stat_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
-    ast->exp = express();
+    ast->set_exp( express() );
 
     return ast;
 }
@@ -734,10 +741,10 @@ x::yield_stat_ast_ptr x::grammar::yield_stat()
     validity( x::token_t::TK_YIELD );
 
     auto ast = std::make_shared<x::yield_stat_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
     if ( !verify( x::token_t::TK_SEMICOLON ) )
-        ast->exp = express();
+        ast->set_exp( express() );
 
     verify( x::token_t::TK_SEMICOLON );
 
@@ -749,13 +756,13 @@ x::new_stat_ast_ptr x::grammar::new_stat()
     validity( x::token_t::TK_NEW );
 
     auto ast = std::make_shared<x::new_stat_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
-    ast->newtype = type();
+    ast->set_newtype( type() );
 
     if ( lookup().type == x::token_t::TK_LEFT_CURLY_BRACES )
     {
-        ast->init = initializer_exp();
+        ast->set_init( initializer_exp() );
     }
 
     return ast;
@@ -766,16 +773,16 @@ x::if_stat_ast_ptr x::grammar::if_stat()
     validity( x::token_t::TK_IF );
 
     auto ast = std::make_shared<x::if_stat_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
     validity( x::token_t::TK_LEFT_BRACKETS );
-    ast->cond = express();
+    ast->set_cond( express() );
     validity( x::token_t::TK_RIGHT_BRACKETS );
 
-    ast->then_stat = statement();
+    ast->set_then_stat( statement() );
 
     if ( verify( x::token_t::TK_ELSE ) )
-        ast->else_stat = statement();
+        ast->set_else_stat( statement() );
 
     return ast;
 }
@@ -785,13 +792,13 @@ x::while_stat_ast_ptr x::grammar::while_stat()
     validity( x::token_t::TK_WHILE );
 
     auto ast = std::make_shared<x::while_stat_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
     validity( x::token_t::TK_LEFT_BRACKETS );
-    ast->cond = express();
+    ast->set_cond( express() );
     validity( x::token_t::TK_RIGHT_BRACKETS );
 
-    ast->stat = statement();
+    ast->set_stat( statement() );
 
     return ast;
 }
@@ -801,17 +808,17 @@ x::for_stat_ast_ptr x::grammar::for_stat()
     validity( x::token_t::TK_FOR );
 
     auto ast = std::make_shared<x::for_stat_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
     validity( x::token_t::TK_LEFT_BRACKETS );
-    ast->init = statement();
+    ast->set_init( statement() );
     validity( x::token_t::TK_SEMICOLON );
-    ast->cond = express();
+    ast->set_cond( express() );
     validity( x::token_t::TK_SEMICOLON );
-    ast->step = express();
+    ast->set_step( express() );
     validity( x::token_t::TK_RIGHT_BRACKETS );
 
-    ast->stat = statement();
+    ast->set_stat( statement() );
 
     return ast;
 }
@@ -821,15 +828,15 @@ x::foreach_stat_ast_ptr x::grammar::foreach_stat()
     validity( x::token_t::TK_FOREACH );
 
     auto ast = std::make_shared<x::foreach_stat_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
     validity( x::token_t::TK_LEFT_BRACKETS );
-    ast->item = statement();
+    ast->set_item( statement() );
     validity( x::token_t::TK_TYPECAST );
-    ast->collection = express();
+    ast->set_collection( express() );
     validity( x::token_t::TK_RIGHT_BRACKETS );
 
-    ast->stat = statement();
+    ast->set_stat( statement() );
 
     return ast;
 }
@@ -839,10 +846,10 @@ x::switch_stat_ast_ptr x::grammar::switch_stat()
     validity( x::token_t::TK_SWITCH );
 
     auto ast = std::make_shared<x::switch_stat_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
     validity( x::token_t::TK_LEFT_BRACKETS );
-    ast->expr = express();
+    ast->set_exp( express() );
     validity( x::token_t::TK_RIGHT_BRACKETS );
 
     validity( x::token_t::TK_LEFT_CURLY_BRACES );
@@ -857,14 +864,14 @@ x::switch_stat_ast_ptr x::grammar::switch_stat()
             
             value.second = compound_stat();
 
-            ast->cases.emplace_back( value );
+            ast->insert_case( value );
         }
 
         if ( verify( x::token_t::TK_DEFAULT ) )
         {
             validity( x::token_t::TK_TYPECAST );
 
-            ast->defult = compound_stat();
+            ast->set_defult( compound_stat() );
         }
     }
     validity( x::token_t::TK_RIGHT_CURLY_BRACES );
@@ -877,7 +884,7 @@ x::break_stat_ast_ptr x::grammar::break_stat()
     validity( x::token_t::TK_BREAK );
 
     auto ast = std::make_shared<x::break_stat_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
     return ast;
 }
@@ -887,13 +894,13 @@ x::return_stat_ast_ptr x::grammar::return_stat()
     validity( x::token_t::TK_RETURN );
 
     auto ast = std::make_shared<x::return_stat_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
     if ( !verify( x::token_t::TK_SEMICOLON ) )
     {
         do
         {
-            ast->exprs.emplace_back( express() );
+            ast->insert_exp( express() );
         } while ( verify( x::token_t::TK_COMMA ) );
     }
 
@@ -905,25 +912,25 @@ x::try_stat_ast_ptr x::grammar::try_stat()
     validity( x::token_t::TK_TRY );
 
     auto ast = std::make_shared<x::try_stat_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
-    ast->stat = compound_stat();
+    ast->set_try_stat( compound_stat() );
 
     while ( verify( x::token_t::TK_CATCH ) )
     {
-        std::pair<x::parameter_element_ast_ptr, x::compound_stat_ast_ptr> cat;
+        x::try_stat_ast::catch_pair cat;
 
         validity( x::token_t::TK_LEFT_BRACKETS );
         cat.first = parameter_decl();
         validity( x::token_t::TK_RIGHT_BRACKETS );
         cat.second = compound_stat();
 
-        ast->catchs.emplace_back( cat );
+        ast->insert_catch_stat( cat );
     }
 
     if ( verify( x::token_t::TK_FINAL ) )
     {
-        ast->final_stat = compound_stat();
+        ast->set_final_stat( compound_stat() );
     }
 
     return ast;
@@ -934,9 +941,9 @@ x::throw_stat_ast_ptr x::grammar::throw_stat()
     validity( x::token_t::TK_THROW );
 
     auto ast = std::make_shared<x::throw_stat_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
-    ast->exception = new_stat();
+    ast->set_exception( new_stat() );
 
     return ast;
 }
@@ -947,7 +954,7 @@ x::continue_stat_ast_ptr x::grammar::continue_stat()
     validity( x::token_t::TK_CONTINUE );
 
     auto ast = std::make_shared<x::continue_stat_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
     return ast;
 }
@@ -957,39 +964,38 @@ x::local_stat_ast_ptr x::grammar::local_stat()
     validity( x::token_t::TK_VARIABLE );
 
     auto ast = std::make_shared<x::local_stat_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
     switch ( verify( { x::token_t::TK_LOCAL, x::token_t::TK_STATIC, x::token_t::TK_THREAD } ).type )
     {
-    case x::token_t::TK_LOCAL: ast->is_local = true; break;
-    case x::token_t::TK_STATIC: ast->is_static = true; break;
-    case x::token_t::TK_THREAD: ast->is_thread = true; break;
+    case x::token_t::TK_LOCAL: ast->set_is_local( true ); break;
+    case x::token_t::TK_STATIC: ast->set_is_static( true ); break;
+    case x::token_t::TK_THREAD: ast->set_is_thread( true ); break;
     }
 
-    ast->name = validity( x::token_t::TK_IDENTIFIER ).str;
+    ast->set_name( validity( x::token_t::TK_IDENTIFIER ).str );
 
     if ( verify( x::token_t::TK_TYPECAST ) )
-        ast->value_type = type();
+        ast->set_valuetype( type() );
     else
-        ast->value_type = anytype();
+        ast->set_valuetype( anytype() );
 
     if ( verify( x::token_t::TK_ASSIGN ) )
     {
         if ( lookup().type == x::token_t::TK_LEFT_CURLY_BRACES )
         {
-            ast->init = initializer_exp();
+            ast->set_init( initializer_exp() );
         }
         else
         {
             auto init = std::make_shared<x::initializer_expr_ast>();
-            init->location = _location;
+            init->set_location( _location );
 
-            init->args.emplace_back( express() );
+            init->insert_arg( express() );
 
-            ast->init = init;
+            ast->set_init( init );
         }
     }
-
 
     return ast;
 }
@@ -1006,11 +1012,11 @@ x::expr_stat_ast_ptr x::grammar::assignment_exp()
     auto binary_ast = [this]( auto left, auto op )
     {
         auto ast = std::make_shared<x::binary_expr_ast>();
-        ast->location = _location;
+        ast->set_location( _location );
 
-        ast->op = op;
-        ast->left = left;
-        ast->right = assignment_exp();
+        ast->set_op( op );
+        ast->set_left( left );
+        ast->set_right( assignment_exp() );
 
         return ast;
     };
@@ -1044,11 +1050,11 @@ x::expr_stat_ast_ptr x::grammar::logical_or_exp()
     while ( verify( x::token_t::TK_LOR ) )
     {
         auto exp = std::make_shared<x::binary_expr_ast>();
-        exp->location = _location;
+        exp->set_location( _location );
 
-        exp->op = x::binary_expr_ast::op_t::LOR;
-        exp->left = ast;
-        exp->right = logical_and_exp();
+        exp->set_op( x::binary_expr_ast::op_t::LOR );
+        exp->set_left( ast );
+        exp->set_right( logical_and_exp() );
 
         ast = exp;
     }
@@ -1063,11 +1069,11 @@ x::expr_stat_ast_ptr x::grammar::logical_and_exp()
     while ( verify( x::token_t::TK_LAND ) )
     {
         auto exp = std::make_shared<x::binary_expr_ast>();
-        exp->location = _location;
+        exp->set_location( _location );
 
-        exp->op = x::binary_expr_ast::op_t::LAND;
-        exp->left = ast;
-        exp->right = or_exp();
+        exp->set_op( x::binary_expr_ast::op_t::LAND );
+        exp->set_left( ast );
+        exp->set_right( or_exp() );
 
         ast = exp;
     }
@@ -1082,11 +1088,11 @@ x::expr_stat_ast_ptr x::grammar::or_exp()
     while ( verify( x::token_t::TK_OR ) )
     {
         auto exp = std::make_shared<x::binary_expr_ast>();
-        exp->location = _location;
+        exp->set_location( _location );
 
-        exp->op = x::binary_expr_ast::op_t::OR;
-        exp->left = ast;
-        exp->right = xor_exp();
+        exp->set_op( x::binary_expr_ast::op_t::OR );
+        exp->set_left( ast );
+        exp->set_right( xor_exp() );
 
         ast = exp;
     }
@@ -1101,11 +1107,11 @@ x::expr_stat_ast_ptr x::grammar::xor_exp()
     while ( verify( x::token_t::TK_XOR ) )
     {
         auto exp = std::make_shared<x::binary_expr_ast>();
-        exp->location = _location;
+        exp->set_location( _location );
 
-        exp->op = x::binary_expr_ast::op_t::XOR;
-        exp->left = ast;
-        exp->right = and_exp();
+        exp->set_op( x::binary_expr_ast::op_t::XOR );
+        exp->set_left( ast );
+        exp->set_right( and_exp() );
 
         ast = exp;
     }
@@ -1120,11 +1126,11 @@ x::expr_stat_ast_ptr x::grammar::and_exp()
     while ( verify( x::token_t::TK_AND ) )
     {
         auto exp = std::make_shared<x::binary_expr_ast>();
-        exp->location = _location;
+        exp->set_location( _location );
 
-        exp->op = x::binary_expr_ast::op_t::AND;
-        exp->left = ast;
-        exp->right = compare_exp();
+        exp->set_op( x::binary_expr_ast::op_t::AND );
+        exp->set_left( ast );
+        exp->set_right( compare_exp() );
 
         ast = exp;
     }
@@ -1139,11 +1145,11 @@ x::expr_stat_ast_ptr x::grammar::compare_exp()
     auto binary_ast = [this]( auto left, auto op )
     {
         auto ast = std::make_shared<x::binary_expr_ast>();
-        ast->location = _location;
+        ast->set_location( _location );
 
-        ast->op = op;
-        ast->left = left;
-        ast->right = shift_exp();
+        ast->set_op( op );
+        ast->set_left( left );
+        ast->set_right( shift_exp() );
 
         return ast;
     };
@@ -1173,11 +1179,11 @@ x::expr_stat_ast_ptr x::grammar::shift_exp()
     while ( lookup().type == x::token_t::TK_LEFT_SHIFT || lookup().type == x::token_t::TK_RIGHT_SHIFT )
     {
         auto exp = std::make_shared<x::binary_expr_ast>();
-        exp->location = _location;
+        exp->set_location( _location );
 
-        exp->op = ( next().type == x::token_t::TK_LEFT_SHIFT ) ? x::binary_expr_ast::op_t::LEFT_SHIFT : x::binary_expr_ast::op_t::RIGHT_SHIFT;
-        exp->left = ast;
-        exp->right = add_exp();
+        exp->set_op( ( next().type == x::token_t::TK_LEFT_SHIFT ) ? x::binary_expr_ast::op_t::LEFT_SHIFT : x::binary_expr_ast::op_t::RIGHT_SHIFT );
+        exp->set_left( ast );
+        exp->set_right( add_exp() );
 
         ast = exp;
     }
@@ -1192,11 +1198,11 @@ x::expr_stat_ast_ptr x::grammar::add_exp()
     while ( lookup().type == x::token_t::TK_ADD || lookup().type == x::token_t::TK_SUB )
     {
         auto exp = std::make_shared<x::binary_expr_ast>();
-        exp->location = _location;
+        exp->set_location( _location );
 
-        exp->op = ( next().type == x::token_t::TK_ADD ) ? x::binary_expr_ast::op_t::ADD : x::binary_expr_ast::op_t::SUB;
-        exp->left = ast;
-        exp->right = mul_exp();
+        exp->set_op( ( next().type == x::token_t::TK_ADD ) ? x::binary_expr_ast::op_t::ADD : x::binary_expr_ast::op_t::SUB );
+        exp->set_left( ast );
+        exp->set_right( mul_exp() );
 
         ast = exp;
     }
@@ -1211,16 +1217,16 @@ x::expr_stat_ast_ptr x::grammar::mul_exp()
     while ( lookup().type == x::token_t::TK_MUL || lookup().type == x::token_t::TK_DIV || lookup().type == x::token_t::TK_MOD )
     {
         auto exp = std::make_shared<x::binary_expr_ast>();
-        exp->location = _location;
+        exp->set_location( _location );
 
         switch ( next().type )
         {
-        case x::token_t::TK_MUL: exp->op = x::binary_expr_ast::op_t::MUL; break;
-        case x::token_t::TK_DIV: exp->op = x::binary_expr_ast::op_t::DIV; break;
-        case x::token_t::TK_MOD: exp->op = x::binary_expr_ast::op_t::MOD; break;
+        case x::token_t::TK_MUL: exp->set_op( x::binary_expr_ast::op_t::MUL ); break;
+        case x::token_t::TK_DIV: exp->set_op( x::binary_expr_ast::op_t::DIV ); break;
+        case x::token_t::TK_MOD: exp->set_op( x::binary_expr_ast::op_t::MOD ); break;
         }
-        exp->left = ast;
-        exp->right = as_exp();
+        exp->set_left( ast );
+        exp->set_right( as_exp() );
 
         ast = exp;
     }
@@ -1235,11 +1241,11 @@ x::expr_stat_ast_ptr x::grammar::as_exp()
     while ( verify( x::token_t::TK_AS ) )
     {
         auto exp = std::make_shared<x::binary_expr_ast>();
-        exp->location = _location;
+        exp->set_location( _location );
 
-        exp->op = x::binary_expr_ast::op_t::AS;
-        exp->left = ast;
-        exp->right = is_exp();
+        exp->set_op( x::binary_expr_ast::op_t::AS );
+        exp->set_left( ast );
+        exp->set_right( is_exp() );
 
         ast = exp;
     }
@@ -1254,11 +1260,11 @@ x::expr_stat_ast_ptr x::grammar::is_exp()
     while ( verify( x::token_t::TK_IS ) )
     {
         auto exp = std::make_shared<x::binary_expr_ast>();
-        exp->location = _location;
+        exp->set_location( _location );
 
-        exp->op = x::binary_expr_ast::op_t::IS;
-        exp->left = ast;
-        exp->right = sizeof_exp();
+        exp->set_op( x::binary_expr_ast::op_t::IS );
+        exp->set_left( ast );
+        exp->set_right( sizeof_exp() );
 
         ast = exp;
     }
@@ -1273,10 +1279,10 @@ x::expr_stat_ast_ptr x::grammar::sizeof_exp()
         verify( x::token_t::TK_LEFT_BRACKETS );
 
         auto exp = std::make_shared<x::unary_expr_ast>();
-        exp->location = _location;
+        exp->set_location( _location );
 
-        exp->op = x::unary_expr_ast::op_t::SIZEOF;
-        exp->exp = typeof_exp();
+        exp->set_op( x::unary_expr_ast::op_t::SIZEOF );
+        exp->set_exp( typeof_exp() );
 
         validity( x::token_t::TK_RIGHT_BRACKETS );
 
@@ -1293,10 +1299,10 @@ x::expr_stat_ast_ptr x::grammar::typeof_exp()
         verify( x::token_t::TK_LEFT_BRACKETS );
 
         auto exp = std::make_shared<x::unary_expr_ast>();
-        exp->location = _location;
+        exp->set_location( _location );
 
-        exp->op = x::unary_expr_ast::op_t::TYPEOF;
-        exp->exp = index_exp();
+        exp->set_op( x::unary_expr_ast::op_t::TYPEOF );
+        exp->set_exp( index_exp() );
 
         validity( x::token_t::TK_RIGHT_BRACKETS );
 
@@ -1313,11 +1319,11 @@ x::expr_stat_ast_ptr x::grammar::index_exp()
     while ( verify( x::token_t::TK_LEFT_INDEX ) )
     {
         auto exp = std::make_shared<x::binary_expr_ast>();
-        exp->location = _location;
+        exp->set_location( _location );
 
-        exp->op = x::binary_expr_ast::op_t::INDEX;
-        exp->left = ast;
-        exp->right = invoke_exp();
+        exp->set_op( x::binary_expr_ast::op_t::INDEX );
+        exp->set_left( ast );
+        exp->set_right( invoke_exp() );
 
         validity( x::token_t::TK_RIGHT_INDEX );
 
@@ -1334,11 +1340,11 @@ x::expr_stat_ast_ptr x::grammar::invoke_exp()
     while ( lookup().type == x::token_t::TK_LEFT_BRACKETS )
     {
         auto exp = std::make_shared<x::binary_expr_ast>();
-        exp->location = _location;
+        exp->set_location( _location );
 
-        exp->op = x::binary_expr_ast::op_t::INVOKE;
-        exp->left = ast;
-        exp->right = arguments_exp();
+        exp->set_op( x::binary_expr_ast::op_t::INVOKE );
+        exp->set_left( ast );
+        exp->set_right( arguments_exp() );
 
         ast = exp;
     }
@@ -1353,11 +1359,11 @@ x::expr_stat_ast_ptr x::grammar::member_exp()
     while ( verify( x::token_t::TK_POINT ) )
     {
         auto exp = std::make_shared<x::binary_expr_ast>();
-        exp->location = _location;
+        exp->set_location( _location );
 
-        exp->op = x::binary_expr_ast::op_t::MEMBER;
-        exp->left = ast;
-        exp->right = unary_exp();
+        exp->set_op( x::binary_expr_ast::op_t::MEMBER );
+        exp->set_left( ast );
+        exp->set_right( unary_exp() );
 
         ast = exp;
     }
@@ -1370,9 +1376,9 @@ x::expr_stat_ast_ptr x::grammar::unary_exp()
     auto unary_ast = [this]( auto op )
     {
         auto ast = std::make_shared<x::unary_expr_ast>();
-        ast->location = _location;
-        ast->op = op;
-        ast->exp = postfix_exp();
+        ast->set_location( _location );
+        ast->set_op( op );
+        ast->set_exp( postfix_exp() );
         return ast;
     };
 
@@ -1394,9 +1400,9 @@ x::expr_stat_ast_ptr x::grammar::postfix_exp()
     auto unary_ast = [this]( auto exp, auto op )
     {
         auto ast = std::make_shared<x::unary_expr_ast>();
-        ast->location = _location;
-        ast->op = op;
-        ast->exp = exp;
+        ast->set_location( _location );
+        ast->set_op( op );
+        ast->set_exp( exp );
         return ast;
     };
 
@@ -1466,11 +1472,11 @@ x::expr_stat_ast_ptr x::grammar::primary_exp()
 x::bracket_expr_ast_ptr x::grammar::bracket_exp()
 {
     auto ast = std::make_shared<x::bracket_expr_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
     validity( x::token_t::TK_LEFT_BRACKETS );
 
-    ast->expr = express();
+    ast->set_exp( express() );
 
     validity( x::token_t::TK_RIGHT_BRACKETS );
 
@@ -1482,34 +1488,34 @@ x::closure_expr_ast_ptr x::grammar::closure_exp()
     validity( x::token_t::TK_FUNCTION );
 
     auto ast = std::make_shared<x::closure_expr_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
-    ast->name = std::format( "{}_{}", "closure", x::time_2_stamp( std::chrono::system_clock::now() ) );
+    ast->set_name( std::format( "{}_{}", "closure", x::time_2_stamp( std::chrono::system_clock::now() ) ) );
 
-    if ( verify( x::token_t::TK_ASYNC ) ) ast->is_async = true;
+    if ( verify( x::token_t::TK_ASYNC ) ) ast->set_is_async( true );
 
     verify_list( x::token_t::TK_LEFT_INDEX, x::token_t::TK_RIGHT_INDEX, x::token_t::TK_COMMA, [&]()
     {
-        ast->captures.emplace_back( identifier_exp() );
+        ast->insert_capture( identifier_exp() );
     } );
 
     verify_list( x::token_t::TK_LEFT_BRACKETS, x::token_t::TK_RIGHT_BRACKETS, x::token_t::TK_COMMA, [&]()
     {
-        ast->parameters.emplace_back( parameter_decl() );
+        ast->insert_parameter( parameter_decl() );
     } );
 
     if ( verify( x::token_t::TK_FUNCTION_RESULT ) )
     {
         while ( 1 )
         {
-            ast->results.emplace_back( type() );
+            ast->insert_result( type() );
 
             if ( !verify( x::token_t::TK_COMMA ) )
                 break;
         }
     }
 
-    ast->stat = compound_stat();
+    ast->set_stat( compound_stat() );
 
     return ast;
 }
@@ -1517,11 +1523,11 @@ x::closure_expr_ast_ptr x::grammar::closure_exp()
 x::arguments_expr_ast_ptr x::grammar::arguments_exp()
 {
     auto ast = std::make_shared<x::arguments_expr_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
     verify_list( x::token_t::TK_LEFT_BRACKETS, x::token_t::TK_RIGHT_BRACKETS, x::token_t::TK_COMMA, [&]()
     {
-        ast->args.emplace_back( assignment_exp() );
+        ast->insert_arg( assignment_exp() );
     } );
 
     return ast;
@@ -1530,7 +1536,7 @@ x::arguments_expr_ast_ptr x::grammar::arguments_exp()
 x::identifier_expr_ast_ptr x::grammar::identifier_exp()
 {
     auto ast = std::make_shared<x::identifier_expr_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
     switch( lookup().type )
 	{
@@ -1557,7 +1563,7 @@ x::identifier_expr_ast_ptr x::grammar::identifier_exp()
 	case x::token_t::TK_THIS:
 	case x::token_t::TK_BASE:
 	case x::token_t::TK_IDENTIFIER:
-        ast->ident = next().str;
+        ast->set_ident( next().str );
         break;
     default:
         XTHROW( x::syntax_exception, true, "", _location );
@@ -1570,11 +1576,11 @@ x::identifier_expr_ast_ptr x::grammar::identifier_exp()
 x::initializer_expr_ast_ptr x::grammar::initializer_exp()
 {
     auto ast = std::make_shared<x::initializer_expr_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
     verify_list( x::token_t::TK_LEFT_CURLY_BRACES, x::token_t::TK_RIGHT_CURLY_BRACES, x::token_t::TK_COMMA, [&]()
     {
-        ast->args.emplace_back( express() );
+        ast->insert_arg( express() );
     } );
 
     return ast;
@@ -1614,7 +1620,7 @@ x::null_const_expr_ast_ptr x::grammar::null_const_exp()
     validity( x::token_t::TK_NULL );
 
     auto ast = std::make_shared<x::null_const_expr_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
     return ast;
 }
@@ -1624,9 +1630,9 @@ x::bool_const_expr_ast_ptr x::grammar::true_const_exp()
     validity( x::token_t::TK_TRUE );
 
     auto ast = std::make_shared<x::bool_const_expr_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
-    ast->value = true;
+    ast->set_value( true );
 
     return ast;
 }
@@ -1636,9 +1642,9 @@ x::bool_const_expr_ast_ptr x::grammar::false_const_exp()
     validity( x::token_t::TK_FALSE );
 
     auto ast = std::make_shared<x::bool_const_expr_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
-    ast->value = false;
+    ast->set_value( false );
 
     return ast;
 }
@@ -1657,15 +1663,15 @@ x::int_const_expr_ast_ptr x::grammar::int_const_exp()
         if ( std::abs( i64 ) > std::numeric_limits<x::int32>::max() )
         {
             auto i_ast = std::make_shared<x::int64_const_expr_ast>();
-            i_ast->location = _location;
-            i_ast->value = i64;
+            i_ast->set_location( _location );
+            i_ast->set_value( i64 );
             ast = i_ast;
         }
         else
         {
             auto i_ast = std::make_shared<x::int32_const_expr_ast>();
-            i_ast->location = _location;
-            i_ast->value = static_cast<x::int32>( i64 );
+            i_ast->set_location( _location );
+            i_ast->set_value( static_cast<x::int32>( i64 ) );
             ast = i_ast;
         }
     }
@@ -1677,15 +1683,15 @@ x::int_const_expr_ast_ptr x::grammar::int_const_exp()
         if ( u64 > std::numeric_limits<x::uint32>::max() )
         {
             auto i_ast = std::make_shared<x::uint64_const_expr_ast>();
-            i_ast->location = _location;
-            i_ast->value = u64;
+            i_ast->set_location( _location );
+            i_ast->set_value( u64 );
             ast = i_ast;
         }
         else
         {
             auto i_ast = std::make_shared<x::uint32_const_expr_ast>();
-            i_ast->location = _location;
-            i_ast->value = static_cast<x::uint32>( u64 );
+            i_ast->set_location( _location );
+            i_ast->set_value( static_cast<x::uint32>( u64 ) );
             ast = i_ast;
         }
     }
@@ -1710,16 +1716,22 @@ x::float_const_expr_ast_ptr x::grammar::float_const_exp()
     int man_cnt = std::numeric_limits<x::uint64>::digits - std::countl_zero( mantissa );
     if ( man_cnt >= std::numeric_limits<x::float32>::digits || exponent >= std::numeric_limits<x::float32>::max_exponent )
     {
+        x::float64 value;
+        std::from_chars( str.c_str(), str.c_str() + str.size(), value );
+
         auto f_ast = std::make_shared<x::float64_const_expr_ast>();
-        f_ast->location = _location;
-        std::from_chars( str.c_str(), str.c_str() + str.size(), f_ast->value );
+        f_ast->set_location( _location );
+        f_ast->set_value( value );
         ast = f_ast;
     }
     else
     {
+        x::float32 value;
+        std::from_chars( str.c_str(), str.c_str() + str.size(), value );
+
         auto f_ast = std::make_shared<x::float32_const_expr_ast>();
-        f_ast->location = _location;
-        std::from_chars( str.c_str(), str.c_str() + str.size(), f_ast->value );
+        f_ast->set_location( _location );
+        f_ast->set_value( value );
         ast = f_ast;
     }
 
@@ -1729,9 +1741,9 @@ x::float_const_expr_ast_ptr x::grammar::float_const_exp()
 x::string_const_expr_ast_ptr x::grammar::string_const_exp()
 {
     auto ast = std::make_shared<x::string_const_expr_ast>();
-    ast->location = _location;
+    ast->set_location( _location );
 
-    ast->value = validity( x::token_t::TK_CONSTEXPR_STRING ).str;
+    ast->set_value( validity( x::token_t::TK_CONSTEXPR_STRING ).str );
 
     return ast;
 }
@@ -1797,8 +1809,8 @@ std::string x::grammar::type_name()
 x::type_ast_ptr x::grammar::anytype()
 {
     auto ast = std::make_shared<x::type_ast>();
-    ast->location = _location;
-    ast->name = "any";
+    ast->set_location( _location );
+    ast->set_name( "any" );
     return ast;
 }
 

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <deque>
+#include <variant>
+
 #include "visitor.h"
 
 namespace x
@@ -10,32 +13,47 @@ namespace x
 		using scope_scanner_visitor::visit;
 
 	public:
-		class div_zero_checker;
-		class type_match_checker;
-		class const_access_checker;
-		class const_express_checker;
-		class function_call_checker;
-		class variable_uninit_checker;
-		class variable_unused_checker;
+		class analyzer
+		{
+		public:
+			virtual ~analyzer() = default;
+
+		public:
+			virtual void analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) = 0;
+		};
 
 	public:
-		void analysis( const x::logger_ptr & logger, const x::symbols_ptr & val, const x::ast_ptr & ast );
+		void analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast );
+
+	public:
+		static bool is_constant( x::ast * ast );
+
+	private:
+		std::vector<analyzer *> _analyzers;
 	};
 
-	class instantiate_translate_visitor : public x::scope_scanner_visitor
+	class expression_analyzer : public x::semantics_analyzer_visitor::analyzer
 	{
 	public:
-		using scope_scanner_visitor::visit;
+		using value = std::variant<std::monostate, x::ast_t, x::ast *>;
 
 	public:
-		class instantiate_extern;
-		class instantiate_builtin;
-		class instantiate_closure;
-		class instantiate_template;
-		class instantiate_coroutine;
-		class instantiate_initializers;
+		void analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast );
 
-	public:
-		void translate( const x::logger_ptr & logger, const x::symbols_ptr & val, const x::ast_ptr & ast );
+	private:
+		x::ast_ptr evaluate_constant_expression( x::ast * ast );
+
+	private:
+		x::logger_ptr _logger;
+		x::symbols_ptr _symbols;
+		std::deque<value> _stack;
 	};
+
+	class div_zero_analyzer;
+	class type_match_analyzer;
+	class const_access_analyzer;
+	class const_express_analyzer;
+	class function_call_analyzer;
+	class variable_uninit_analyzer;
+	class variable_unused_analyzer;
 }

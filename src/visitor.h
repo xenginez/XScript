@@ -191,10 +191,10 @@ namespace x
 
 	private:
 		void out( std::string_view str );
-		void outl( std::string_view str = {} );
+		void outline( std::string_view str = {} );
+		void outtab();
 		void push();
 		void pop();
-		void _outt();
 
 	private:
 		int _tab = 0;

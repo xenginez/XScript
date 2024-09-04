@@ -795,7 +795,7 @@ x::symbols::~symbols()
 
 x::unit_symbol_ptr x::symbols::add_unit( x::unit_ast * ast )
 {
-	std::string fullname = { ast->location.file.data(), ast->location.file.size() };
+	std::string fullname = { ast->get_location().file.data(), ast->get_location().file.size() };
 
 	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
@@ -812,13 +812,13 @@ x::unit_symbol_ptr x::symbols::add_unit( x::unit_ast * ast )
 
 x::enum_element_symbol_ptr x::symbols::add_enum_elem( x::enum_element_ast * ast )
 {
-	std::string fullname = calc_fullname( ast->name );
+	std::string fullname = calc_fullname( ast->get_name() );
 
 	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = std::make_shared<enum_element_symbol>();
 
-	sym->name = ast->name;
+	sym->name = ast->get_name();
 	sym->fullname = fullname;
 	sym->element_ast = std::static_pointer_cast<x::enum_element_ast>( ast->shared_from_this() );
 
@@ -829,15 +829,15 @@ x::enum_element_symbol_ptr x::symbols::add_enum_elem( x::enum_element_ast * ast 
 
 x::template_element_symbol_ptr x::symbols::add_template_elem( x::template_element_ast * ast )
 {
-	std::string fullname = calc_fullname( ast->name );
+	std::string fullname = calc_fullname( ast->get_name() );
 
 	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = std::make_shared<template_element_symbol>();
 
-	sym->name = ast->name;
+	sym->name = ast->get_name();
 	sym->fullname = fullname;
-	sym->is_multi = ast->is_multi;
+	sym->is_multi = ast->get_is_multi();
 	sym->template_ast = std::static_pointer_cast<x::template_element_ast>( ast->shared_from_this() );
 
 	add_symbol( sym );
@@ -847,13 +847,13 @@ x::template_element_symbol_ptr x::symbols::add_template_elem( x::template_elemen
 
 x::paramater_element_symbol_ptr x::symbols::add_paramater_elem( x::parameter_element_ast * ast )
 {
-	std::string fullname = calc_fullname( ast->name );
+	std::string fullname = calc_fullname( ast->get_name() );
 
 	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = std::make_shared<paramater_element_symbol>();
 
-	sym->name = ast->name;
+	sym->name = ast->get_name();
 	sym->fullname = fullname;
 	sym->parameter_ast = std::static_pointer_cast<x::parameter_element_ast>( ast->shared_from_this() );
 
@@ -864,13 +864,13 @@ x::paramater_element_symbol_ptr x::symbols::add_paramater_elem( x::parameter_ele
 
 x::enum_symbol_ptr x::symbols::add_enum( x::enum_decl_ast * ast )
 {
-	std::string fullname = calc_fullname( ast->name );
+	std::string fullname = calc_fullname( ast->get_name() );
 
 	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = std::make_shared<enum_symbol>();
 
-	sym->name = ast->name;
+	sym->name = ast->get_name();
 	sym->fullname = fullname;
 	sym->enum_ast = std::static_pointer_cast<x::enum_decl_ast>( ast->shared_from_this() );
 
@@ -881,13 +881,13 @@ x::enum_symbol_ptr x::symbols::add_enum( x::enum_decl_ast * ast )
 
 x::alias_symbol_ptr x::symbols::add_alias( x::using_decl_ast * ast )
 {
-	std::string fullname = calc_fullname( ast->name );
+	std::string fullname = calc_fullname( ast->get_name() );
 
 	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = std::make_shared<alias_symbol>();
 
-	sym->name = ast->name;
+	sym->name = ast->get_name();
 	sym->fullname = fullname;
 	sym->using_ast = std::static_pointer_cast<x::using_decl_ast>( ast->shared_from_this() );
 
@@ -898,13 +898,13 @@ x::alias_symbol_ptr x::symbols::add_alias( x::using_decl_ast * ast )
 
 x::class_symbol_ptr x::symbols::add_class( x::class_decl_ast * ast )
 {
-	std::string fullname = calc_fullname( ast->name );
+	std::string fullname = calc_fullname( ast->get_name() );
 
 	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = std::make_shared<class_symbol>();
 
-	sym->name = ast->name;
+	sym->name = ast->get_name();
 	sym->fullname = fullname;
 	sym->class_ast = std::static_pointer_cast<x::class_decl_ast>( ast->shared_from_this() );
 
@@ -915,7 +915,7 @@ x::class_symbol_ptr x::symbols::add_class( x::class_decl_ast * ast )
 
 x::block_symbol_ptr x::symbols::add_block( x::compound_stat_ast * ast )
 {
-	std::string fullname = std::format( "block_{}_{}_{}", x::hash( ast->location.file ), ast->location.line, ast->location.col );
+	std::string fullname = std::format( "block_{}_{}_{}", x::hash( ast->get_location().file ), ast->get_location().line, ast->get_location().col );
 
 	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
@@ -932,7 +932,7 @@ x::block_symbol_ptr x::symbols::add_block( x::compound_stat_ast * ast )
 
 x::cycle_symbol_ptr x::symbols::add_cycle( x::cycle_stat_ast * ast )
 {
-	std::string fullname = std::format( "cycle_{}_{}_{}", x::hash( ast->location.file ), ast->location.line, ast->location.col );
+	std::string fullname = std::format( "cycle_{}_{}_{}", x::hash( ast->get_location().file ), ast->get_location().line, ast->get_location().col );
 
 	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
@@ -949,13 +949,13 @@ x::cycle_symbol_ptr x::symbols::add_cycle( x::cycle_stat_ast * ast )
 
 x::local_symbol_ptr x::symbols::add_local( x::local_stat_ast * ast )
 {
-	std::string fullname = calc_fullname( ast->name );
+	std::string fullname = calc_fullname( ast->get_name() );
 
 	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = std::make_shared<local_symbol>();
 
-	sym->name = ast->name;
+	sym->name = ast->get_name();
 	sym->fullname = fullname;
 	sym->local_ast = std::static_pointer_cast<x::local_stat_ast>( ast->shared_from_this() );
 
@@ -966,13 +966,13 @@ x::local_symbol_ptr x::symbols::add_local( x::local_stat_ast * ast )
 
 x::function_symbol_ptr x::symbols::add_function( x::function_decl_ast * ast )
 {
-	std::string fullname = calc_fullname( ast->name );
+	std::string fullname = calc_fullname( ast->get_name() );
 
 	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = std::make_shared<function_symbol>();
 
-	sym->name = ast->name;
+	sym->name = ast->get_name();
 	sym->fullname = fullname;
 	sym->function_ast = std::static_pointer_cast<x::function_decl_ast>( ast->shared_from_this() );
 
@@ -983,13 +983,13 @@ x::function_symbol_ptr x::symbols::add_function( x::function_decl_ast * ast )
 
 x::variable_symbol_ptr x::symbols::add_variable( x::variable_decl_ast * ast )
 {
-	std::string fullname = calc_fullname( ast->name );
+	std::string fullname = calc_fullname( ast->get_name() );
 
 	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = std::make_shared<variable_symbol>();
 
-	sym->name = ast->name;
+	sym->name = ast->get_name();
 	sym->fullname = fullname;
 	sym->variable_ast = std::static_pointer_cast<x::variable_decl_ast>( ast->shared_from_this() );
 
@@ -1000,13 +1000,13 @@ x::variable_symbol_ptr x::symbols::add_variable( x::variable_decl_ast * ast )
 
 x::template_symbol_ptr x::symbols::add_template( x::template_decl_ast * ast )
 {
-	std::string fullname = calc_fullname( ast->name );
+	std::string fullname = calc_fullname( ast->get_name() );
 
 	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = std::make_shared<template_symbol>();
 
-	sym->name = ast->name;
+	sym->name = ast->get_name();
 	sym->fullname = fullname;
 	sym->template_ast = std::static_pointer_cast<x::template_decl_ast>( ast->shared_from_this() );
 
@@ -1017,13 +1017,13 @@ x::template_symbol_ptr x::symbols::add_template( x::template_decl_ast * ast )
 
 x::interface_symbol_ptr x::symbols::add_interface( x::interface_decl_ast * ast )
 {
-	std::string fullname = calc_fullname( ast->name );
+	std::string fullname = calc_fullname( ast->get_name() );
 
 	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = std::make_shared<interface_symbol>();
 
-	sym->name = ast->name;
+	sym->name = ast->get_name();
 	sym->fullname = fullname;
 	sym->interface_ast = std::static_pointer_cast<x::interface_decl_ast>( ast->shared_from_this() );
 
@@ -1034,13 +1034,13 @@ x::interface_symbol_ptr x::symbols::add_interface( x::interface_decl_ast * ast )
 
 x::namespace_symbol_ptr x::symbols::add_namespace( x::namespace_decl_ast * ast )
 {
-	std::string fullname = calc_fullname( ast->name );
+	std::string fullname = calc_fullname( ast->get_name() );
 
 	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = std::make_shared<namespace_symbol>();
 
-	sym->name = ast->name;
+	sym->name = ast->get_name();
 	sym->fullname = fullname;
 	sym->namespace_ast = std::static_pointer_cast<x::namespace_decl_ast>( ast->shared_from_this() );
 

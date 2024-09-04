@@ -67,9 +67,7 @@ bool x::compiler::compile( const std::filesystem::path & file )
 
 		analyzer();
 
-		translate();
-
-		genmodule();
+		genmodules();
 
 		linkmodule();
 	}
@@ -97,14 +95,6 @@ void x::compiler::analyzer()
 
 	for ( const auto & it : _objects )
 		analyzer.analysis( _logger, _symbols, it->ast );
-}
-
-void x::compiler::translate()
-{
-	x::instantiate_translate_visitor translate;
-	
-	for ( const auto & it : _objects )
-		translate.translate( _logger, _symbols, it->ast );
 }
 
 void x::compiler::loading( const x::url & url )
@@ -175,9 +165,9 @@ void x::compiler::loading( const std::filesystem::path & file )
 	}
 
 	_relative_paths.push_back( path.parent_path() );
-	for ( const auto & it : obj->ast->imports )
+	for ( const auto & it : obj->ast->get_imports() )
 	{
-		loading( std::filesystem::path( it->path ) );
+		loading( std::filesystem::path( it->get_path() ) );
 	}
 	_relative_paths.pop_back();
 }
@@ -196,7 +186,7 @@ x::module_ptr x::module_compiler::module() const
 	return _module;
 }
 
-void x::module_compiler::genmodule()
+void x::module_compiler::genmodules()
 {
 	for ( auto & it : objects() )
 	{
@@ -232,9 +222,8 @@ x::symbols_ptr x::module_compiler::make_symbols()
 	auto symbols = std::make_shared<x::symbols>();
 
 	//////////////////////////////////// foundation ////////////////////////////////////
-#define BEG( TYPE ) auto TYPE##_type = symbols->add_foundation( #TYPE, sizeof( TYPE ) ); symbols->push_scope( TYPE##_type ); {
-#define NBEG( TYPE, NAME ) auto NAME##_type = symbols->add_foundation( #NAME, sizeof( TYPE ) ); symbols->push_scope( NAME##_type ); {
-#define END() } symbols->pop_scope();
+#define BEG( TYPE ) auto TYPE##_type = symbols->add_foundation( #TYPE, sizeof( TYPE ) ); symbols->push_scope( TYPE##_type );
+#define END() symbols->pop_scope();
 
 	auto void_type = symbols->add_foundation( "void", 0 );
 	
@@ -285,8 +274,8 @@ x::symbols_ptr x::module_compiler::make_symbols()
 
 
 	//////////////////////////////////// native function ////////////////////////////////////
-#define BEG( TYPE ) auto TYPE##_func = symbols->add_nativefunc( #TYPE, TYPE ); symbols->push_scope( TYPE##_func ); {
-#define END() } symbols->pop_scope();
+#define BEG( TYPE ) auto TYPE##_func = symbols->add_nativefunc( #TYPE, TYPE ); symbols->push_scope( TYPE##_func );
+#define END() symbols->pop_scope();
 
 
 	// path
@@ -318,8 +307,8 @@ x::symbols_ptr x::module_compiler::make_symbols()
 
 
 	//////////////////////////////////// builtin function ////////////////////////////////////
-#define BEG( TYPE ) auto TYPE##_builtin = symbols->add_builtinfunc( #TYPE, std::make_shared<TYPE>() ); symbols->push_scope( TYPE##_builtin ); {
-#define END() } symbols->pop_scope();
+#define BEG( TYPE ) auto TYPE##_builtin = symbols->add_builtinfunc( #TYPE, std::make_shared<TYPE>() ); symbols->push_scope( TYPE##_builtin );
+#define END() symbols->pop_scope();
 
 	BEG( builtin_sizeof );
 	END();
@@ -370,7 +359,7 @@ llvm::module_ptr x::llvm_compiler::module() const
 	return _module;
 }
 
-void x::llvm_compiler::genmodule()
+void x::llvm_compiler::genmodules()
 {
 	for ( auto & it : objects() )
 	{
@@ -423,7 +412,7 @@ spirv::module_ptr x::spirv_compiler::module() const
 	return _module;
 }
 
-void x::spirv_compiler::genmodule()
+void x::spirv_compiler::genmodules()
 {
 	for ( auto & it : objects() )
 	{
