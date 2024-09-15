@@ -254,6 +254,11 @@ x::value_flags x::value::flags() const
 	return _flags;
 }
 
+bool x::value::empty() const
+{
+	return _flags == x::value_t::INVALID;
+}
+
 bool x::value::is_ref() const
 {
 	return _flags == x::value_t::REFERENCE;
@@ -352,11 +357,6 @@ bool x::value::is_intptr() const
 bool x::value::is_object() const
 {
 	return type() == x::value_t::OBJECT;
-}
-
-bool x::value::is_invalid() const
-{
-	return _flags == x::value_t::INVALID;
 }
 
 bool x::value::to_bool() const
@@ -548,6 +548,11 @@ x::value_handle & x::value_handle::operator=( const value_handle & val )
 	attach_to_root();
 
 	return *this;
+}
+
+x::value_handle::operator bool() const
+{
+	return !_value.empty();
 }
 
 x::value & x::value_handle::operator*()

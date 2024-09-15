@@ -12,3 +12,8 @@ add_executable(zip_test "zip_test.cpp")
 target_include_directories(zip_test PRIVATE "../src")
 target_link_libraries(zip_test PRIVATE xs)
 set_property(TARGET zip_test PROPERTY CXX_STANDARD 20)
+
+add_executable(xlib_test "xlib_test.cpp")
+target_include_directories(xlib_test PRIVATE "../src")
+target_link_libraries(xlib_test PRIVATE xs)
+set_property(TARGET xlib_test PROPERTY CXX_STANDARD 20)

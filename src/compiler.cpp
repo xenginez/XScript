@@ -261,10 +261,6 @@ x::symbols_ptr x::module_compiler::make_symbols()
 	END();
 	BEG( object );
 	END();
-	BEG( array );
-	END();
-	BEG( callable );
-	END();
 	BEG( coroutine );
 	END();
 
@@ -325,8 +321,6 @@ x::symbols_ptr x::module_compiler::make_symbols()
 	BEG( builtin_is_class );
 	END();
 	BEG( builtin_is_base_of );
-	END();
-	BEG( builtin_conditional );
 	END();
 	BEG( builtin_is_template_of );
 	END();

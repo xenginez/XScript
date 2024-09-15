@@ -20,6 +20,12 @@ void x::visitor::visit( x::attribute_ast * val )
 {
 }
 
+void x::visitor::visit( x::parameter_ast * val )
+{
+	val->get_valuetype()->accept( this );
+	if ( val->get_default() ) val->get_default()->accept( this );
+}
+
 void x::visitor::visit( x::type_ast * val )
 {
 }
@@ -45,25 +51,9 @@ void x::visitor::visit( x::array_type_ast * val )
 {
 }
 
-void x::visitor::visit( x::enum_element_ast * val )
-{
-	val->get_value()->accept(this);
-}
-
-void x::visitor::visit( x::template_element_ast * val )
-{
-
-}
-
-void x::visitor::visit( x::parameter_element_ast * val )
-{
-	val->get_valuetype()->accept(this);
-}
-
 void x::visitor::visit( x::enum_decl_ast * val )
 {
-	for ( const auto & it : val->get_elements() )
-		it->accept( this );
+
 }
 
 void x::visitor::visit( x::class_decl_ast * val )
@@ -72,6 +62,8 @@ void x::visitor::visit( x::class_decl_ast * val )
 		val->get_base()->accept(this);
 
 	for ( const auto & it : val->get_usings() )
+		it->accept( this );
+	for ( const auto & it : val->get_friends() )
 		it->accept( this );
 	for ( const auto & it : val->get_variables() )
 		it->accept( this );
@@ -92,9 +84,11 @@ void x::visitor::visit( x::template_decl_ast * val )
 	if ( val->get_where() )
 		val->get_where()->accept(this);
 
-	for ( const auto & it : val->get_elements() )
+	for ( const auto & it : val->get_usings() )
 		it->accept( this );
 	for ( const auto & it : val->get_usings() )
+		it->accept( this );
+	for ( const auto & it : val->get_elements() )
 		it->accept( this );
 	for ( const auto & it : val->get_variables() )
 		it->accept( this );
@@ -155,13 +149,6 @@ void x::visitor::visit( x::await_stat_ast * val )
 void x::visitor::visit( x::yield_stat_ast * val )
 {
 	val->get_exp()->accept(this);
-}
-
-void x::visitor::visit( x::new_stat_ast * val )
-{
-	val->get_newtype()->accept(this);
-	if ( val->get_init() )
-		val->get_init()->accept(this);
 }
 
 void x::visitor::visit( x::if_stat_ast * val )
@@ -276,6 +263,12 @@ void x::visitor::visit( x::closure_expr_ast * val )
 	val->get_stat()->accept(this);
 }
 
+void x::visitor::visit( x::elements_expr_ast * val )
+{
+	for ( const auto & it : val->get_elements() )
+		it->accept( this );
+}
+
 void x::visitor::visit( x::arguments_expr_ast * val )
 {
 	for ( const auto & it : val->get_args() )
@@ -292,23 +285,23 @@ void x::visitor::visit( x::initializer_expr_ast * val )
 		it->accept( this );
 }
 
-void x::visitor::visit( x::null_const_expr_ast * val )
+void x::visitor::visit( x::null_constant_expr_ast * val )
 {
 }
 
-void x::visitor::visit( x::bool_const_expr_ast * val )
+void x::visitor::visit( x::bool_constant_expr_ast * val )
 {
 }
 
-void x::visitor::visit( x::int_const_expr_ast * val )
+void x::visitor::visit( x::int_constant_expr_ast * val )
 {
 }
 
-void x::visitor::visit( x::float_const_expr_ast * val )
+void x::visitor::visit( x::float_constant_expr_ast * val )
 {
 }
 
-void x::visitor::visit( x::string_const_expr_ast * val )
+void x::visitor::visit( x::string_constant_expr_ast * val )
 {
 }
 
@@ -435,23 +428,9 @@ void x::symbol_scanner_visitor::visit( x::unit_ast * val )
 	scope_scanner_visitor::visit( val );
 }
 
-void x::symbol_scanner_visitor::visit( x::enum_element_ast * val )
+void x::symbol_scanner_visitor::visit( x::parameter_ast * val )
 {
-	symbols()->add_enum_elem( val );
-
-	scope_scanner_visitor::visit( val );
-}
-
-void x::symbol_scanner_visitor::visit( x::template_element_ast * val )
-{
-	symbols()->add_template_elem( val );
-
-	scope_scanner_visitor::visit( val );
-}
-
-void x::symbol_scanner_visitor::visit( x::parameter_element_ast * val )
-{
-	symbols()->add_paramater_elem( val );
+	symbols()->add_paramater( val );
 
 	scope_scanner_visitor::visit( val );
 }
@@ -459,13 +438,17 @@ void x::symbol_scanner_visitor::visit( x::parameter_element_ast * val )
 void x::symbol_scanner_visitor::visit( x::enum_decl_ast * val )
 {
 	symbols()->add_enum( val );
-
-	scope_scanner_visitor::visit( val );
+	symbols()->push_scope( val->get_name() );
+	for( const auto & it : val->get_elements() )
+	{
+		symbols()->add_enum_element( it.first, it.second.get() );
+	}
+	symbols()->pop_scope();
 }
 
 void x::symbol_scanner_visitor::visit( x::using_decl_ast * val )
 {
-	symbols()->add_alias( val );
+	symbols()->add_using( val );
 
 	scope_scanner_visitor::visit( val );
 }
@@ -578,6 +561,17 @@ void x::ast_tree_printer_visitor::visit( x::attribute_ast * val )
 	out( " )" );
 }
 
+void x::ast_tree_printer_visitor::visit( x::parameter_ast * val )
+{
+	out( val->get_name() );
+	out( ": " ); val->get_valuetype()->accept( this );
+	if ( val->get_default() )
+	{
+		out( " = " );
+		val->get_default()->accept( this );
+	}
+}
+
 void x::ast_tree_printer_visitor::visit( x::type_ast * val )
 {
 	out( std::format( R"({}{}{})", val->get_is_const() ? "const " : "", val->get_is_ref() ? "ref " : "", val->get_name()));
@@ -624,51 +618,33 @@ void x::ast_tree_printer_visitor::visit( x::array_type_ast * val )
 	out( std::format( R"({}{}{}[{}])", val->get_is_const() ? "const " : "", val->get_is_ref() ? "ref " : "", val->get_name(), layer));
 }
 
-void x::ast_tree_printer_visitor::visit( x::enum_element_ast * val )
-{
-	if ( val->get_value() )
-	{
-		outline( std::format( "{} = ", val->get_name() ) );
-		val->get_value()->accept(this);
-		out( "," );
-	}
-	else
-	{
-		outline( std::format( "{},", val->get_name() ) );
-	}
-}
-
-void x::ast_tree_printer_visitor::visit( x::template_element_ast * val )
-{
-	out( val->get_name() );
-	if ( val->get_is_multi() )
-		out( "..." );
-}
-
-void x::ast_tree_printer_visitor::visit( x::parameter_element_ast * val )
-{
-	out( val->get_name() );
-	if ( val->get_valuetype() )
-		out( ": " );
-
-	visitor::visit( val );
-}
-
 void x::ast_tree_printer_visitor::visit( x::enum_decl_ast * val )
 {
-	if ( val->get_attr() ) val->get_attr()->accept(this);
+	if ( val->get_attribute() ) val->get_attribute()->accept(this);
 
 	outline( std::format( "{} enum {}", access( val->get_access() ), val->get_name() ) );
 	outline( "{" ); push();
 	{
-		visitor::visit( val );
+		for ( const auto & it : val->get_elements() )
+		{
+			if ( it.second )
+			{
+				outline( std::format( "{} = ", it.first ) );
+				it.second->accept( this );
+				out( "," );
+			}
+			else
+			{
+				outline( std::format( "{},", it.first ) );
+			}
+		}
 	}
 	pop(); outline( "};" );
 }
 
 void x::ast_tree_printer_visitor::visit( x::class_decl_ast * val )
 {
-	if ( val->get_attr() ) val->get_attr()->accept( this );
+	if ( val->get_attribute() ) val->get_attribute()->accept( this );
 
 	outline( std::format( "{} class {}", access( val->get_access() ), val->get_name() ) );
 	if ( val->get_base() )
@@ -678,12 +654,22 @@ void x::ast_tree_printer_visitor::visit( x::class_decl_ast * val )
 	}
 	outline( "{" ); push();
 	{
+		for ( const auto & it : val->get_friends() )
+		{
+			out( "friend " ); it->accept( this );
+		}
 		for ( const auto & it : val->get_usings() )
+		{
 			it->accept( this );
+		}
 		for ( const auto & it : val->get_variables() )
+		{
 			it->accept( this );
+		}
 		for ( const auto & it : val->get_functions() )
+		{
 			it->accept( this );
+		}
 	}
 	pop(); outline( "};" );
 }
@@ -697,7 +683,7 @@ void x::ast_tree_printer_visitor::visit( x::using_decl_ast * val )
 
 void x::ast_tree_printer_visitor::visit( x::template_decl_ast * val )
 {
-	if ( val->get_attr() ) val->get_attr()->accept( this );
+	if ( val->get_attribute() ) val->get_attribute()->accept( this );
 
 	outline( std::format( "{} template {}", access( val->get_access() ), val->get_name() ) );
 	out( val->get_elements().empty() ? "<" : "< ");
@@ -721,19 +707,29 @@ void x::ast_tree_printer_visitor::visit( x::template_decl_ast * val )
 
 	outline( "{" ); push();
 	{
+		for ( const auto & it : val->get_friends() )
+		{
+			out( "friend " ); it->accept( this );
+		}
 		for ( const auto & it : val->get_usings() )
+		{
 			it->accept( this );
+		}
 		for ( const auto & it : val->get_variables() )
+		{
 			it->accept( this );
+		}
 		for ( const auto & it : val->get_functions() )
+		{
 			it->accept( this );
+		}
 	}
 	pop(); outline( "};" );
 }
 
 void x::ast_tree_printer_visitor::visit( x::variable_decl_ast * val )
 {
-	if ( val->get_attr() ) val->get_attr()->accept( this );
+	if ( val->get_attribute() ) val->get_attribute()->accept( this );
 
 	outline( std::format( "{} var {}{}{}{}"
 		  , access( val->get_access() )
@@ -759,7 +755,7 @@ void x::ast_tree_printer_visitor::visit( x::variable_decl_ast * val )
 
 void x::ast_tree_printer_visitor::visit( x::function_decl_ast * val )
 {
-	if ( val->get_attr() ) val->get_attr()->accept( this );
+	if ( val->get_attribute() ) val->get_attribute()->accept( this );
 
 	outline( std::format( "{} func {}{}{}{}{}{}"
 		  , access( val->get_access() )
@@ -805,7 +801,7 @@ void x::ast_tree_printer_visitor::visit( x::function_decl_ast * val )
 
 void x::ast_tree_printer_visitor::visit( x::interface_decl_ast * val )
 {
-	if ( val->get_attr() ) val->get_attr()->accept( this );
+	if ( val->get_attribute() ) val->get_attribute()->accept( this );
 
 	outline( std::format( "{} interface {}", access( val->get_access() ), val->get_name() ) );
 	outline( "{" ); push();
@@ -820,7 +816,7 @@ void x::ast_tree_printer_visitor::visit( x::interface_decl_ast * val )
 
 void x::ast_tree_printer_visitor::visit( x::namespace_decl_ast * val )
 {
-	if ( val->get_attr() ) val->get_attr()->accept( this );
+	if ( val->get_attribute() ) val->get_attribute()->accept( this );
 
 	outline( std::format( "{} namespace {}", access( val->get_access() ), val->get_name() ) );
 	outline( "{" ); push();
@@ -861,12 +857,6 @@ void x::ast_tree_printer_visitor::visit( x::await_stat_ast * val )
 void x::ast_tree_printer_visitor::visit( x::yield_stat_ast * val )
 {
 	out( "yield " );
-	visitor::visit( val );
-}
-
-void x::ast_tree_printer_visitor::visit( x::new_stat_ast * val )
-{
-	out( "new " );
 	visitor::visit( val );
 }
 
@@ -1014,43 +1004,42 @@ void x::ast_tree_printer_visitor::visit( x::binary_expr_ast * val )
 {
 	switch ( val->get_op() )
 	{
-	case x::binary_expr_ast::op_t::NONE:
+	case x::operator_t::NONE:
 		break;
-	case x::binary_expr_ast::op_t::ADD: val->get_left()->accept( this ); out( " + " );val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::SUB: val->get_left()->accept( this ); out( " - " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::MUL: val->get_left()->accept( this ); out( " * " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::DIV: val->get_left()->accept( this ); out( " / " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::MOD: val->get_left()->accept( this ); out( " % " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::AND: val->get_left()->accept( this ); out( " & " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::OR: val->get_left()->accept( this ); out( " | " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::XOR: val->get_left()->accept( this ); out( " ^ " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::LEFT_SHIFT: val->get_left()->accept( this ); out( " << " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::RIGHT_SHIFT: val->get_left()->accept( this ); out( " >> " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::LAND: val->get_left()->accept( this ); out( " && " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::LOR: val->get_left()->accept( this ); out( " || " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::ASSIGN: val->get_left()->accept( this ); out( " = " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::ADD_ASSIGN: val->get_left()->accept( this ); out( " += " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::SUB_ASSIGN: val->get_left()->accept( this ); out( " -= " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::MUL_ASSIGN: val->get_left()->accept( this ); out( " *= " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::DIV_ASSIGN: val->get_left()->accept( this ); out( " /= " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::MOD_ASSIGN: val->get_left()->accept( this ); out( " %= " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::AND_ASSIGN: val->get_left()->accept( this ); out( " &= " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::OR_ASSIGN: val->get_left()->accept( this ); out( " |= " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::XOR_ASSIGN: val->get_left()->accept( this ); out( " ^= " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::LSHIFT_EQUAL: val->get_left()->accept( this ); out( " <<= " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::RSHIFT_EQUAL: val->get_left()->accept( this ); out( " >>= " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::EQUAL: val->get_left()->accept( this ); out( " == " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::NOT_EQUAL: val->get_left()->accept( this ); out( " != " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::LESS: val->get_left()->accept( this ); out( " < " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::LARG: val->get_left()->accept( this ); out( " > " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::LESS_EQUAL: val->get_left()->accept( this ); out( " <= " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::LARG_EQUAL: val->get_left()->accept( this ); out( " >= " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::COMPARE: val->get_left()->accept( this ); out( " <=> " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::AS: val->get_left()->accept( this ); out( " as " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::IS: val->get_left()->accept( this ); out( " is " ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::INDEX: val->get_left()->accept( this ); out( "[" ); val->get_right()->accept( this ); out( "]" ); break;
-	case x::binary_expr_ast::op_t::MEMBER: val->get_left()->accept( this ); out( "." ); val->get_right()->accept( this ); break;
-	case x::binary_expr_ast::op_t::INVOKE: val->get_left()->accept( this ); val->get_right()->accept( this ); break;
+	case x::operator_t::ADD: val->get_left()->accept( this ); out( " + " );val->get_right()->accept( this ); break;
+	case x::operator_t::SUB: val->get_left()->accept( this ); out( " - " ); val->get_right()->accept( this ); break;
+	case x::operator_t::MUL: val->get_left()->accept( this ); out( " * " ); val->get_right()->accept( this ); break;
+	case x::operator_t::DIV: val->get_left()->accept( this ); out( " / " ); val->get_right()->accept( this ); break;
+	case x::operator_t::MOD: val->get_left()->accept( this ); out( " % " ); val->get_right()->accept( this ); break;
+	case x::operator_t::AND: val->get_left()->accept( this ); out( " & " ); val->get_right()->accept( this ); break;
+	case x::operator_t::OR: val->get_left()->accept( this ); out( " | " ); val->get_right()->accept( this ); break;
+	case x::operator_t::XOR: val->get_left()->accept( this ); out( " ^ " ); val->get_right()->accept( this ); break;
+	case x::operator_t::LEFT_SHIFT: val->get_left()->accept( this ); out( " << " ); val->get_right()->accept( this ); break;
+	case x::operator_t::RIGHT_SHIFT: val->get_left()->accept( this ); out( " >> " ); val->get_right()->accept( this ); break;
+	case x::operator_t::LAND: val->get_left()->accept( this ); out( " && " ); val->get_right()->accept( this ); break;
+	case x::operator_t::LOR: val->get_left()->accept( this ); out( " || " ); val->get_right()->accept( this ); break;
+	case x::operator_t::ASSIGN: val->get_left()->accept( this ); out( " = " ); val->get_right()->accept( this ); break;
+	case x::operator_t::ADD_ASSIGN: val->get_left()->accept( this ); out( " += " ); val->get_right()->accept( this ); break;
+	case x::operator_t::SUB_ASSIGN: val->get_left()->accept( this ); out( " -= " ); val->get_right()->accept( this ); break;
+	case x::operator_t::MUL_ASSIGN: val->get_left()->accept( this ); out( " *= " ); val->get_right()->accept( this ); break;
+	case x::operator_t::DIV_ASSIGN: val->get_left()->accept( this ); out( " /= " ); val->get_right()->accept( this ); break;
+	case x::operator_t::MOD_ASSIGN: val->get_left()->accept( this ); out( " %= " ); val->get_right()->accept( this ); break;
+	case x::operator_t::AND_ASSIGN: val->get_left()->accept( this ); out( " &= " ); val->get_right()->accept( this ); break;
+	case x::operator_t::OR_ASSIGN: val->get_left()->accept( this ); out( " |= " ); val->get_right()->accept( this ); break;
+	case x::operator_t::XOR_ASSIGN: val->get_left()->accept( this ); out( " ^= " ); val->get_right()->accept( this ); break;
+	case x::operator_t::LSHIFT_EQUAL: val->get_left()->accept( this ); out( " <<= " ); val->get_right()->accept( this ); break;
+	case x::operator_t::RSHIFT_EQUAL: val->get_left()->accept( this ); out( " >>= " ); val->get_right()->accept( this ); break;
+	case x::operator_t::EQUAL: val->get_left()->accept( this ); out( " == " ); val->get_right()->accept( this ); break;
+	case x::operator_t::NOT_EQUAL: val->get_left()->accept( this ); out( " != " ); val->get_right()->accept( this ); break;
+	case x::operator_t::LESS: val->get_left()->accept( this ); out( " < " ); val->get_right()->accept( this ); break;
+	case x::operator_t::LARG: val->get_left()->accept( this ); out( " > " ); val->get_right()->accept( this ); break;
+	case x::operator_t::LESS_EQUAL: val->get_left()->accept( this ); out( " <= " ); val->get_right()->accept( this ); break;
+	case x::operator_t::LARG_EQUAL: val->get_left()->accept( this ); out( " >= " ); val->get_right()->accept( this ); break;
+	case x::operator_t::COMPARE: val->get_left()->accept( this ); out( " <=> " ); val->get_right()->accept( this ); break;
+	case x::operator_t::AS: val->get_left()->accept( this ); out( " as " ); val->get_right()->accept( this ); break;
+	case x::operator_t::IS: val->get_left()->accept( this ); out( " is " ); val->get_right()->accept( this ); break;
+	case x::operator_t::MEMBER: val->get_left()->accept( this ); out( "." ); val->get_right()->accept( this ); break;
+	case x::operator_t::INVOKE: val->get_left()->accept( this ); val->get_right()->accept( this ); break;
 	default:
 		break;
 	}
@@ -1060,18 +1049,18 @@ void x::ast_tree_printer_visitor::visit( x::unary_expr_ast * val )
 {
 	switch ( val->get_op() )
 	{
-	case x::unary_expr_ast::op_t::NONE:
+	case x::operator_t::NONE:
 		break;
-	case x::unary_expr_ast::op_t::PLUS: out( "+" ); visitor::visit( val ); break;
-	case x::unary_expr_ast::op_t::MINUS: out( "-" ); visitor::visit( val ); break;
-	case x::unary_expr_ast::op_t::INC: out( "++" ); visitor::visit( val ); break;
-	case x::unary_expr_ast::op_t::DEC: out( "--" ); visitor::visit( val ); break;
-	case x::unary_expr_ast::op_t::POSTINC: visitor::visit( val ); out( "++" ); break;
-	case x::unary_expr_ast::op_t::POSTDEC: visitor::visit( val ); out( "--" ); break;
-	case x::unary_expr_ast::op_t::REV: out( "~" ); visitor::visit( val ); break;
-	case x::unary_expr_ast::op_t::NOT: out( "!" ); visitor::visit( val ); break;
-	case x::unary_expr_ast::op_t::SIZEOF: out( "sizeof( " ); visitor::visit( val ); out( " )" ); break;
-	case x::unary_expr_ast::op_t::TYPEOF:out( "typeof( " ); visitor::visit( val ); out( " )" ); break;
+	case x::operator_t::PLUS: out( "+" ); visitor::visit( val ); break;
+	case x::operator_t::MINUS: out( "-" ); visitor::visit( val ); break;
+	case x::operator_t::INC: out( "++" ); visitor::visit( val ); break;
+	case x::operator_t::DEC: out( "--" ); visitor::visit( val ); break;
+	case x::operator_t::POSTINC: visitor::visit( val ); out( "++" ); break;
+	case x::operator_t::POSTDEC: visitor::visit( val ); out( "--" ); break;
+	case x::operator_t::REV: out( "~" ); visitor::visit( val ); break;
+	case x::operator_t::NOT: out( "!" ); visitor::visit( val ); break;
+	case x::operator_t::SIZEOF: out( "sizeof( " ); visitor::visit( val ); out( " )" ); break;
+	case x::operator_t::TYPEOF:out( "typeof( " ); visitor::visit( val ); out( " )" ); break;
 	default:
 		break;
 	}
@@ -1092,6 +1081,18 @@ void x::ast_tree_printer_visitor::visit( x::bracket_expr_ast * val )
 	out( "( " );
 	val->get_exp()->accept(this);
 	out( " )" );
+}
+
+void x::ast_tree_printer_visitor::visit( x::elements_expr_ast * val )
+{
+	out( "[" );
+	for ( size_t i = 0; i < val->get_elements().size(); i++ )
+	{
+		val->get_elements()[i]->accept( this );
+		if ( i < val->get_elements().size() - 1 )
+			out( ", " );
+	}
+	out( "]" );
 }
 
 void x::ast_tree_printer_visitor::visit( x::arguments_expr_ast * val )
@@ -1118,46 +1119,46 @@ void x::ast_tree_printer_visitor::visit( x::initializer_expr_ast * val )
 	out( val->get_args().empty() ? "}" : " }");
 }
 
-void x::ast_tree_printer_visitor::visit( x::null_const_expr_ast * val )
+void x::ast_tree_printer_visitor::visit( x::null_constant_expr_ast * val )
 {
 	out( "null" );
 }
 
-void x::ast_tree_printer_visitor::visit( x::bool_const_expr_ast * val )
+void x::ast_tree_printer_visitor::visit( x::bool_constant_expr_ast * val )
 {
 	out( val->get_value() ? "true" : "false");
 }
 
-void x::ast_tree_printer_visitor::visit( x::int_const_expr_ast * val )
+void x::ast_tree_printer_visitor::visit( x::int_constant_expr_ast * val )
 {
 	switch ( val->type() )
 	{
-	case x::ast_t::INT8_CONST_EXP: out( std::to_string( static_cast<x::int8_const_expr_ast *>( val )->get_value() ) ); break;
-	case x::ast_t::INT16_CONST_EXP: out( std::to_string( static_cast<x::int16_const_expr_ast *>( val )->get_value() ) ); break;
-	case x::ast_t::INT32_CONST_EXP: out( std::to_string( static_cast<x::int32_const_expr_ast *>( val )->get_value() ) ); break;
-	case x::ast_t::INT64_CONST_EXP: out( std::to_string( static_cast<x::int64_const_expr_ast *>( val )->get_value() ) ); break;
-	case x::ast_t::UINT8_CONST_EXP: out( std::to_string( static_cast<x::uint8_const_expr_ast *>( val )->get_value() ) ); break;
-	case x::ast_t::UINT16_CONST_EXP: out( std::to_string( static_cast<x::uint16_const_expr_ast *>( val )->get_value() ) ); break;
-	case x::ast_t::UINT32_CONST_EXP: out( std::to_string( static_cast<x::uint32_const_expr_ast *>( val )->get_value() ) ); break;
-	case x::ast_t::UINT64_CONST_EXP: out( std::to_string( static_cast<x::uint64_const_expr_ast *>( val )->get_value() ) ); break;
+	case x::ast_t::INT8_CONSTANT_EXP: out( std::to_string( static_cast<x::int8_constant_expr_ast *>( val )->get_value() ) ); break;
+	case x::ast_t::INT16_CONSTANT_EXP: out( std::to_string( static_cast<x::int16_constant_expr_ast *>( val )->get_value() ) ); break;
+	case x::ast_t::INT32_CONSTANT_EXP: out( std::to_string( static_cast<x::int32_constant_expr_ast *>( val )->get_value() ) ); break;
+	case x::ast_t::INT64_CONSTANT_EXP: out( std::to_string( static_cast<x::int64_constant_expr_ast *>( val )->get_value() ) ); break;
+	case x::ast_t::UINT8_CONSTANT_EXP: out( std::to_string( static_cast<x::uint8_constant_expr_ast *>( val )->get_value() ) ); break;
+	case x::ast_t::UINT16_CONSTANT_EXP: out( std::to_string( static_cast<x::uint16_constant_expr_ast *>( val )->get_value() ) ); break;
+	case x::ast_t::UINT32_CONSTANT_EXP: out( std::to_string( static_cast<x::uint32_constant_expr_ast *>( val )->get_value() ) ); break;
+	case x::ast_t::UINT64_CONSTANT_EXP: out( std::to_string( static_cast<x::uint64_constant_expr_ast *>( val )->get_value() ) ); break;
 	default:
 		break;
 	}
 }
 
-void x::ast_tree_printer_visitor::visit( x::float_const_expr_ast * val )
+void x::ast_tree_printer_visitor::visit( x::float_constant_expr_ast * val )
 {
 	switch ( val->type() )
 	{
-	case x::ast_t::FLOAT16_CONST_EXP:  out( std::to_string( static_cast<x::float16_const_expr_ast *>( val )->get_value().to_float() ) ); break;
-	case x::ast_t::FLOAT32_CONST_EXP:  out( std::to_string( static_cast<x::float32_const_expr_ast *>( val )->get_value() ) ); break;
-	case x::ast_t::FLOAT64_CONST_EXP:  out( std::to_string( static_cast<x::float64_const_expr_ast *>( val )->get_value() ) ); break;
+	case x::ast_t::FLOAT16_CONSTANT_EXP:  out( std::to_string( static_cast<x::float16_constant_expr_ast *>( val )->get_value().to_float() ) ); break;
+	case x::ast_t::FLOAT32_CONSTANT_EXP:  out( std::to_string( static_cast<x::float32_constant_expr_ast *>( val )->get_value() ) ); break;
+	case x::ast_t::FLOAT64_CONSTANT_EXP:  out( std::to_string( static_cast<x::float64_constant_expr_ast *>( val )->get_value() ) ); break;
 	default:
 		break;
 	}
 }
 
-void x::ast_tree_printer_visitor::visit( x::string_const_expr_ast * val )
+void x::ast_tree_printer_visitor::visit( x::string_constant_expr_ast * val )
 {
 	std::string str;
 

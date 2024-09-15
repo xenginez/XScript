@@ -9,6 +9,7 @@ namespace x
 		friend class runtime;
 
 	public:
+		virtual void construct();
 		virtual void finalize();
 
 	public:
@@ -33,34 +34,9 @@ namespace x
 		void set_gcstatus( x::gcstatus_t status );
 	};
 
-	class array : public object
-	{
-		friend class runtime;
-
-	public:
-		void finalize() override;
-
-	public:
-		bool is_array() const override;
-	};
-
-	class callable : public object
-	{
-		friend class runtime;
-
-	public:
-		void finalize() override;
-
-	public:
-		bool is_callable() const override;
-	};
-
 	class coroutine : public object
 	{
 		friend class runtime;
-
-	public:
-		void finalize() override;
 
 	public:
 		bool is_coroutine() const override;

@@ -19,7 +19,9 @@ namespace x
 		x::unit_ast_ptr unit();
 		x::type_ast_ptr type();
 		x::import_ast_ptr import();
+
 		x::attribute_ast_ptr attribute();
+		x::parameter_ast_ptr parameter();
 
 		x::enum_decl_ast_ptr enum_decl();
 		x::class_decl_ast_ptr class_decl();
@@ -31,14 +33,12 @@ namespace x
 		x::function_decl_ast_ptr construct_decl();
 		x::interface_decl_ast_ptr interface_decl();
 		x::namespace_decl_ast_ptr namespace_decl();
-		x::parameter_element_ast_ptr parameter_decl();
 
 		x::stat_ast_ptr statement();
 		x::extern_stat_ast_ptr extern_stat();
 		x::compound_stat_ast_ptr compound_stat();
 		x::await_stat_ast_ptr await_stat();
 		x::yield_stat_ast_ptr yield_stat();
-		x::new_stat_ast_ptr new_stat();
 		x::if_stat_ast_ptr if_stat();
 		x::while_stat_ast_ptr while_stat();
 		x::for_stat_ast_ptr for_stat();
@@ -66,7 +66,6 @@ namespace x
 		x::expr_stat_ast_ptr is_exp();
 		x::expr_stat_ast_ptr sizeof_exp();
 		x::expr_stat_ast_ptr typeof_exp();
-		x::expr_stat_ast_ptr index_exp();
 		x::expr_stat_ast_ptr invoke_exp();
 		x::expr_stat_ast_ptr member_exp();
 		x::expr_stat_ast_ptr unary_exp();
@@ -75,17 +74,18 @@ namespace x
 
 		x::bracket_expr_ast_ptr bracket_exp();
 		x::closure_expr_ast_ptr closure_exp();
+		x::elements_expr_ast_ptr elements_exp();
 		x::arguments_expr_ast_ptr arguments_exp();
 		x::identifier_expr_ast_ptr identifier_exp();
 		x::initializer_expr_ast_ptr initializer_exp();
 
-		x::const_expr_ast_ptr const_exp();
-		x::null_const_expr_ast_ptr null_const_exp();
-		x::bool_const_expr_ast_ptr true_const_exp();
-		x::bool_const_expr_ast_ptr false_const_exp();
-		x::int_const_expr_ast_ptr int_const_exp();
-		x::float_const_expr_ast_ptr float_const_exp();
-		x::string_const_expr_ast_ptr string_const_exp();
+		x::constant_expr_ast_ptr constant_exp();
+		x::null_constant_expr_ast_ptr null_constant_exp();
+		x::bool_constant_expr_ast_ptr true_constant_exp();
+		x::bool_constant_expr_ast_ptr false_constant_exp();
+		x::int_constant_expr_ast_ptr int_constant_exp();
+		x::float_constant_expr_ast_ptr float_constant_exp();
+		x::string_constant_expr_ast_ptr string_constant_exp();
 
 	private:
 		x::access_t access();

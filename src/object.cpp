@@ -4,6 +4,10 @@
 #include "value.h"
 #include "runtime.h"
 
+void x::object::construct()
+{
+}
+
 void x::object::finalize()
 {
 }
@@ -84,31 +88,6 @@ x::gcstatus_t x::object::get_gcstatus() const
 void x::object::set_gcstatus( x::gcstatus_t status )
 {
 	*( reinterpret_cast<x::uint8 *>( this ) - 1 ) &= static_cast<x::uint8>( status );
-}
-
-void x::array::finalize()
-{
-
-}
-
-bool x::array::is_array() const
-{
-	return true;
-}
-
-void x::callable::finalize()
-{
-
-}
-
-bool x::callable::is_callable() const
-{
-	return true;
-}
-
-void x::coroutine::finalize()
-{
-
 }
 
 bool x::coroutine::is_coroutine() const

@@ -14,7 +14,7 @@ namespace x
 	public:
 		virtual ast_t type() const = 0;
 		virtual void accept( visitor * val ) = 0;
-		virtual void reset_child( const x::ast_ptr & old_child, const x::ast_ptr & new_child );
+		virtual bool reset_child( const x::ast_ptr & old_child, const x::ast_ptr & new_child );
 
 	public:
 		x::ast_ptr get_parent() const;
@@ -32,6 +32,7 @@ namespace x
 	public:
 		x::ast_t type() const override;
 		void accept( visitor * val ) override;
+		bool reset_child( const x::ast_ptr & old_child, const x::ast_ptr & new_child ) override;
 
 	public:
 		std::span<const x::import_ast_ptr> get_imports() const;
@@ -56,6 +57,7 @@ namespace x
 	private:
 		std::string _path;
 	};
+
 	class attribute_ast : public ast
 	{
 	public:
@@ -71,6 +73,25 @@ namespace x
 
 	private:
 		std::vector<string_pair> _attributes;
+	};
+	class parameter_ast : public ast
+	{
+	public:
+		x::ast_t type() const override;
+		void accept( visitor * val ) override;
+
+	public:
+		const std::string & get_name() const;
+		void set_name( const std::string & val );
+		const x::type_ast_ptr & get_valuetype() const;
+		void set_valuetype( const x::type_ast_ptr & val );
+		const x::expr_stat_ast_ptr & get_default() const;
+		void set_default( const x::expr_stat_ast_ptr & val );
+
+	private:
+		std::string _name;
+		x::type_ast_ptr _valuetype;
+		x::expr_stat_ast_ptr _default;
 	};
 
 	class type_ast : public ast
@@ -97,6 +118,7 @@ namespace x
 	public:
 		x::ast_t type() const override;
 		void accept( visitor * val ) override;
+		bool reset_child( const x::ast_ptr & old_child, const x::ast_ptr & new_child ) override;
 
 	public:
 		std::span<const x::type_ast_ptr> get_parameters() const;
@@ -110,13 +132,14 @@ namespace x
 	public:
 		x::ast_t type() const override;
 		void accept( visitor * val ) override;
+		bool reset_child( const x::ast_ptr & old_child, const x::ast_ptr & new_child ) override;
 
 	public:
-		std::span<const x::type_ast_ptr> get_elements() const;
-		void insert_element( const x::type_ast_ptr & val );
+		std::span<const x::expr_stat_ast_ptr> get_elements() const;
+		void insert_element( const x::expr_stat_ast_ptr & val );
 
 	private:
-		std::vector<x::type_ast_ptr> _elements;
+		std::vector<x::expr_stat_ast_ptr> _elements;
 	};
 	class list_type_ast : public type_ast
 	{
@@ -138,82 +161,36 @@ namespace x
 		int _layer = 0;
 	};
 
-	class enum_element_ast : public ast
-	{
-	public:
-		x::ast_t type() const override;
-		void accept( visitor * val ) override;
-
-	public:
-		const std::string & get_name() const;
-		void set_name( const std::string & val );
-		const x::expr_stat_ast_ptr & get_value() const;
-		void set_value( const x::expr_stat_ast_ptr & val );
-
-	private:
-		std::string _name;
-		x::expr_stat_ast_ptr _value;
-	};
-	class template_element_ast : public ast
-	{
-	public:
-		x::ast_t type() const override;
-		void accept( visitor * val ) override;
-
-	public:
-		const std::string & get_name() const;
-		void set_name( const std::string & val );
-		bool get_is_multi() const;
-		void set_is_multi( bool val );
-
-	private:
-		std::string _name;
-		bool _is_multi = false;
-	};
-	class parameter_element_ast : public ast
-	{
-	public:
-		x::ast_t type() const override;
-		void accept( visitor * val ) override;
-
-	public:
-		const std::string & get_name() const;
-		void set_name( const std::string & val );
-		const x::type_ast_ptr & get_valuetype() const;
-		void set_valuetype( const x::type_ast_ptr & val );
-
-	private:
-		std::string _name;
-		x::type_ast_ptr _valuetype;
-	};
-
 	class decl_ast : public ast
 	{
 	public:
-		const std::string & get_name() const;
-		void set_name( const std::string & val );
 		x::access_t get_access() const;
 		void set_access( x::access_t val );
-		const x::attribute_ast_ptr & get_attr() const;
-		void set_attr( const x::attribute_ast_ptr & val );
+		const std::string & get_name() const;
+		void set_name( const std::string & val );
+		const x::attribute_ast_ptr & get_attribute() const;
+		void set_attribute( const x::attribute_ast_ptr & val );
 
 	private:
 		std::string _name;
 		x::access_t _access = x::access_t::PRIVATE;
-		x::attribute_ast_ptr _attr;
+		x::attribute_ast_ptr _attribute;
 	};
 	class enum_decl_ast : public decl_ast
 	{
 	public:
-		x::ast_t type() const override;
-		void accept( visitor * val ) override;
+		using element_pair = std::pair<std::string, x::expr_stat_ast_ptr>;
 
 	public:
-		std::span<const x::enum_element_ast_ptr> get_elements() const;
-		void insert_element( const x::enum_element_ast_ptr & val );
+		x::ast_t type() const override;
+		void accept( visitor * val ) override;
+		
+	public:
+		std::span<const element_pair> get_elements() const;
+		void insert_element( const element_pair & val );
 
 	private:
-		std::vector<x::enum_element_ast_ptr> _elements;
+		std::vector<element_pair> _elements;
 	};
 	class using_decl_ast : public decl_ast
 	{
@@ -233,6 +210,7 @@ namespace x
 	public:
 		x::ast_t type() const override;
 		void accept( visitor * val ) override;
+		bool reset_child( const x::ast_ptr & old_child, const x::ast_ptr & new_child ) override;
 
 	public:
 		const x::type_ast_ptr & get_base() const;
@@ -241,6 +219,8 @@ namespace x
 		void set_construct( const x::function_decl_ast_ptr & val );
 		const x::function_decl_ast_ptr & get_finalize() const;
 		void set_finalize( const x::function_decl_ast_ptr & val );
+		std::span<const x::type_ast_ptr> get_friends() const;
+		void insert_friend( const x::type_ast_ptr & val );
 		std::span<const x::type_ast_ptr> get_interfaces() const;
 		void insert_interface( const x::type_ast_ptr & val );
 		std::span<const x::using_decl_ast_ptr> get_usings() const;
@@ -254,6 +234,7 @@ namespace x
 		x::type_ast_ptr _base;
 		x::function_decl_ast_ptr _construct;
 		x::function_decl_ast_ptr _finalize;
+		std::vector<x::type_ast_ptr> _friends;
 		std::vector<x::type_ast_ptr> _interfaces;
 		std::vector<x::using_decl_ast_ptr> _usings;
 		std::vector<x::variable_decl_ast_ptr> _variables;
@@ -264,6 +245,7 @@ namespace x
 	public:
 		x::ast_t type() const override;
 		void accept( visitor * val ) override;
+		bool reset_child( const x::ast_ptr & old_child, const x::ast_ptr & new_child ) override;
 
 	public:
 		const x::type_ast_ptr & get_base() const;
@@ -274,6 +256,10 @@ namespace x
 		void set_construct( const x::function_decl_ast_ptr & val );
 		const x::function_decl_ast_ptr & get_finalize() const;
 		void set_finalize( const x::function_decl_ast_ptr & val );
+		std::span<const x::type_ast_ptr> get_friends() const;
+		void insert_friend( const x::type_ast_ptr & val );
+		std::span<const x::parameter_ast_ptr> get_elements() const;
+		void insert_element( const x::parameter_ast_ptr & val );
 		std::span<const x::type_ast_ptr> get_interfaces() const;
 		void insert_interface( const x::type_ast_ptr & val );
 		std::span<const x::using_decl_ast_ptr> get_usings() const;
@@ -282,19 +268,18 @@ namespace x
 		void insert_variable( const x::variable_decl_ast_ptr & val );
 		std::span<const x::function_decl_ast_ptr> get_functions() const;
 		void insert_function( const x::function_decl_ast_ptr & val );
-		std::span<const x::template_element_ast_ptr> get_elements() const;
-		void insert_element( const x::template_element_ast_ptr & val );
 
 	private:
 		x::type_ast_ptr _base;
 		x::compound_stat_ast_ptr _where;
 		x::function_decl_ast_ptr _construct;
 		x::function_decl_ast_ptr _finalize;
+		std::vector<x::type_ast_ptr> _friends;
 		std::vector<x::type_ast_ptr> _interfaces;
 		std::vector<x::using_decl_ast_ptr> _usings;
+		std::vector<x::parameter_ast_ptr> _elements;
 		std::vector<x::variable_decl_ast_ptr> _variables;
 		std::vector<x::function_decl_ast_ptr> _functions;
-		std::vector<x::template_element_ast_ptr> _elements;
 	};
 	class variable_decl_ast : public decl_ast
 	{
@@ -326,6 +311,7 @@ namespace x
 	public:
 		x::ast_t type() const override;
 		void accept( visitor * val ) override;
+		bool reset_child( const x::ast_ptr & old_child, const x::ast_ptr & new_child ) override;
 
 	public:
 		bool get_is_const() const;
@@ -342,8 +328,8 @@ namespace x
 		void set_stat( const x::stat_ast_ptr & val );
 		std::span<const x::type_ast_ptr> get_results() const;
 		void insert_result( const x::type_ast_ptr & val );
-		std::span<const x::parameter_element_ast_ptr> get_parameters() const;
-		void insert_parameter( const x::parameter_element_ast_ptr & val );
+		std::span<const x::parameter_ast_ptr> get_parameters() const;
+		void insert_parameter( const x::parameter_ast_ptr & val );
 
 	private:
 		bool _is_const = false;
@@ -353,13 +339,14 @@ namespace x
 		bool _is_virtual = false;
 		x::stat_ast_ptr _stat;
 		std::vector<x::type_ast_ptr> _results;
-		std::vector<x::parameter_element_ast_ptr> _parameters;
+		std::vector<x::parameter_ast_ptr> _parameters;
 	};
 	class interface_decl_ast : public decl_ast
 	{
 	public:
 		x::ast_t type() const override;
 		void accept( visitor * val ) override;
+		bool reset_child( const x::ast_ptr & old_child, const x::ast_ptr & new_child ) override;
 
 	public:
 		std::span<const x::function_decl_ast_ptr> get_functions() const;
@@ -373,6 +360,7 @@ namespace x
 	public:
 		x::ast_t type() const override;
 		void accept( visitor * val ) override;
+		bool reset_child( const x::ast_ptr & old_child, const x::ast_ptr & new_child ) override;
 
 	public:
 		std::span<const x::decl_ast_ptr> get_members() const;
@@ -398,12 +386,15 @@ namespace x
 		void accept( visitor * val ) override;
 
 	public:
+		x::call_t get_call() const;
+		void set_call( x::call_t val );
 		const std::string & get_libname() const;
 		void set_libname( const std::string & val );
 		const std::string & get_funcname() const;
 		void set_funcname( const std::string & val );
 
 	private:
+		x::call_t _call = x::call_t::DECLC;
 		std::string _libname;
 		std::string _funcname;
 	};
@@ -412,6 +403,7 @@ namespace x
 	public:
 		x::ast_t type() const override;
 		void accept( visitor * val ) override;
+		bool reset_child( const x::ast_ptr & old_child, const x::ast_ptr & new_child ) override;
 
 	public:
 		std::span<const x::stat_ast_ptr> get_stats() const;
@@ -445,22 +437,6 @@ namespace x
 
 	private:
 		x::expr_stat_ast_ptr _exp;
-	};
-	class new_stat_ast : public stat_ast
-	{
-	public:
-		x::ast_t type() const override;
-		void accept( visitor * val ) override;
-
-	public:
-		const x::type_ast_ptr & get_newtype() const;
-		void set_newtype( const x::type_ast_ptr & val );
-		const x::initializer_expr_ast_ptr & get_init() const;
-		void set_init( const x::initializer_expr_ast_ptr & val );
-
-	private:
-		x::type_ast_ptr _newtype;
-		x::initializer_expr_ast_ptr _init;
 	};
 	class if_stat_ast : public stat_ast
 	{
@@ -544,11 +520,12 @@ namespace x
 	class switch_stat_ast : public stat_ast
 	{
 	public:
-		using case_pair = std::pair<x::const_expr_ast_ptr, x::compound_stat_ast_ptr>;
+		using case_pair = std::pair<x::constant_expr_ast_ptr, x::compound_stat_ast_ptr>;
 
 	public:
 		x::ast_t type() const override;
 		void accept( visitor * val ) override;
+		bool reset_child( const x::ast_ptr & old_child, const x::ast_ptr & new_child ) override;
 
 	public:
 		const x::expr_stat_ast_ptr & get_exp() const;
@@ -574,6 +551,7 @@ namespace x
 	public:
 		x::ast_t type() const override;
 		void accept( visitor * val ) override;
+		bool reset_child( const x::ast_ptr & old_child, const x::ast_ptr & new_child ) override;
 
 	public:
 		std::span<const x::expr_stat_ast_ptr> get_exps() const;
@@ -585,11 +563,12 @@ namespace x
 	class try_stat_ast : public stat_ast
 	{
 	public:
-		using catch_pair = std::pair<x::parameter_element_ast_ptr, x::compound_stat_ast_ptr>;
+		using catch_pair = std::pair<x::parameter_ast_ptr, x::compound_stat_ast_ptr>;
 
 	public:
 		x::ast_t type() const override;
 		void accept( visitor * val ) override;
+		bool reset_child( const x::ast_ptr & old_child, const x::ast_ptr & new_child ) override;
 
 	public:
 		const x::compound_stat_ast_ptr & get_try_stat() const;
@@ -611,11 +590,11 @@ namespace x
 		void accept( visitor * val ) override;
 
 	public:
-		const x::new_stat_ast_ptr & get_exception() const;
-		void set_exception( const x::new_stat_ast_ptr & val );
+		const x::expr_stat_ast_ptr & get_exception() const;
+		void set_exception( const x::expr_stat_ast_ptr & val );
 
 	private:
-		x::new_stat_ast_ptr _exception;
+		x::expr_stat_ast_ptr _exception;
 	};
 	class continue_stat_ast : public stat_ast
 	{
@@ -655,96 +634,39 @@ namespace x
 	class expr_stat_ast : public stat_ast
 	{
 	};
-	class binary_expr_ast : public expr_stat_ast
+	class unary_expr_ast : public expr_stat_ast
 	{
-	public:
-		enum class op_t
-		{
-			NONE,
-			ADD,				// +
-			SUB,				// - 
-			MUL,				// * 
-			DIV,				// / 
-			MOD,				// %
-			AND,				// &
-			OR,					// |
-			XOR,				// ^
-			LEFT_SHIFT,			// <<
-			RIGHT_SHIFT,		// >> 
-			LAND,				// &&
-			LOR,				// ||
-			ASSIGN,				// =
-			ADD_ASSIGN,			// +=
-			SUB_ASSIGN,			// -= 
-			MUL_ASSIGN,			// *=
-			DIV_ASSIGN,			// /= 
-			MOD_ASSIGN,			// %= 
-			AND_ASSIGN,			// &= 
-			OR_ASSIGN,			// |= 
-			XOR_ASSIGN,			// ^= 
-			LSHIFT_EQUAL,		// <<=
-			RSHIFT_EQUAL,		// >>=
-			EQUAL,				// ==
-			NOT_EQUAL,			// !=
-			LESS,				// <
-			LARG,				// >
-			LESS_EQUAL,			// <=
-			LARG_EQUAL,			// >=
-			COMPARE,			// <=>
-			AS,					// as
-			IS,					// is
-			INDEX,				// x[y]
-			MEMBER,				// x.y
-			INVOKE,				// x(y)
-		};
-
 	public:
 		x::ast_t type() const override;
 		void accept( visitor * val ) override;
 
 	public:
-		op_t get_op() const;
-		void set_op( op_t val );
+		x::operator_t get_op() const;
+		void set_op( x::operator_t val );
+		const x::expr_stat_ast_ptr & get_exp() const;
+		void set_exp( const x::expr_stat_ast_ptr & val );
+
+	private:
+		x::operator_t _op = x::operator_t::NONE;
+		x::expr_stat_ast_ptr _exp;
+	};
+	class binary_expr_ast : public expr_stat_ast
+	{
+	public:
+		x::ast_t type() const override;
+		void accept( visitor * val ) override;
+
+	public:
+		x::operator_t get_op() const;
+		void set_op( x::operator_t val );
 		const x::expr_stat_ast_ptr & get_left() const;
 		void set_left( const x::expr_stat_ast_ptr & val );
 		const x::expr_stat_ast_ptr & get_right() const;
 		void set_right( const x::expr_stat_ast_ptr & val );
 
 	private:
-		op_t _op = op_t::NONE;
+		x::operator_t _op = x::operator_t::NONE;
 		x::expr_stat_ast_ptr _left, _right;
-	};
-	class unary_expr_ast : public expr_stat_ast
-	{
-	public:
-		enum class op_t
-		{
-			NONE,
-			PLUS,			// +
-			MINUS,			// -
-			INC,			// ++i
-			DEC,			// --i
-			POSTINC,		// i++
-			POSTDEC,		// i--
-			REV,			// ~
-			NOT,			// !
-			SIZEOF,			// sizeof
-			TYPEOF,			// typeof
-		};
-
-	public:
-		x::ast_t type() const override;
-		void accept( visitor * val ) override;
-
-	public:
-		op_t get_op() const;
-		void set_op( op_t val );
-		const x::expr_stat_ast_ptr & get_exp() const;
-		void set_exp( const x::expr_stat_ast_ptr & val );
-
-	private:
-		op_t _op = op_t::NONE;
-		x::expr_stat_ast_ptr _exp;
 	};
 	class bracket_expr_ast : public expr_stat_ast
 	{
@@ -764,10 +686,9 @@ namespace x
 	public:
 		x::ast_t type() const override;
 		void accept( visitor * val ) override;
+		bool reset_child( const x::ast_ptr & old_child, const x::ast_ptr & new_child ) override;
 
 	public:
-		bool get_is_async() const;
-		void set_is_async( bool val );
 		const std::string & get_name() const;
 		void set_name( const std::string & val );
 		const x::compound_stat_ast_ptr & get_stat() const;
@@ -776,22 +697,36 @@ namespace x
 		void insert_result( const x::type_ast_ptr & val );
 		std::span<const x::identifier_expr_ast_ptr> get_captures() const;
 		void insert_capture( const x::identifier_expr_ast_ptr & val );
-		std::span<const x::parameter_element_ast_ptr> get_parameters() const;
-		void insert_parameter( const x::parameter_element_ast_ptr & val );
+		std::span<const x::parameter_ast_ptr> get_parameters() const;
+		void insert_parameter( const x::parameter_ast_ptr & val );
 
 	private:
-		bool _is_async = false;
 		std::string _name;
 		x::compound_stat_ast_ptr _stat;
 		std::vector<x::type_ast_ptr> _results;
 		std::vector<x::identifier_expr_ast_ptr> _captures;
-		std::vector<x::parameter_element_ast_ptr> _parameters;
+		std::vector<x::parameter_ast_ptr> _parameters;
+	};
+	class elements_expr_ast : public expr_stat_ast
+	{
+	public:
+		x::ast_t type() const override;
+		void accept( visitor * val ) override;
+		bool reset_child( const x::ast_ptr & old_child, const x::ast_ptr & new_child ) override;
+
+	public:
+		std::span<const x::expr_stat_ast_ptr> get_elements() const;
+		void insert_element( const x::expr_stat_ast_ptr & val );
+
+	private:
+		std::vector<x::expr_stat_ast_ptr> _elements;
 	};
 	class arguments_expr_ast : public expr_stat_ast
 	{
 	public:
 		x::ast_t type() const override;
 		void accept( visitor * val ) override;
+		bool reset_child( const x::ast_ptr & old_child, const x::ast_ptr & new_child ) override;
 
 	public:
 		std::span<const x::expr_stat_ast_ptr> get_args() const;
@@ -818,6 +753,7 @@ namespace x
 	public:
 		x::ast_t type() const override;
 		void accept( visitor * val ) override;
+		bool reset_child( const x::ast_ptr & old_child, const x::ast_ptr & new_child ) override;
 
 	public:
 		std::span<const x::expr_stat_ast_ptr> get_args() const;
@@ -826,16 +762,16 @@ namespace x
 	private:
 		std::vector<x::expr_stat_ast_ptr> _args;
 	};
-	class const_expr_ast : public expr_stat_ast
+	class constant_expr_ast : public expr_stat_ast
 	{
 	};
-	class null_const_expr_ast : public const_expr_ast
+	class null_constant_expr_ast : public constant_expr_ast
 	{
 	public:
 		x::ast_t type() const override;
 		void accept( visitor * val ) override;
 	};
-	class bool_const_expr_ast : public const_expr_ast
+	class bool_constant_expr_ast : public constant_expr_ast
 	{
 	public:
 		x::ast_t type() const override;
@@ -848,10 +784,10 @@ namespace x
 	private:
 		bool _value = false;
 	};
-	class int_const_expr_ast : public const_expr_ast
+	class int_constant_expr_ast : public constant_expr_ast
 	{
 	};
-	class int8_const_expr_ast : public int_const_expr_ast
+	class int8_constant_expr_ast : public int_constant_expr_ast
 	{
 	public:
 		x::ast_t type() const override;
@@ -864,7 +800,7 @@ namespace x
 	private:
 		x::int8 _value = 0;
 	};
-	class int16_const_expr_ast : public int_const_expr_ast
+	class int16_constant_expr_ast : public int_constant_expr_ast
 	{
 	public:
 		x::ast_t type() const override;
@@ -877,7 +813,7 @@ namespace x
 	private:
 		x::int16 _value = 0;
 	};
-	class int32_const_expr_ast : public int_const_expr_ast
+	class int32_constant_expr_ast : public int_constant_expr_ast
 	{
 	public:
 		x::ast_t type() const override;
@@ -890,7 +826,7 @@ namespace x
 	private:
 		x::int32 _value = 0;
 	};
-	class int64_const_expr_ast : public int_const_expr_ast
+	class int64_constant_expr_ast : public int_constant_expr_ast
 	{
 	public:
 		x::ast_t type() const override;
@@ -903,7 +839,7 @@ namespace x
 	private:
 		x::int64 _value = 0;
 	};
-	class uint8_const_expr_ast : public int_const_expr_ast
+	class uint8_constant_expr_ast : public int_constant_expr_ast
 	{
 	public:
 		x::ast_t type() const override;
@@ -916,7 +852,7 @@ namespace x
 	private:
 		x::uint8 _value = 0;
 	};
-	class uint16_const_expr_ast : public int_const_expr_ast
+	class uint16_constant_expr_ast : public int_constant_expr_ast
 	{
 	public:
 		x::ast_t type() const override;
@@ -929,7 +865,7 @@ namespace x
 	private:
 		x::uint16 _value = 0;
 	};
-	class uint32_const_expr_ast : public int_const_expr_ast
+	class uint32_constant_expr_ast : public int_constant_expr_ast
 	{
 	public:
 		x::ast_t type() const override;
@@ -942,7 +878,7 @@ namespace x
 	private:
 		x::uint32 _value = 0;
 	};
-	class uint64_const_expr_ast : public int_const_expr_ast
+	class uint64_constant_expr_ast : public int_constant_expr_ast
 	{
 	public:
 		x::ast_t type() const override;
@@ -955,10 +891,10 @@ namespace x
 	private:
 		x::uint64 _value = 0;
 	};
-	class float_const_expr_ast : public const_expr_ast
+	class float_constant_expr_ast : public constant_expr_ast
 	{
 	};
-	class float16_const_expr_ast : public float_const_expr_ast
+	class float16_constant_expr_ast : public float_constant_expr_ast
 	{
 	public:
 		x::ast_t type() const override;
@@ -971,7 +907,7 @@ namespace x
 	private:
 		x::float16 _value = 0.0f;
 	};
-	class float32_const_expr_ast : public float_const_expr_ast
+	class float32_constant_expr_ast : public float_constant_expr_ast
 	{
 	public:
 		x::ast_t type() const override;
@@ -984,7 +920,7 @@ namespace x
 	private:
 		x::float32 _value = 0.0f;
 	};
-	class float64_const_expr_ast : public float_const_expr_ast
+	class float64_constant_expr_ast : public float_constant_expr_ast
 	{
 	public:
 		x::ast_t type() const override;
@@ -997,7 +933,7 @@ namespace x
 	private:
 		x::float64 _value = 0.0;
 	};
-	class string_const_expr_ast : public const_expr_ast
+	class string_constant_expr_ast : public constant_expr_ast
 	{
 	public:
 		x::ast_t type() const override;

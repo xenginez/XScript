@@ -32,6 +32,7 @@ extern "C"{
     typedef float float32;
     typedef double float64;
     typedef void * intptr;
+    typedef void * valueptr;
     typedef const char * strptr;
 
     typedef intptr x_zip;
@@ -234,6 +235,7 @@ extern "C"{
     int x_main( int argc, const char ** argv );
     uint8 x_os_arch();
     x_string x_os_name();
+    x_string x_os_stacktrace(int ignore = 1);
 
     // zip
     x_zip x_zip_create();
@@ -319,11 +321,14 @@ extern "C"{
 
     // font
     x_font x_font_create();
+    void x_font_release( x_font font );
 
     // image
     x_image x_image_create();
+    void x_image_release( x_image image );
 
     // iconv
+    x_string x_iconv_codepage();
     x_iconv x_iconv_create( x_string fromcode, x_string tocode );
     uint64 x_iconv_iconv( x_iconv iconv, x_string inbuf, uint64 inbytes, x_buffer outbuf );
     void x_iconv_release( x_iconv iconv );
@@ -398,7 +403,12 @@ extern "C"{
     void x_condition_release( x_condition cond );
 
     // coroutine
-    x_coroutine x_coroutine_create( uint64 size );
+    bool x_coroutine_done( x_coroutine coroutine );
+    void x_coroutine_yield( x_coroutine coroutine );
+    void x_coroutine_await( x_coroutine coroutine );
+    void x_coroutine_return( x_coroutine coroutine );
+    void x_coroutine_resume( x_coroutine coroutine );
+    void x_coroutine_sleep_for( x_coroutine coroutine, int64 duration );
     void x_coroutine_sleep_until( x_coroutine coroutine, int64 time );
     void x_coroutine_file_read( x_coroutine coroutine, x_file file, intptr buffer, uint64 size );
     void x_coroutine_file_write( x_coroutine coroutine, x_file file, intptr buffer, uint64 size );
@@ -407,7 +417,6 @@ extern "C"{
     void x_coroutine_socket_recv( x_coroutine coroutine, x_socket socket, intptr buffer, uint64 size );
     void x_coroutine_socket_send( x_coroutine coroutine, x_socket socket, intptr buffer, uint64 size );
     void x_coroutine_socket_sendto( x_coroutine coroutine, x_socket socket, x_string peername, uint16 port, intptr buffer, uint64 size );
-    void x_coroutine_release( x_coroutine coroutine );
     
 #ifdef __cplusplus
 }

@@ -65,6 +65,7 @@ namespace x
 		x::value_flags flags() const;
 
 	public:
+		bool empty() const;
 		bool is_ref() const;
 		bool is_null() const;
 		bool is_bool() const;
@@ -85,7 +86,6 @@ namespace x
 		bool is_string() const;
 		bool is_intptr() const;
 		bool is_object() const;
-		bool is_invalid() const;
 
 	public:
 		bool to_bool() const;
@@ -155,6 +155,7 @@ namespace x
 		value_handle & operator=( const value_handle & val );
 
 	public:
+		operator bool() const;
 		x::value & operator*();
 		const x::value & operator*() const;
 		x::value * operator->();

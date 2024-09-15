@@ -59,9 +59,7 @@ namespace x
         LIST_TYPE,
         ARRAY_TYPE,
 
-        ENUM_ELEMENT,
-        TEMPLATE_ELEMENT,
-        PARAMETER_ELEMENT,
+        PARAMETER,
 
         ENUM_DECL,
         CLASS_DECL,
@@ -77,7 +75,6 @@ namespace x
         COMPOUND_STAT,
         AWAIT_STAT,
         YIELD_STAT,
-        NEW_STAT,
         IF_STAT,
         WHILE_STAT,
         FOR_STAT,
@@ -94,24 +91,32 @@ namespace x
         UNARY_EXP,
         BRACKET_EXP,
         CLOSURE_EXP,
+        ELEMENTS_EXP,
         ARGUMENTS_EXP,
         IDENTIFIER_EXP,
         INITIALIZER_EXP,
-        CONST_EXP,
-        NULL_CONST_EXP,
-        BOOL_CONST_EXP,
-        INT8_CONST_EXP,
-        INT16_CONST_EXP,
-        INT32_CONST_EXP,
-        INT64_CONST_EXP,
-        UINT8_CONST_EXP,
-        UINT16_CONST_EXP,
-        UINT32_CONST_EXP,
-        UINT64_CONST_EXP,
-        FLOAT16_CONST_EXP,
-        FLOAT32_CONST_EXP,
-        FLOAT64_CONST_EXP,
-        STRING_CONST_EXP,
+        CONSTANT_EXP,
+        NULL_CONSTANT_EXP,
+        BOOL_CONSTANT_EXP,
+        INT8_CONSTANT_EXP,
+        INT16_CONSTANT_EXP,
+        INT32_CONSTANT_EXP,
+        INT64_CONSTANT_EXP,
+        UINT8_CONSTANT_EXP,
+        UINT16_CONSTANT_EXP,
+        UINT32_CONSTANT_EXP,
+        UINT64_CONSTANT_EXP,
+        FLOAT16_CONSTANT_EXP,
+        FLOAT32_CONSTANT_EXP,
+        FLOAT64_CONSTANT_EXP,
+        STRING_CONSTANT_EXP,
+    };
+    enum class call_t
+    {
+        DECLC,
+        CALLSTD,
+        CALLFAST,
+        CALLTHIS,
     };
     enum class meta_t : x::uint8
     {
@@ -198,8 +203,6 @@ namespace x
         TK_STRING,              // string
         TK_INTPTR,              // intptr
         TK_OBJECT,              // object
-        TK_ARRAY,               // array
-        TK_COROUTINE,           // coroutine
         TK_IMPORT,              // import
         TK_ASSERT,              // assert
         TK_TEMPLATE,            // template
@@ -208,6 +211,7 @@ namespace x
         TK_USING,               // using
         TK_ENUM,                // enum
         TK_CLASS,               // class
+        TK_FRIEND,              // friend
         TK_INTERFACE,           // interface
         TK_VARIABLE,            // var
         TK_FUNCTION,            // func
@@ -226,7 +230,6 @@ namespace x
         TK_VIRTUAL,             // virtual
         TK_OVERRIDE,            // override
         TK_THREAD,              // thread
-        TK_NEW,                 // new
         TK_WHILE,               // while
         TK_IF,                  // if
         TK_ELSE,                // else
@@ -235,7 +238,6 @@ namespace x
         TK_SWITCH,              // switch
         TK_CASE,                // case
         TK_DEFAULT,             // default
-        TK_ASYNC,               // async
         TK_AWAIT,               // await
         TK_YIELD,               // yield
         TK_BREAK,               // break
@@ -297,7 +299,7 @@ namespace x
     {
         UNIT,
         ENUM,
-        ALIAS,
+        USING,
         CLASS,
         BLOCK,
         CYCLE,
@@ -311,7 +313,6 @@ namespace x
         NATIVEFUNC,
         BUILTINFUNC,
         ENUM_ELEMENT,
-        TEMPLATE_ELEMENT,
         PARAMATER_ELEMENT,
     };
     enum class opcode_t : x::uint8
@@ -418,6 +419,58 @@ namespace x
         MEDIUM,
         LARGE,
         HUGE,
+    };
+    enum class operator_t
+    {
+        NONE,
+        LBACKET,            // (
+        RBACKET,            // )
+        XOR_ASSIGN,			// ^= 
+        OR_ASSIGN,			// |= 
+        AND_ASSIGN,			// &= 
+        RSHIFT_EQUAL,		// >>=
+        LSHIFT_EQUAL,		// <<=
+        SUB_ASSIGN,			// -= 
+        ADD_ASSIGN,			// +=
+        MOD_ASSIGN,			// %= 
+        DIV_ASSIGN,			// /= 
+        MUL_ASSIGN,			// *=
+        ASSIGN,				// =
+        LOR,				// ||
+        LAND,				// &&
+        OR,					// |
+        XOR,				// ^
+        AND,				// &
+        NOT_EQUAL,			// !=
+        EQUAL,				// ==
+        COMPARE,			// <=>
+        LARG_EQUAL,			// >=
+        LESS_EQUAL,			// <=
+        LARG,				// >
+        LESS,				// <
+        RIGHT_SHIFT,		// >> 
+        LEFT_SHIFT,			// <<
+        SUB,				// - 
+        ADD,				// +
+        MOD,				// %
+        DIV,				// / 
+        MUL,				// * 
+        MINUS,			    // -i
+        PLUS,			    // +i
+        NOT,			    // !
+        REV,			    // ~
+        POSTDEC,		    // i--
+        POSTINC,		    // i++
+        SIZEOF,			    // sizeof
+        TYPEOF,			    // typeof
+        AS,					// as
+        IS,					// is
+        DEC,			    // --i
+        INC,			    // ++i
+        INVOKE,				// x(y)
+        INDEX,              // x[y]
+        MEMBER,				// x.y
+
     };
     enum class corostatus_t
     {
@@ -559,7 +612,7 @@ namespace x
     PTR( symbol );
     PTR( unit_symbol );
     PTR( enum_symbol );
-    PTR( alias_symbol );
+    PTR( using_symbol );
     PTR( class_symbol );
     PTR( block_symbol );
     PTR( cycle_symbol );
@@ -567,27 +620,24 @@ namespace x
     PTR( function_symbol );
     PTR( variable_symbol );
     PTR( template_symbol );
+    PTR( paramater_symbol );
     PTR( interface_symbol );
     PTR( namespace_symbol );
     PTR( foundation_symbol );
     PTR( nativefunc_symbol );
     PTR( builtinfunc_symbol );
     PTR( enum_element_symbol );
-    PTR( template_element_symbol );
-    PTR( paramater_element_symbol );
 
     PTR( ast );
     PTR( unit_ast );
     PTR( import_ast );
     PTR( attribute_ast );
+    PTR( parameter_ast );
     PTR( type_ast );
     PTR( func_type_ast );
     PTR( temp_type_ast );
     PTR( list_type_ast );
     PTR( array_type_ast );
-    PTR( enum_element_ast );
-    PTR( template_element_ast );
-    PTR( parameter_element_ast );
     PTR( decl_ast );
     PTR( enum_decl_ast );
     PTR( class_decl_ast );
@@ -603,7 +653,6 @@ namespace x
     PTR( compound_stat_ast );
     PTR( await_stat_ast );
     PTR( yield_stat_ast );
-    PTR( new_stat_ast );
     PTR( if_stat_ast );
     PTR( cycle_stat_ast );
     PTR( while_stat_ast );
@@ -621,26 +670,27 @@ namespace x
     PTR( unary_expr_ast );
     PTR( bracket_expr_ast );
     PTR( closure_expr_ast );
+    PTR( elements_expr_ast );
     PTR( arguments_expr_ast );
     PTR( identifier_expr_ast );
     PTR( initializer_expr_ast );
-    PTR( const_expr_ast );
-    PTR( null_const_expr_ast );
-    PTR( bool_const_expr_ast );
-    PTR( int_const_expr_ast );
-    PTR( int8_const_expr_ast );
-    PTR( int16_const_expr_ast );
-    PTR( int32_const_expr_ast );
-    PTR( int64_const_expr_ast );
-    PTR( uint8_const_expr_ast );
-    PTR( uint16_const_expr_ast );
-    PTR( uint32_const_expr_ast );
-    PTR( uint64_const_expr_ast );
-    PTR( float_const_expr_ast );
-    PTR( float16_const_expr_ast );
-    PTR( float32_const_expr_ast );
-    PTR( float64_const_expr_ast );
-    PTR( string_const_expr_ast );
+    PTR( constant_expr_ast );
+    PTR( null_constant_expr_ast );
+    PTR( bool_constant_expr_ast );
+    PTR( int_constant_expr_ast );
+    PTR( int8_constant_expr_ast );
+    PTR( int16_constant_expr_ast );
+    PTR( int32_constant_expr_ast );
+    PTR( int64_constant_expr_ast );
+    PTR( uint8_constant_expr_ast );
+    PTR( uint16_constant_expr_ast );
+    PTR( uint32_constant_expr_ast );
+    PTR( uint64_constant_expr_ast );
+    PTR( float_constant_expr_ast );
+    PTR( float16_constant_expr_ast );
+    PTR( float32_constant_expr_ast );
+    PTR( float64_constant_expr_ast );
+    PTR( string_constant_expr_ast );
 
     struct location
     {
@@ -763,8 +813,6 @@ namespace x
         { "string", x::token_t::TK_STRING },
         { "intptr", x::token_t::TK_INTPTR },
         { "object", x::token_t::TK_OBJECT },
-        { "array", x::token_t::TK_ARRAY },
-        { "coroutine", x::token_t::TK_COROUTINE },
         { "import", x::token_t::TK_IMPORT },
         { "assert", x::token_t::TK_ASSERT },
         { "template", x::token_t::TK_TEMPLATE },
@@ -773,6 +821,7 @@ namespace x
         { "using", x::token_t::TK_USING },
         { "enum", x::token_t::TK_ENUM },
         { "class", x::token_t::TK_CLASS },
+        { "friend", x::token_t::TK_FRIEND },
         { "interface", x::token_t::TK_INTERFACE },
         { "var", x::token_t::TK_VARIABLE },
         { "func", x::token_t::TK_FUNCTION },
@@ -791,7 +840,6 @@ namespace x
         { "virtual", x::token_t::TK_VIRTUAL },
         { "override", x::token_t::TK_OVERRIDE },
         { "thread", x::token_t::TK_THREAD },
-        { "new", x::token_t::TK_NEW },
         { "while", x::token_t::TK_WHILE },
         { "if", x::token_t::TK_IF },
         { "else", x::token_t::TK_ELSE },
@@ -800,7 +848,6 @@ namespace x
         { "switch", x::token_t::TK_SWITCH },
         { "case", x::token_t::TK_CASE },
         { "default", x::token_t::TK_DEFAULT },
-        { "async", x::token_t::TK_ASYNC },
         { "await", x::token_t::TK_AWAIT },
         { "yield", x::token_t::TK_YIELD },
         { "break", x::token_t::TK_BREAK },

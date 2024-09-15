@@ -15,8 +15,8 @@ namespace x
         struct item
         {
             flag_t flag;
-            x::uint64 size;
             x::range name; // stringdata section range
+            x::uint64 size;
         };
 
         std::vector<item> items;

@@ -33,6 +33,7 @@ namespace x
 		std::string fullname;
 		x::symbol_wptr parent;
 		x::symbols_wptr symbols;
+		x::access_t access = x::access_t::PUBLIC;
 	};
 	class unit_symbol : public x::symbol
 	{
@@ -68,11 +69,11 @@ namespace x
 		x::enum_decl_ast_ptr enum_ast;
 		std::vector<x::enum_element_symbol_ptr> elements;
 	};
-	class alias_symbol : public x::symbol
+	class using_symbol : public x::symbol
 	{
 	public:
-		alias_symbol();
-		~alias_symbol() override;
+		using_symbol();
+		~using_symbol() override;
 
 	public:
 		bool is_type() const override;
@@ -100,7 +101,7 @@ namespace x
 	public:
 		x::class_symbol_wptr base;
 		x::class_decl_ast_ptr class_ast;
-		std::vector<x::alias_symbol_ptr> aliases;
+		std::vector<x::using_symbol_ptr> usings;
 		std::vector<x::function_symbol_ptr> functions;
 		std::vector<x::variable_symbol_ptr> variables;
 	};
@@ -182,7 +183,7 @@ namespace x
 		x::block_symbol_ptr block = nullptr;
 		x::function_decl_ast_ptr function_ast;
 		std::vector<x::symbol_wptr> results;
-		std::vector<x::paramater_element_symbol_ptr> parameters;
+		std::vector<x::paramater_symbol_ptr> parameters;
 	};
 	class template_symbol : public x::symbol
 	{
@@ -201,11 +202,25 @@ namespace x
 	public:
 		x::class_symbol_wptr base;
 		x::template_decl_ast_ptr template_ast;
-		std::vector<x::alias_symbol_ptr> aliases;
+		std::vector<x::symbol_wptr> elements;
+		std::vector<x::using_symbol_ptr> usings;
 		std::vector<x::function_symbol_ptr> functions;
 		std::vector<x::variable_symbol_ptr> variables;
 		std::vector<x::class_symbol_wptr> specializeds;
-		std::vector<x::template_element_symbol_ptr> elements;
+	};
+	class paramater_symbol : public x::symbol
+	{
+	public:
+		paramater_symbol();
+		~paramater_symbol() override;
+
+	public:
+		bool is_value() const override;
+		x::ast_ptr ast() const override;
+
+	public:
+		x::symbol_wptr valuetype;
+		x::parameter_ast_ptr parameter_ast;
 	};
 	class interface_symbol : public x::symbol
 	{
@@ -275,7 +290,7 @@ namespace x
 		bool is_await = false;
 		void * callback = nullptr;
 		x::symbol_wptr result;
-		std::vector<x::paramater_element_symbol_ptr> parameters;
+		std::vector<x::paramater_symbol_ptr> parameters;
 	};
 	class builtinfunc_symbol : public x::symbol
 	{
@@ -292,7 +307,7 @@ namespace x
 	public:
 		x::builtin_ptr built = nullptr;
 		x::symbol_wptr result;
-		std::vector<x::paramater_element_symbol_ptr> parameters;
+		std::vector<x::paramater_symbol_ptr> parameters;
 	};
 	class enum_element_symbol : public x::symbol
 	{
@@ -305,35 +320,7 @@ namespace x
 		x::ast_ptr ast() const override;
 
 	public:
-		x::enum_element_ast_ptr element_ast;
-	};
-	class template_element_symbol : public x::symbol
-	{
-	public:
-		template_element_symbol();
-		~template_element_symbol() override;
-
-	public:
-		bool is_type() const override;
-		x::ast_ptr ast() const override;
-
-	public:
-		bool is_multi = false;	
-		x::template_element_ast_ptr template_ast;
-	};
-	class paramater_element_symbol : public x::symbol
-	{
-	public:
-		paramater_element_symbol();
-		~paramater_element_symbol() override;
-
-	public:
-		bool is_value() const override;
-		x::ast_ptr ast() const override;
-
-	public:
-		x::symbol_wptr valuetype;
-		x::parameter_element_ast_ptr parameter_ast;
+		x::expr_stat_ast_ptr element_ast;
 	};
 
 	class symbols : public std::enable_shared_from_this<symbols>
@@ -344,13 +331,8 @@ namespace x
 
 	public:
 		x::unit_symbol_ptr add_unit( x::unit_ast * val );
-		
-		x::enum_element_symbol_ptr add_enum_elem( x::enum_element_ast * val );
-		x::template_element_symbol_ptr add_template_elem( x::template_element_ast * val );
-		x::paramater_element_symbol_ptr add_paramater_elem( x::parameter_element_ast * val );
-
 		x::enum_symbol_ptr add_enum( x::enum_decl_ast * val );
-		x::alias_symbol_ptr add_alias( x::using_decl_ast * val );
+		x::using_symbol_ptr add_using( x::using_decl_ast * val );
 		x::class_symbol_ptr add_class( x::class_decl_ast * val );
 		x::block_symbol_ptr add_block( x::compound_stat_ast * val );
 		x::cycle_symbol_ptr add_cycle( x::cycle_stat_ast * val );
@@ -358,31 +340,30 @@ namespace x
 		x::function_symbol_ptr add_function( x::function_decl_ast * val );
 		x::variable_symbol_ptr add_variable( x::variable_decl_ast * val );
 		x::template_symbol_ptr add_template( x::template_decl_ast * val );
+		x::paramater_symbol_ptr add_paramater( x::parameter_ast * val );
 		x::interface_symbol_ptr add_interface( x::interface_decl_ast * val );
 		x::namespace_symbol_ptr add_namespace( x::namespace_decl_ast * val );
 		x::foundation_symbol_ptr add_foundation( std::string_view name, x::uint64 size );
 		x::nativefunc_symbol_ptr add_nativefunc( std::string_view name, void * callback );
 		x::builtinfunc_symbol_ptr add_builtinfunc( std::string_view name, x::builtin_ptr builtin );
+		x::enum_element_symbol_ptr add_enum_element( std::string_view name, x::expr_stat_ast * val );
 
 	public:
 		void push_scope( std::string_view name );
 		void push_scope( const x::symbol_ptr & symbol );
-		x::symbol_ptr cur_scope() const;
+		x::symbol_ptr current_scope() const;
 		void pop_scope();
 
 	public:
-		x::symbol_ptr find_type_symbol( std::string_view name ) const;
-		x::symbol_ptr find_scope_symbol( std::string_view name ) const;
-		x::symbol_ptr find_class_symbol( std::string_view name ) const;
 		x::symbol_ptr find_symbol( std::string_view name, x::symbol_ptr scope = nullptr ) const;
-		x::symbol_ptr up_find_symbol_from_type( x::symbol_t type ) const;
-		std::vector<x::template_symbol_ptr> find_template_symbols( std::string_view name ) const;
+		x::symbol_ptr find_symbol_from_type( std::string_view name, x::symbol_t type, x::symbol_ptr scope = nullptr ) const;
 
 	public:
 		x::namespace_symbol_ptr global_namespace() const;
 		std::string calc_fullname( std::string_view name ) const;
 		x::symbol_ptr find_symbol_from_ast( const x::ast_ptr & ast ) const;
 		x::symbol_ptr find_symbol_from_fullname( std::string_view fullname ) const;
+		std::vector<x::template_symbol_ptr> find_template_symbols( std::string_view fullname ) const;
 
 	public:
 		void add_reference( x::ast * ast, std::string_view name, const x::symbol_ptr & val );

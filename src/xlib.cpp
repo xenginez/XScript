@@ -946,19 +946,33 @@ void x_condition_release( x_condition cond )
 	delete reinterpret_cast<condition_info *>( cond );
 }
 
-x_coroutine x_coroutine_create( uint64 size )
+bool x_coroutine_done( x_coroutine coroutine )
 {
-	return new x::coroutine;
+	return false;
 }
+void x_coroutine_yield( x_coroutine coroutine )
+{
+
+}
+void x_coroutine_await( x_coroutine coroutine )
+{
+
+}
+void x_coroutine_return( x_coroutine coroutine )
+{
+
+}
+void x_coroutine_resume( x_coroutine coroutine )
+{
+
+}
+
 void x_coroutine_sleep_for( x_coroutine coroutine, int64 milliseconds )
 {
+
 	//x::scheduler;
 }
 void x_coroutine_sleep_until( x_coroutine coroutine, int64 time )
 {
 	//x::scheduler;
-}
-void x_coroutine_release( x_coroutine coroutine )
-{
-	delete (x::coroutine *)( coroutine );
 }

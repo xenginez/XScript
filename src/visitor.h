@@ -13,16 +13,13 @@ namespace x
 		virtual void visit( x::unit_ast * val );
 		virtual void visit( x::import_ast * val );
 		virtual void visit( x::attribute_ast * val );
+		virtual void visit( x::parameter_ast * val );
 
 		virtual void visit( x::type_ast * val );
 		virtual void visit( x::func_type_ast * val );
 		virtual void visit( x::temp_type_ast * val );
 		virtual void visit( x::list_type_ast * val );
 		virtual void visit( x::array_type_ast * val );
-
-		virtual void visit( x::enum_element_ast * val );
-		virtual void visit( x::template_element_ast * val );
-		virtual void visit( x::parameter_element_ast * val );
 
 		virtual void visit( x::enum_decl_ast * val );
 		virtual void visit( x::class_decl_ast * val );
@@ -38,7 +35,6 @@ namespace x
 		virtual void visit( x::compound_stat_ast * val );
 		virtual void visit( x::await_stat_ast * val );
 		virtual void visit( x::yield_stat_ast * val );
-		virtual void visit( x::new_stat_ast * val );
 		virtual void visit( x::if_stat_ast * val );
 		virtual void visit( x::while_stat_ast * val );
 		virtual void visit( x::for_stat_ast * val );
@@ -55,14 +51,15 @@ namespace x
 		virtual void visit( x::unary_expr_ast * val );
 		virtual void visit( x::bracket_expr_ast * val );
 		virtual void visit( x::closure_expr_ast * val );
+		virtual void visit( x::elements_expr_ast * val );
 		virtual void visit( x::arguments_expr_ast * val );
 		virtual void visit( x::identifier_expr_ast * val );
 		virtual void visit( x::initializer_expr_ast * val );
-		virtual void visit( x::null_const_expr_ast * val );
-		virtual void visit( x::bool_const_expr_ast * val );
-		virtual void visit( x::int_const_expr_ast * val );
-		virtual void visit( x::float_const_expr_ast * val );
-		virtual void visit( x::string_const_expr_ast * val );
+		virtual void visit( x::null_constant_expr_ast * val );
+		virtual void visit( x::bool_constant_expr_ast * val );
+		virtual void visit( x::int_constant_expr_ast * val );
+		virtual void visit( x::float_constant_expr_ast * val );
+		virtual void visit( x::string_constant_expr_ast * val );
 	};
 
 	class scope_scanner_visitor : public x::visitor
@@ -106,9 +103,7 @@ namespace x
 	public:
 		void visit( x::unit_ast * val ) override;
 
-		void visit( x::enum_element_ast * val ) override;
-		void visit( x::template_element_ast * val ) override;
-		void visit( x::parameter_element_ast * val ) override;
+		void visit( x::parameter_ast * val ) override;
 
 		void visit( x::enum_decl_ast * val ) override;
 		void visit( x::using_decl_ast * val ) override;
@@ -135,16 +130,13 @@ namespace x
 		void visit( x::unit_ast * val ) override;
 		void visit( x::import_ast * val ) override;
 		void visit( x::attribute_ast * val ) override;
+		void visit( x::parameter_ast * val ) override;
 
 		void visit( x::type_ast * val ) override;
 		void visit( x::func_type_ast * val ) override;
 		void visit( x::temp_type_ast * val ) override;
 		void visit( x::list_type_ast * val ) override;
 		void visit( x::array_type_ast * val ) override;
-
-		void visit( x::enum_element_ast * val ) override;
-		void visit( x::template_element_ast * val ) override;
-		void visit( x::parameter_element_ast * val ) override;
 
 		void visit( x::enum_decl_ast * val ) override;
 		void visit( x::class_decl_ast * val ) override;
@@ -160,7 +152,6 @@ namespace x
 		void visit( x::compound_stat_ast * val ) override;
 		void visit( x::await_stat_ast * val ) override;
 		void visit( x::yield_stat_ast * val ) override;
-		void visit( x::new_stat_ast * val ) override;
 		void visit( x::if_stat_ast * val ) override;
 		void visit( x::while_stat_ast * val ) override;
 		void visit( x::for_stat_ast * val ) override;
@@ -178,13 +169,14 @@ namespace x
 		void visit( x::identifier_expr_ast * val ) override;
 		void visit( x::closure_expr_ast * val ) override;
 		void visit( x::bracket_expr_ast * val ) override;
+		void visit( x::elements_expr_ast * val ) override;
 		void visit( x::arguments_expr_ast * val ) override;
 		void visit( x::initializer_expr_ast * val ) override;
-		void visit( x::null_const_expr_ast * val ) override;
-		void visit( x::bool_const_expr_ast * val ) override;
-		void visit( x::int_const_expr_ast * val ) override;
-		void visit( x::float_const_expr_ast * val ) override;
-		void visit( x::string_const_expr_ast * val ) override;
+		void visit( x::null_constant_expr_ast * val ) override;
+		void visit( x::bool_constant_expr_ast * val ) override;
+		void visit( x::int_constant_expr_ast * val ) override;
+		void visit( x::float_constant_expr_ast * val ) override;
+		void visit( x::string_constant_expr_ast * val ) override;
 
 	private:
 		const char * access( x::access_t val );
