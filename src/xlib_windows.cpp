@@ -472,409 +472,6 @@ namespace
         return DefWindowProcA( hWnd, Msg, wParam, lParam );
 	}
 
-
-    x_string x_locale_utf8_local( x_string utf8_str )
-    {
-        int len = MultiByteToWideChar( CP_UTF8, 0, utf8_str, -1, NULL, 0 );
-
-        std::wstring utf16_str( len + 1, 0 );
-
-        len = MultiByteToWideChar( CP_UTF8, 0, utf8_str, -1, utf16_str.data(), len );
-
-        len = WideCharToMultiByte( CP_ACP, 0, utf16_str.data(), -1, NULL, 0, NULL, 0 );
-
-        std::string local_str( len + 1, 0 );
-
-        len = WideCharToMultiByte( CP_ACP, 0, utf16_str.data(), -1, local_str.data(), len, NULL, 0 );
-
-        return x::allocator::salloc( local_str.c_str() );
-    }
-    x_string x_locale_utf8_utf16( x_string utf8_str )
-    {
-        int len = MultiByteToWideChar( CP_UTF8, 0, utf8_str, -1, NULL, 0 );
-
-        std::wstring utf16_str( len + 1, 0 );
-
-        len = MultiByteToWideChar( CP_UTF8, 0, utf8_str, -1, utf16_str.data(), len );
-
-        return x::allocator::salloc( (const char *)utf16_str.c_str() );
-    }
-    x_string x_locale_local_utf8( x_string local_str )
-    {
-        int len = MultiByteToWideChar( CP_ACP, 0, local_str, -1, NULL, 0 );
-
-        std::wstring utf16_str( len + 1, 0 );
-
-        len = MultiByteToWideChar( CP_ACP, 0, local_str, -1, utf16_str.data(), len );
-
-        len = WideCharToMultiByte( CP_UTF8, 0, utf16_str.data(), -1, NULL, 0, NULL, 0 );
-
-        std::string utf8_str( len + 1, 0 );
-
-        len = WideCharToMultiByte( CP_UTF8, 0, utf16_str.data(), -1, utf8_str.data(), len, NULL, 0 );
-
-        return x::allocator::salloc( utf8_str.c_str() );
-    }
-    x_string x_locale_local_utf16( x_string local_str )
-    {
-        int len = MultiByteToWideChar( CP_ACP, 0, local_str, -1, NULL, 0 );
-
-        std::wstring utf16_str( len + 1, 0 );
-
-        len = MultiByteToWideChar( CP_ACP, 0, local_str, -1, utf16_str.data(), len );
-
-        return x::allocator::salloc( (const char *)utf16_str.c_str() );
-    }
-    x_string x_locale_utf16_utf8( x_string utf16_str )
-    {
-        int len = WideCharToMultiByte( CP_UTF8, 0, (const wchar_t *)utf16_str, -1, NULL, 0, NULL, 0 );
-
-        std::string utf8_str( len + 1, 0 );
-
-        len = WideCharToMultiByte( CP_UTF8, 0, (const wchar_t *)utf16_str, -1, utf8_str.data(), len, NULL, 0 );
-
-        return x::allocator::salloc( utf8_str.c_str() );
-    }
-    x_string x_locale_utf16_local( x_string utf16_str )
-    {
-        int len = WideCharToMultiByte( CP_ACP, 0, (const wchar_t *)utf16_str, -1, NULL, 0, NULL, 0 );
-
-        std::string local_str( len + 1, 0 );
-
-        len = WideCharToMultiByte( CP_ACP, 0, (const wchar_t *)utf16_str, -1, local_str.data(), len, NULL, 0 );
-
-        return x::allocator::salloc( local_str.c_str() );
-    }
-}
-
-int x_main( int argc, const char ** argv )
-{
-	WNDCLASSEXA wc;
-	wc.cbSize = sizeof( wc );
-	wc.style = CS_HREDRAW | CS_VREDRAW;
-	wc.lpfnWndProc = x_windows_process;
-	wc.cbClsExtra = 0;
-	wc.cbWndExtra = 0;
-	wc.hInstance = GetModuleHandleA( nullptr );
-	wc.hIcon = nullptr;
-	wc.hCursor = LoadCursorA( nullptr, IDC_ARROW );
-	wc.hbrBackground = static_cast<HBRUSH>( GetStockObject( COLOR_WINDOW ) );
-	wc.lpszMenuName = nullptr;
-	wc.lpszClassName = "x_window_class";
-	wc.hIconSm = nullptr;
-	RegisterClassExA( &wc );
-
-	while ( 1 )
-	{
-        MSG msg = {};
-		if ( GetMessageA( &msg, nullptr, 0, 0 ) )
-		{
-			if ( msg.message == WM_QUIT )
-				break;
-
-			TranslateMessage( &msg );
-
-			DispatchMessageA( &msg );
-		}
-	}
-
-	return 0;
-}
-uint8 x_os_arch()
-{
-	return sizeof( void * ) * CHAR_BIT;
-}
-x_string x_os_name()
-{
-	return x::allocator::salloc( "windows" );
-}
-x_string x_os_stacktrace( int ignore )
-{
-    std::string result;
-
-#ifdef _M_IX86
-#define XIP Eip
-#define XBP Ebp
-#define XSP Esp
-    DWORD address = 0;
-    DWORD machine = IMAGE_FILE_MACHINE_I386;
-#elif _M_X64
-#define XIP Rip
-#define XBP Rbp
-#define XSP Rsp
-    DWORD64 address = 0;
-    DWORD machine = IMAGE_FILE_MACHINE_AMD64;
-#else _M_IA64
-#define XIP Rip
-#define XBP Rbp
-#define XSP Rsp
-#define DIFF DWORD
-    DWORD machine = IMAGE_FILE_MACHINE_IA64;
-#endif
-
-    std::string file;
-    std::uint32_t line;
-    std::string module;
-    std::string function;
-    char buffer[sizeof( IMAGEHLP_SYMBOL ) + 255];
-
-    HANDLE process = GetCurrentProcess();
-    HANDLE thread = GetCurrentThread();
-    CONTEXT context = {};
-    STACKFRAME frame = {};
-
-    context.ContextFlags = CONTEXT_FULL;
-    RtlCaptureContext( &context );
-
-    frame.AddrPC.Offset = context.XIP;
-    frame.AddrPC.Mode = AddrModeFlat;
-    frame.AddrFrame.Offset = context.XBP;
-    frame.AddrFrame.Mode = AddrModeFlat;
-    frame.AddrStack.Offset = context.XSP;
-    frame.AddrStack.Mode = AddrModeFlat;
-
-    SymInitialize( process, NULL, TRUE );
-    SymSetOptions( SymGetOptions() | SYMOPT_LOAD_LINES );
-
-    for ( size_t i = 0; i < ignore; i++ )
-    {
-        StackWalk( machine, process, thread, &frame, &context, NULL, SymFunctionTableAccess, SymGetModuleBase, NULL );
-    }
-
-    while ( StackWalk( machine, process, thread, &frame, &context, NULL, SymFunctionTableAccess, SymGetModuleBase, NULL ) )
-    {
-        address = frame.AddrPC.Offset;
-
-        memset( buffer, 0, sizeof( buffer ) );
-        HINSTANCE moduleBase = (HINSTANCE)SymGetModuleBase( process, frame.AddrPC.Offset );
-        if ( moduleBase && GetModuleFileNameA( moduleBase, buffer, MAX_PATH ) )
-        {
-            module = std::filesystem::path( buffer ).filename().string();
-        }
-
-        memset( buffer, 0, sizeof( buffer ) );
-        PIMAGEHLP_SYMBOL symbol = (PIMAGEHLP_SYMBOL)buffer;
-        symbol->SizeOfStruct = ( sizeof IMAGEHLP_SYMBOL ) + 255;
-        symbol->MaxNameLength = 254;
-        if ( SymGetSymFromAddr( process, frame.AddrPC.Offset, NULL, symbol ) )
-        {
-            function = symbol->Name;
-        }
-
-        DWORD offset = 0;
-        IMAGEHLP_LINE img_line;
-        img_line.SizeOfStruct = sizeof( IMAGEHLP_LINE );
-        if ( SymGetLineFromAddr( process, frame.AddrPC.Offset, &offset, &img_line ) )
-        {
-            file = img_line.FileName;
-            line = img_line.LineNumber;
-        }
-
-        if ( file.empty() ) file = "{empty}";
-        if ( module.empty() ) module = "{empty}";
-        if ( function.empty() ) function = "{empty}";
-
-        result.append( std::format( "{}|{}->0x{:X} {}:{} \n", module, function, address, file, line ) );
-    }
-    
-    SymCleanup( process );
-
-    return x::allocator::salloc( result );
-}
-
-x_file x_file_create()
-{
-    return new file_info;
-}
-bool x_file_open( x_file file, x_path path, uint32 mode )
-{
-    auto info = (file_info *)file;
-
-    DWORD dwDesiredAccess = 0, dwCreationDisposition = 0;
-
-    if ( mode & FILE_MODE_READ )
-    {
-        dwDesiredAccess |= GENERIC_READ;
-        dwCreationDisposition = OPEN_EXISTING;
-    }
-    if ( mode & FILE_MODE_WRITE )
-    {
-        dwDesiredAccess |= GENERIC_WRITE;
-        dwCreationDisposition = CREATE_NEW;
-    }
-    if ( mode & FILE_MODE_TRUNCATE )
-    {
-        dwDesiredAccess |= GENERIC_WRITE;
-        dwCreationDisposition = TRUNCATE_EXISTING;
-    }
-
-    info->path = path;
-    info->mode = mode;
-    info->handle = CreateFileA( path, dwDesiredAccess, 0, nullptr, dwCreationDisposition, FILE_FLAG_OVERLAPPED, nullptr );
-
-    if ( info->handle != INVALID_HANDLE_VALUE  )
-    {
-        if ( info->mode & FILE_MODE_APPAND )
-        {
-            auto end_off = x_file_size( file );
-            info->readoff = end_off;
-            info->writeoff = end_off;
-        }
-
-        ::CreateIoCompletionPort( info->handle, windows_scheduler::iocp_handle(), (ULONG_PTR)info, 0 );
-    }
-
-    return info->handle != INVALID_HANDLE_VALUE;
-}
-uint64 x_file_size( x_file file )
-{
-    auto info = (file_info *)file;
-
-    return std::filesystem::file_size( info->path );
-}
-x_string x_file_name( x_file file )
-{
-    auto info = (file_info *)file;
-
-    return x::allocator::salloc( info->path.filename().string() );
-}
-int64 x_file_time( x_file file )
-{
-    auto info = (file_info *)file;
-
-    auto time = std::filesystem::last_write_time( info->path );
-
-    return std::chrono::duration_cast<std::chrono::milliseconds>( std::chrono::time_point_cast<std::chrono::milliseconds>( time ).time_since_epoch() ).count();
-}
-void x_file_rename( x_file file, x_string name )
-{
-    auto info = (file_info *)file;
-
-    std::filesystem::rename( info->path, name );
-}
-bool x_file_is_eof( x_file file )
-{
-    return ( (file_info *)file )->readoff >= x_file_size( file );
-}
-uint64 x_file_read_tell( x_file file )
-{
-    return ( (file_info *)file )->readoff;
-}
-uint64 x_file_write_tell( x_file file )
-{
-    return ( (file_info *)file )->writeoff;
-}
-void x_file_read_seek( x_file file, int32 off, uint32 pos )
-{
-    auto info = (file_info *)file;
-
-    switch ( pos )
-    {
-    case SEEK_POS_BEG:
-        info->readoff = off;
-        break;
-    case SEEK_POS_CUR:
-        info->readoff += off;
-        break;
-    case SEEK_POS_END:
-        info->readoff = x_file_size( file ) + off;
-        break;
-    default:
-        break;
-    }
-}
-void x_file_write_seek( x_file file, int32 off, uint32 pos )
-{
-    auto info = (file_info *)file;
-
-    switch ( pos )
-    {
-    case SEEK_POS_BEG:
-        info->writeoff = off;
-        break;
-    case SEEK_POS_CUR:
-        info->writeoff += off;
-        break;
-    case SEEK_POS_END:
-        info->writeoff = x_file_size( file ) + off;
-        break;
-    default:
-        break;
-    }
-}
-uint64 x_file_read( x_file file, intptr buffer, uint64 size )
-{
-    auto info = (file_info *)file;
-
-    LONG low = 0, high = 0;
-
-    if ( info->readoff > LONG_MAX )
-    {
-        low = info->readoff & 0xFFFFFFFF;
-        high = ( info->readoff >> 32 );
-    }
-    else
-    {
-        low = (LONG)info->readoff;
-        high = 0;
-    }
-
-    if ( ::SetFilePointer( info->handle, low, &high, FILE_BEGIN ) != INVALID_SET_FILE_POINTER )
-    {
-        DWORD BytesToRead = (DWORD)size, BytesRead = 0;
-
-        if ( ::ReadFile( info->handle, buffer, BytesToRead, &BytesRead, nullptr ) )
-        {
-            info->readoff += BytesRead;
-            return BytesRead;
-        }
-    }
-
-    return 0;
-}
-uint64 x_file_write( x_file file, intptr buffer, uint64 size )
-{
-    auto info = (file_info *)file;
-
-    LONG low = 0, high = 0;
-
-    if ( info->readoff > LONG_MAX )
-    {
-        low = info->readoff & 0xFFFFFFFF;
-        high = ( info->readoff >> 32 );
-    }
-    else
-    {
-        low = (LONG)info->readoff;
-        high = 0;
-    }
-
-    if ( ::SetFilePointer( info->handle, low, &high, FILE_BEGIN ) != INVALID_SET_FILE_POINTER )
-    {
-        DWORD BytesToWrite = (DWORD)size, BytesWrite = 0;
-
-        if ( ::WriteFile( info->handle, buffer, BytesToWrite, &BytesWrite, nullptr ) )
-        {
-            info->writeoff += BytesWrite;
-            return BytesWrite;
-        }
-    }
-
-    return 0;
-}
-void x_file_close( x_file file )
-{
-    auto info = (file_info *)file;
-
-    CloseHandle( info->handle );
-}
-void x_file_release( x_file file )
-{
-    delete (file_info *)file;
-}
-
-x_string x_iconv_codepage()
-{
     static std::map<UINT, const char * const> codepages =
     {
         {65001, "CP65001"},
@@ -1324,10 +921,425 @@ x_string x_iconv_codepage()
 
         {0, NULL}
     };
+}
 
+int x_main( int argc, const char ** argv )
+{
+	WNDCLASSEXA wc;
+	wc.cbSize = sizeof( wc );
+	wc.style = CS_HREDRAW | CS_VREDRAW;
+	wc.lpfnWndProc = x_windows_process;
+	wc.cbClsExtra = 0;
+	wc.cbWndExtra = 0;
+	wc.hInstance = GetModuleHandleA( nullptr );
+	wc.hIcon = nullptr;
+	wc.hCursor = LoadCursorA( nullptr, IDC_ARROW );
+	wc.hbrBackground = static_cast<HBRUSH>( GetStockObject( COLOR_WINDOW ) );
+	wc.lpszMenuName = nullptr;
+	wc.lpszClassName = "x_window_class";
+	wc.hIconSm = nullptr;
+	RegisterClassExA( &wc );
+
+	while ( 1 )
+	{
+        MSG msg = {};
+		if ( GetMessageA( &msg, nullptr, 0, 0 ) )
+		{
+			if ( msg.message == WM_QUIT )
+				break;
+
+			TranslateMessage( &msg );
+
+			DispatchMessageA( &msg );
+		}
+	}
+
+	return 0;
+}
+uint8 x_os_arch()
+{
+	return sizeof( void * ) * CHAR_BIT;
+}
+x_string x_os_name()
+{
+	return x::allocator::salloc( "windows" );
+}
+x_string x_os_stacktrace( int ignore )
+{
+    std::string result;
+
+#ifdef _M_IX86
+#define XIP Eip
+#define XBP Ebp
+#define XSP Esp
+    DWORD address = 0;
+    DWORD machine = IMAGE_FILE_MACHINE_I386;
+#elif _M_X64
+#define XIP Rip
+#define XBP Rbp
+#define XSP Rsp
+    DWORD64 address = 0;
+    DWORD machine = IMAGE_FILE_MACHINE_AMD64;
+#else _M_IA64
+#define XIP Rip
+#define XBP Rbp
+#define XSP Rsp
+#define DIFF DWORD
+    DWORD machine = IMAGE_FILE_MACHINE_IA64;
+#endif
+
+    std::string file;
+    std::uint32_t line;
+    std::string module;
+    std::string function;
+    char buffer[sizeof( IMAGEHLP_SYMBOL ) + 255];
+
+    HANDLE process = GetCurrentProcess();
+    HANDLE thread = GetCurrentThread();
+    CONTEXT context = {};
+    STACKFRAME frame = {};
+
+    context.ContextFlags = CONTEXT_FULL;
+    RtlCaptureContext( &context );
+
+    frame.AddrPC.Offset = context.XIP;
+    frame.AddrPC.Mode = AddrModeFlat;
+    frame.AddrFrame.Offset = context.XBP;
+    frame.AddrFrame.Mode = AddrModeFlat;
+    frame.AddrStack.Offset = context.XSP;
+    frame.AddrStack.Mode = AddrModeFlat;
+
+    SymInitialize( process, NULL, TRUE );
+    SymSetOptions( SymGetOptions() | SYMOPT_LOAD_LINES );
+
+    for ( size_t i = 0; i < ignore; i++ )
+    {
+        StackWalk( machine, process, thread, &frame, &context, NULL, SymFunctionTableAccess, SymGetModuleBase, NULL );
+    }
+
+    while ( StackWalk( machine, process, thread, &frame, &context, NULL, SymFunctionTableAccess, SymGetModuleBase, NULL ) )
+    {
+        address = frame.AddrPC.Offset;
+
+        memset( buffer, 0, sizeof( buffer ) );
+        HINSTANCE moduleBase = (HINSTANCE)SymGetModuleBase( process, frame.AddrPC.Offset );
+        if ( moduleBase && GetModuleFileNameA( moduleBase, buffer, MAX_PATH ) )
+        {
+            module = std::filesystem::path( buffer ).filename().string();
+        }
+
+        memset( buffer, 0, sizeof( buffer ) );
+        PIMAGEHLP_SYMBOL symbol = (PIMAGEHLP_SYMBOL)buffer;
+        symbol->SizeOfStruct = ( sizeof IMAGEHLP_SYMBOL ) + 255;
+        symbol->MaxNameLength = 254;
+        if ( SymGetSymFromAddr( process, frame.AddrPC.Offset, NULL, symbol ) )
+        {
+            function = symbol->Name;
+        }
+
+        DWORD offset = 0;
+        IMAGEHLP_LINE img_line;
+        img_line.SizeOfStruct = sizeof( IMAGEHLP_LINE );
+        if ( SymGetLineFromAddr( process, frame.AddrPC.Offset, &offset, &img_line ) )
+        {
+            file = img_line.FileName;
+            line = img_line.LineNumber;
+        }
+
+        if ( file.empty() ) file = "{empty}";
+        if ( module.empty() ) module = "{empty}";
+        if ( function.empty() ) function = "{empty}";
+
+        result.append( std::format( "{}|{}->0x{:X} {}:{} \n", module, function, address, file, line ) );
+    }
+    
+    SymCleanup( process );
+
+    return x::allocator::salloc( result );
+}
+
+x_path x_path_app_path()
+{
+    char path[MAX_PATH + 1];
+    GetModuleFileNameA( NULL, path, MAX_PATH );
+    return x_locale_local_utf8( path );
+}
+x_path x_path_home_path()
+{
+    char homedir[MAX_PATH + 1];
+    snprintf( homedir, MAX_PATH, "%s%s", getenv( "HOMEDRIVE" ), getenv( "HOMEPATH" ) );
+    return x_locale_local_utf8( homedir );
+}
+
+x_file x_file_create()
+{
+    return new file_info;
+}
+bool x_file_open( x_file file, x_path path, uint32 mode )
+{
+    auto info = (file_info *)file;
+
+    DWORD dwDesiredAccess = 0, dwCreationDisposition = 0;
+
+    if ( mode & FILE_MODE_READ )
+    {
+        dwDesiredAccess |= GENERIC_READ;
+        dwCreationDisposition = OPEN_EXISTING;
+    }
+    if ( mode & FILE_MODE_WRITE )
+    {
+        dwDesiredAccess |= GENERIC_WRITE;
+        dwCreationDisposition = CREATE_NEW;
+    }
+    if ( mode & FILE_MODE_TRUNCATE )
+    {
+        dwDesiredAccess |= GENERIC_WRITE;
+        dwCreationDisposition = TRUNCATE_EXISTING;
+    }
+
+    info->path = path;
+    info->mode = mode;
+    info->handle = CreateFileA( path, dwDesiredAccess, 0, nullptr, dwCreationDisposition, FILE_FLAG_OVERLAPPED, nullptr );
+
+    if ( info->handle != INVALID_HANDLE_VALUE  )
+    {
+        if ( info->mode & FILE_MODE_APPAND )
+        {
+            auto end_off = x_file_size( file );
+            info->readoff = end_off;
+            info->writeoff = end_off;
+        }
+
+        ::CreateIoCompletionPort( info->handle, windows_scheduler::iocp_handle(), (ULONG_PTR)info, 0 );
+    }
+
+    return info->handle != INVALID_HANDLE_VALUE;
+}
+uint64 x_file_size( x_file file )
+{
+    auto info = (file_info *)file;
+
+    return std::filesystem::file_size( info->path );
+}
+x_string x_file_name( x_file file )
+{
+    auto info = (file_info *)file;
+
+    return x::allocator::salloc( info->path.filename().string() );
+}
+int64 x_file_time( x_file file )
+{
+    auto info = (file_info *)file;
+
+    auto time = std::filesystem::last_write_time( info->path );
+
+    return std::chrono::duration_cast<std::chrono::milliseconds>( std::chrono::time_point_cast<std::chrono::milliseconds>( time ).time_since_epoch() ).count();
+}
+void x_file_rename( x_file file, x_string name )
+{
+    auto info = (file_info *)file;
+
+    std::filesystem::rename( info->path, name );
+}
+bool x_file_is_eof( x_file file )
+{
+    return ( (file_info *)file )->readoff >= x_file_size( file );
+}
+uint64 x_file_read_tell( x_file file )
+{
+    return ( (file_info *)file )->readoff;
+}
+uint64 x_file_write_tell( x_file file )
+{
+    return ( (file_info *)file )->writeoff;
+}
+void x_file_read_seek( x_file file, int32 off, uint32 pos )
+{
+    auto info = (file_info *)file;
+
+    switch ( pos )
+    {
+    case SEEK_POS_BEG:
+        info->readoff = off;
+        break;
+    case SEEK_POS_CUR:
+        info->readoff += off;
+        break;
+    case SEEK_POS_END:
+        info->readoff = x_file_size( file ) + off;
+        break;
+    default:
+        break;
+    }
+}
+void x_file_write_seek( x_file file, int32 off, uint32 pos )
+{
+    auto info = (file_info *)file;
+
+    switch ( pos )
+    {
+    case SEEK_POS_BEG:
+        info->writeoff = off;
+        break;
+    case SEEK_POS_CUR:
+        info->writeoff += off;
+        break;
+    case SEEK_POS_END:
+        info->writeoff = x_file_size( file ) + off;
+        break;
+    default:
+        break;
+    }
+}
+uint64 x_file_read( x_file file, intptr buffer, uint64 size )
+{
+    auto info = (file_info *)file;
+
+    LONG low = 0, high = 0;
+
+    if ( info->readoff > LONG_MAX )
+    {
+        low = info->readoff & 0xFFFFFFFF;
+        high = ( info->readoff >> 32 );
+    }
+    else
+    {
+        low = (LONG)info->readoff;
+        high = 0;
+    }
+
+    if ( ::SetFilePointer( info->handle, low, &high, FILE_BEGIN ) != INVALID_SET_FILE_POINTER )
+    {
+        DWORD BytesToRead = (DWORD)size, BytesRead = 0;
+
+        if ( ::ReadFile( info->handle, buffer, BytesToRead, &BytesRead, nullptr ) )
+        {
+            info->readoff += BytesRead;
+            return BytesRead;
+        }
+    }
+
+    return 0;
+}
+uint64 x_file_write( x_file file, intptr buffer, uint64 size )
+{
+    auto info = (file_info *)file;
+
+    LONG low = 0, high = 0;
+
+    if ( info->readoff > LONG_MAX )
+    {
+        low = info->readoff & 0xFFFFFFFF;
+        high = ( info->readoff >> 32 );
+    }
+    else
+    {
+        low = (LONG)info->readoff;
+        high = 0;
+    }
+
+    if ( ::SetFilePointer( info->handle, low, &high, FILE_BEGIN ) != INVALID_SET_FILE_POINTER )
+    {
+        DWORD BytesToWrite = (DWORD)size, BytesWrite = 0;
+
+        if ( ::WriteFile( info->handle, buffer, BytesToWrite, &BytesWrite, nullptr ) )
+        {
+            info->writeoff += BytesWrite;
+            return BytesWrite;
+        }
+    }
+
+    return 0;
+}
+void x_file_close( x_file file )
+{
+    auto info = (file_info *)file;
+
+    CloseHandle( info->handle );
+}
+void x_file_release( x_file file )
+{
+    delete (file_info *)file;
+}
+
+x_string x_iconv_codepage()
+{
     auto it = codepages.find( ::GetACP() );
 
     return it != codepages.end() ? x::allocator::salloc( it->second ) : nullptr;
+}
+
+x_string x_locale_utf8_local( x_string utf8_str )
+{
+    int len = MultiByteToWideChar( CP_UTF8, 0, utf8_str, -1, NULL, 0 );
+
+    std::wstring utf16_str( len + 1, 0 );
+
+    len = MultiByteToWideChar( CP_UTF8, 0, utf8_str, -1, utf16_str.data(), len );
+
+    len = WideCharToMultiByte( CP_ACP, 0, utf16_str.data(), -1, NULL, 0, NULL, 0 );
+
+    std::string local_str( len + 1, 0 );
+
+    len = WideCharToMultiByte( CP_ACP, 0, utf16_str.data(), -1, local_str.data(), len, NULL, 0 );
+
+    return x::allocator::salloc( local_str.c_str() );
+}
+x_string x_locale_utf8_utf16( x_string utf8_str )
+{
+    int len = MultiByteToWideChar( CP_UTF8, 0, utf8_str, -1, NULL, 0 );
+
+    std::wstring utf16_str( len + 1, 0 );
+
+    len = MultiByteToWideChar( CP_UTF8, 0, utf8_str, -1, utf16_str.data(), len );
+
+    return x::allocator::salloc( (const char *)utf16_str.c_str() );
+}
+x_string x_locale_local_utf8( x_string local_str )
+{
+    int len = MultiByteToWideChar( CP_ACP, 0, local_str, -1, NULL, 0 );
+
+    std::wstring utf16_str( len + 1, 0 );
+
+    len = MultiByteToWideChar( CP_ACP, 0, local_str, -1, utf16_str.data(), len );
+
+    len = WideCharToMultiByte( CP_UTF8, 0, utf16_str.data(), -1, NULL, 0, NULL, 0 );
+
+    std::string utf8_str( len + 1, 0 );
+
+    len = WideCharToMultiByte( CP_UTF8, 0, utf16_str.data(), -1, utf8_str.data(), len, NULL, 0 );
+
+    return x::allocator::salloc( utf8_str.c_str() );
+}
+x_string x_locale_local_utf16( x_string local_str )
+{
+    int len = MultiByteToWideChar( CP_ACP, 0, local_str, -1, NULL, 0 );
+
+    std::wstring utf16_str( len + 1, 0 );
+
+    len = MultiByteToWideChar( CP_ACP, 0, local_str, -1, utf16_str.data(), len );
+
+    return x::allocator::salloc( (const char *)utf16_str.c_str() );
+}
+x_string x_locale_utf16_utf8( x_string utf16_str )
+{
+    int len = WideCharToMultiByte( CP_UTF8, 0, (const wchar_t *)utf16_str, -1, NULL, 0, NULL, 0 );
+
+    std::string utf8_str( len + 1, 0 );
+
+    len = WideCharToMultiByte( CP_UTF8, 0, (const wchar_t *)utf16_str, -1, utf8_str.data(), len, NULL, 0 );
+
+    return x::allocator::salloc( utf8_str.c_str() );
+}
+x_string x_locale_utf16_local( x_string utf16_str )
+{
+    int len = WideCharToMultiByte( CP_ACP, 0, (const wchar_t *)utf16_str, -1, NULL, 0, NULL, 0 );
+
+    std::string local_str( len + 1, 0 );
+
+    len = WideCharToMultiByte( CP_ACP, 0, (const wchar_t *)utf16_str, -1, local_str.data(), len, NULL, 0 );
+
+    return x::allocator::salloc( local_str.c_str() );
 }
 
 x_window x_window_create()

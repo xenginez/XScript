@@ -1,0 +1,69 @@
+{
+  "main project": {
+    "archive": "x",
+    "type": "execute|module",
+    "mode": "debug|release",
+    "name": "",
+    "auther": "",
+    "origin": "",
+    "version": "0",
+    "entry": "test_namespace.test_class.main",
+    "srcpath": "{current_path}/11/",
+    "install": "{current_path}/build/",
+    "depends": [
+      "sub",
+      "llvm",
+      "spirv"
+    ],
+    "linkpaths": [
+      "d:/std/",
+      "{current_path}/modules/{mode}"
+    ]
+  },
+  "sub project": {
+    "archive": "x",
+    "type": "module",
+    "mode": "debug|release",
+    "name": "sub",
+    "auther": "",
+    "origin": "",
+    "version": "0",
+    "srcpath": "{current_path}/11/",
+    "install": "{current_path}/build/",
+    "linkpaths": [
+      "d://std/",
+      "{current_path}/modules/"
+    ],
+    "install path": "{current_path}/build/modules/"
+  },
+  "llvm project": {
+    "archive": "llvm",
+    "type": "execute|dynamic|static",
+    "mode": "debug|release",
+    "name": "llvm",
+    "auther": "",
+    "origin": "",
+    "version": "0",
+    "srcpath": "{current_path}/11/",
+    "install": "{current_path}/build/",
+    "linkpaths": [
+      "d://std/",
+      "{current_path}/modules/"
+    ]
+  },
+  "spirv project": {
+    "archive": "spirv",
+    "type": "ignore",
+    "mode": "ignore",
+    "name": "spirv",
+    "auther": "",
+    "origin": "",
+    "version": "0",
+    "srcpath": "{current_path}/11/",
+    "install": "{current_path}/build/",
+    "linkpaths": [
+      "d://std/",
+      "{current_path}/modules/"
+    ]
+  }
+}

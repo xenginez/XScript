@@ -27,110 +27,90 @@ namespace x
 		virtual ~compiler();
 
 	public:
-		bool compile( const std::filesystem::path & file );
-
-	public:
-		x::logger_ptr logger() const;
-		x::symbols_ptr symbols() const;
-		std::span<const x::compiler::object_ptr> objects() const;
-
-	public:
-		void add_search_path( const std::filesystem::path & path );
-
-	private:
-		virtual void scanner();
-		virtual void analyzer();
-		virtual void genmodules() = 0;
-		virtual void linkmodule() = 0;
-		void loading( const x::url & url );
-		void loading( const std::filesystem::path & file );
-
-	protected:
-		virtual x::symbols_ptr make_symbols() = 0;
-		virtual x::compiler::object_ptr make_object() = 0;
-
-	private:
-		x::logger_ptr _logger;
-		x::grammar_ptr _grammar;
-		x::symbols_ptr _symbols;
-		std::vector<object_ptr> _objects;
-		std::deque<std::filesystem::path> _relative_paths;
-		std::vector<std::filesystem::path> _absolute_paths;
-	};
-
-	class module_compiler : public compiler
-	{
-	public:
-		struct object : public x::compiler::object
-		{
-			x::module_ptr module;
-		};
-
-	public:
-		module_compiler( const x::logger_ptr & logger = nullptr );
-		~module_compiler() override;
+		void reload( const std::filesystem::path & file );
+		bool compile( const std::filesystem::path & path );
 
 	public:
 		x::module_ptr module() const;
+		x::logger_ptr logger() const;
+		x::symbols_ptr symbols() const;
 
-	protected:
-		void genmodules() override;
-		void linkmodule() override;
-		x::symbols_ptr make_symbols() override;
-		x::compiler::object_ptr make_object() override;
+	public:
+		x::uint32 get_module_version() const;
+		void set_module_version( x::uint32 version );
+		const std::string & get_module_name() const;
+		void set_module_name( const std::string & name );
+		const std::string & get_module_author() const;
+		void set_module_author( const std::string & author );
+		const std::string & get_module_origin() const;
+		void set_module_origin( const std::string & origin );
+		void add_link_path( const std::filesystem::path & path );
 
 	private:
+		void scanner();
+		void analyzer();
+		void import_module();
+		void create_module();
+		void linking_module();
+
+	private:
+		virtual void compile_module();
+		virtual x::symbols_ptr make_symbols() const;
+		virtual std::filesystem::path make_std_path() const;
+
+	private:
+		void load_module( const std::string & modulename );
+		x::module_ptr load_std_module( const std::string & modulename );
+		x::module_ptr load_network_module( const std::string & modulename );
+		x::module_ptr load_filesystem_module( const std::string & modulename );
+
+	private:
+		std::string _name;
+		std::string _author;
+		std::string _origin;
+		x::uint32 _version = 0;
 		x::module_ptr _module;
+		x::logger_ptr _logger;
+		x::grammar_ptr _grammar;
+		x::symbols_ptr _symbols;
+		std::vector<x::module_ptr> _modules;
+		std::vector<x::compiler::object_ptr> _objects;
+		std::vector<std::filesystem::path> _linkpaths;
 	};
 
-	class llvm_compiler : public compiler
+	class llvm_compiler : public x::compiler
 	{
-	public:
-		struct object : public x::compiler::object
-		{
-			llvm::module_ptr module;
-		};
-
 	public:
 		llvm_compiler( const x::logger_ptr & logger = nullptr );
 		~llvm_compiler() override;
 
 	public:
-		llvm::module_ptr module() const;
+		llvm::module_ptr llvm_module() const;
 
 	protected:
-		void genmodules() override;
-		void linkmodule() override;
-		x::symbols_ptr make_symbols() override;
-		x::compiler::object_ptr make_object() override;
+		void compile_module() override;
+		x::symbols_ptr make_symbols() const override;
+		std::filesystem::path make_std_path() const override;
 
 	private:
 		llvm::module_ptr _module;
-		llvm::context_ptr _context;
 	};
 
-	class spirv_compiler : public compiler
+	class spirv_compiler : public x::compiler
 	{
-	public:
-		struct object : public x::compiler::object
-		{
-			spirv::module_ptr module;
-		};
-
 	public:
 		spirv_compiler( const x::logger_ptr & logger = nullptr );
 		~spirv_compiler() override;
 
 	public:
-		spirv::module_ptr module() const;
+		spirv::module_ptr spirv_module() const;
 
 	protected:
-		void genmodules() override;
-		void linkmodule() override;
-		x::symbols_ptr make_symbols() override;
-		x::compiler::object_ptr make_object() override;
+		void compile_module() override;
+		x::symbols_ptr make_symbols() const override;
+		std::filesystem::path make_std_path() const override;
 
 	private:
-		spirv::module_ptr _module = nullptr;
+		spirv::module_ptr _module;
 	};
 }

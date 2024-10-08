@@ -130,9 +130,11 @@ void x::module::load( std::istream & in )
     read( in, magic );
 
     read( in, version );
-    read( in, global );
-    read( in, thread );
+    read( in, lasttime );
+
     read( in, name );
+    read( in, author );
+    read( in, origin );
 
     while ( !in.eof() )
     {
@@ -268,9 +270,11 @@ void x::module::save( std::ostream & out ) const
     write( out, magic_num );
 
     write( out, version );
-    write( out, global );
-    write( out, thread );
+    write( out, lasttime );
+
     write( out, name );
+    write( out, author );
+    write( out, origin );
 
     write( out, x::section_t::TYPE );
     write( out, types.items.size() );
@@ -381,17 +385,3 @@ void x::module::save( std::ostream & out ) const
     write( out, x::section_t::CUSTOMDATA );
     write( out, customdatas.datas );
 }
-
-x::range x::module::transfer( std::string_view str )
-{
-	auto i = (x::uint32)stringdatas.datas.find( str.data(), 0, str.size() );
-	
-	if ( i == std::string::npos )
-	{
-		i = (x::uint32)stringdatas.datas.size();
-		stringdatas.datas.append( str.data(), str.size() );
-	}
-
-    return { i, i + (x::uint32)str.size() };
-}
- 

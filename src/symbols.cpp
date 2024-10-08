@@ -771,6 +771,11 @@ x::symbols::~symbols()
 {
 }
 
+void x::symbols::add_module( x::module * val )
+{
+
+}
+
 x::unit_symbol_ptr x::symbols::add_unit( x::unit_ast * ast )
 {
 	std::string fullname = { ast->get_location().file.data(), ast->get_location().file.size() };

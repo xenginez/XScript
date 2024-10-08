@@ -7,6 +7,7 @@
 #include <memory>
 #include <variant>
 #include <sstream>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <charconv>
@@ -25,8 +26,34 @@ namespace x
 		using ostream_type = std::basic_ostream<_Elem, _Traits>;
 		using isstream_type = std::basic_istringstream<_Elem, _Traits, _Alloc>;
 		using osstream_type = std::basic_ostringstream<_Elem, _Traits, _Alloc>;
-		using array_type = std::vector<json_impl<_Elem, _Traits, _Alloc>>;
-		using object_type = std::vector<std::pair<string_type, json_impl<_Elem, _Traits, _Alloc>>>;
+
+	public:
+		struct array_type : public std::vector<json_impl<_Elem, _Traits, _Alloc>>
+		{
+			
+		};
+		struct object_type : public std::vector<std::pair<string_type, json_impl<_Elem, _Traits, _Alloc>>>
+		{
+			bool contains( string_view_type key ) const
+			{
+				auto beg = std::vector<std::pair<string_type, json_impl<_Elem, _Traits, _Alloc>>>::begin();
+				auto end = std::vector<std::pair<string_type, json_impl<_Elem, _Traits, _Alloc>>>::end();
+
+				return std::find_if( beg, end, [key]( const auto & val ) { return val.first == key; } ) != end;
+			}
+
+			json_impl<_Elem, _Traits, _Alloc> find( string_view_type key ) const
+			{
+				auto beg = std::vector<std::pair<string_type, json_impl<_Elem, _Traits, _Alloc>>>::begin();
+				auto end = std::vector<std::pair<string_type, json_impl<_Elem, _Traits, _Alloc>>>::end();
+
+				auto it = std::find_if( beg, end, [key]( const auto & val ) { return val.first == key; } );
+				if ( it != end )
+					return it->second;
+
+				return {};
+			}
+		};
 
 	private:
 		using shared_array_type = std::shared_ptr<array_type>;
@@ -633,6 +660,15 @@ namespace x
 			unserialization( data.begin(), data.end(), var );
 			return var;
 		}
+		static json_impl load( const std::filesystem::path & file )
+		{
+			std::ifstream ifs( file );
+			if ( ifs.is_open() )
+			{
+				return load( ifs );
+			}
+			return {};
+		}
 		string_type save( bool compact = false ) const
 		{
 			osstream_type os;
@@ -654,6 +690,16 @@ namespace x
 			serialization( os, _var, 1, compact );
 
 			return buf;
+		}
+		bool save( const std::filesystem::path & file, bool compact = false ) const
+		{
+			std::ofstream ofs( file );
+			if ( ofs.is_open() )
+			{
+				save( ofs, compact );
+				return true;
+			}
+			return false;
 		}
 
 	public:

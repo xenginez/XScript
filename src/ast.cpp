@@ -112,14 +112,14 @@ void x::import_ast::accept( visitor * val )
 	val->visit( this );
 }
 
-const std::string & x::import_ast::get_path() const
+const std::string & x::import_ast::get_modulename() const
 {
-	return _path;
+	return _modulename;
 }
 
-void x::import_ast::set_path( const std::string & val )
+void x::import_ast::set_modulename( const std::string & val )
 {
-	_path = val;
+	_modulename = val;
 }
 
 x::ast_t x::attribute_ast::type() const
@@ -538,12 +538,12 @@ void x::template_decl_ast::set_base( const x::type_ast_ptr & val )
 	_base = val;
 }
 
-const x::compound_stat_ast_ptr & x::template_decl_ast::get_where() const
+const x::expr_stat_ast_ptr & x::template_decl_ast::get_where() const
 {
 	return _where;
 }
 
-void x::template_decl_ast::set_where( const x::compound_stat_ast_ptr & val )
+void x::template_decl_ast::set_where( const x::expr_stat_ast_ptr & val )
 {
 	val->set_parent( shared_from_this() );
 
@@ -1431,6 +1431,40 @@ void x::local_stat_ast::set_init( const x::initializer_expr_ast_ptr & val )
 	val->set_parent( shared_from_this() );
 
 	_init = val;
+}
+
+x::ast_t x::mulocal_stat_ast::type() const
+{
+	return x::ast_t::MULOCAL_STAT;
+}
+
+void x::mulocal_stat_ast::accept( visitor * val )
+{
+	val->visit( this );
+}
+
+const x::expr_stat_ast_ptr & x::mulocal_stat_ast::get_init() const
+{
+	return _init;
+}
+
+void x::mulocal_stat_ast::set_init( const x::expr_stat_ast_ptr & val )
+{
+	val->set_parent( shared_from_this() );
+
+	_init = val;
+}
+
+std::span<const x::local_stat_ast_ptr> x::mulocal_stat_ast::get_locals() const
+{
+	return _locals;
+}
+
+void x::mulocal_stat_ast::insert_local( const x::local_stat_ast_ptr & val )
+{
+	val->set_parent( shared_from_this() );
+
+	_locals.push_back( val );
 }
 
 x::ast_t x::unary_expr_ast::type() const

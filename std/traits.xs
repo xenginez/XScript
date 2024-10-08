@@ -24,33 +24,26 @@ namespace std
 		public using type = Type2;
 	}
 	
-	public template is_void< Type > : std.conditional< x.builtin_is_void( Type ), std.true_type, std.false_type >.type
+	public template is_void< Type > : std.conditional< builtin_is_void( Type ), std.true_type, std.false_type >.type
 	{
 	}
 	
-	public template is_enum< Type > : std.conditional< x.builtin_is_enum( Type ), std.true_type, std.false_type >.type
+	public template is_enum< Type > : std.conditional< builtin_is_enum( Type ), std.true_type, std.false_type >.type
 	{
 	}
 	
-	public template is_class< Type > : std.conditional< x.builtin_is_class( Type ), std.true_type, std.false_type >.type
+	public template is_class< Type > : std.conditional< builtin_is_class( Type ), std.true_type, std.false_type >.type
 	{
 	}
 	
-	public template is_same< Type1, Type2 > : std.conditional< x.builtin_is_same( Type1, Type2 ), std.true_type, std.false_type >.type
+	public template is_same< Type1, Type2 > : std.conditional< builtin_is_same( Type1, Type2 ), std.true_type, std.false_type >.type
 	{
 	}
 	
-	public template is_base_of< Type, BaseType > : std.conditional< x.builtin_is_base_of( Type, BaseType ), std.true_type, std.false_type >.type
+	public template is_base_of< Type, BaseType > : std.conditional< builtin_is_base_of( Type, BaseType ), std.true_type, std.false_type >.type
 	{
 	}
 	
-	public template is_member_of< Type, Member > : std.conditional< x.builtin_is_member_of( Type, Member ), std.true_type, std.false_type >.type
-	{
-	}
-	
-	public template is_template_of< Type, TemplateType > : std.conditional< x.builtin_is_template_of( Type, TemplateType ), std.true_type, std.false_type >.type
-	{
-	}
 	
 	public template is_any_types_of< Value: bool = true, Type, First, Rest... >
 	{

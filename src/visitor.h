@@ -46,6 +46,7 @@ namespace x
 		virtual void visit( x::throw_stat_ast * val );
 		virtual void visit( x::continue_stat_ast * val );
 		virtual void visit( x::local_stat_ast * val );
+		virtual void visit( x::mulocal_stat_ast * val );
 
 		virtual void visit( x::binary_expr_ast * val );
 		virtual void visit( x::unary_expr_ast * val );
@@ -163,6 +164,7 @@ namespace x
 		void visit( x::throw_stat_ast * val ) override;
 		void visit( x::continue_stat_ast * val ) override;
 		void visit( x::local_stat_ast * val ) override;
+		void visit( x::mulocal_stat_ast * val ) override;
 
 		void visit( x::binary_expr_ast * val ) override;
 		void visit( x::unary_expr_ast * val ) override;

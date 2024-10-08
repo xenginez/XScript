@@ -140,7 +140,7 @@ x::import_ast_ptr x::grammar::import()
     ast->set_location( _location );
 
     validity( x::token_t::TK_LEFT_BRACKETS );
-    ast->set_path( validity( x::token_t::TK_CONSTEXPR_STRING ).str );
+    ast->set_modulename( validity( x::token_t::TK_CONSTEXPR_STRING ).str );
     validity( x::token_t::TK_RIGHT_BRACKETS );
 
     return ast;
@@ -175,15 +175,17 @@ x::attribute_ast_ptr x::grammar::attribute()
 
 x::parameter_ast_ptr x::grammar::parameter()
 {
+    verify( x::token_t::TK_VARIABLE );
+
     auto ast = std::make_shared<x::parameter_ast>();
     ast->set_location( _location );
 
     ast->set_name( validity( x::token_t::TK_IDENTIFIER ).str );
 
-    if ( verify( x::token_t::TK_TYPECAST ) )
+    if ( verify( x::token_t::TK_VARIADIC_SIGN ) )
+        ast->set_valuetype( anylisttype() );
+    else if ( verify( x::token_t::TK_TYPECAST ) )
         ast->set_valuetype( type() );
-    else if ( verify( x::token_t::TK_VARIADIC_SIGN ) )
-        ast->set_valuetype( std::make_shared<x::list_type_ast>() );
     else
         ast->set_valuetype( anytype() );
 
@@ -349,7 +351,7 @@ x::template_decl_ast_ptr x::grammar::template_decl()
     }
 
     if ( verify( x::token_t::TK_WHERE ) )
-        ast->set_where( compound_stat() );
+        ast->set_where( express() );
 
     verify_list( x::token_t::TK_LEFT_CURLY_BRACES, x::token_t::TK_RIGHT_CURLY_BRACES, x::token_t::TK_COMMA, [&]()
     {
@@ -492,13 +494,10 @@ x::function_decl_ast_ptr x::grammar::function_decl( bool interface_func )
 
     if ( verify( x::token_t::TK_FUNCTION_RESULT ) )
     {
-        while ( 1 )
+        do
         {
             ast->insert_result( type() );
-
-            if ( !verify( x::token_t::TK_COMMA ) )
-                break;
-        }
+        } while ( verify( x::token_t::TK_COMMA ) );
     }
 
     if ( !interface_func )
@@ -711,11 +710,11 @@ x::extern_stat_ast_ptr x::grammar::extern_stat()
             else if ( type == "thiscall" )
                 ast->set_call( x::call_t::CALLTHIS );
             else
-                ast->set_call( x::call_t::DECLC );
+                ast->set_call( x::call_t::CALLC );
         }
         else
         {
-            ast->set_call( x::call_t::DECLC );
+            ast->set_call( x::call_t::CALLC );
         }
     } );
 
@@ -952,7 +951,6 @@ x::throw_stat_ast_ptr x::grammar::throw_stat()
     return ast;
 }
 
-
 x::continue_stat_ast_ptr x::grammar::continue_stat()
 {
     validity( x::token_t::TK_CONTINUE );
@@ -963,45 +961,72 @@ x::continue_stat_ast_ptr x::grammar::continue_stat()
     return ast;
 }
 
-x::local_stat_ast_ptr x::grammar::local_stat()
+x::stat_ast_ptr x::grammar::local_stat()
 {
     validity( x::token_t::TK_VARIABLE );
 
-    auto ast = std::make_shared<x::local_stat_ast>();
-    ast->set_location( _location );
-
-    switch ( verify( { x::token_t::TK_LOCAL, x::token_t::TK_STATIC, x::token_t::TK_THREAD } ).type )
+    if ( !verify( x::token_t::TK_LEFT_INDEX ) )
     {
-    case x::token_t::TK_LOCAL: ast->set_is_local( true ); break;
-    case x::token_t::TK_STATIC: ast->set_is_static( true ); break;
-    case x::token_t::TK_THREAD: ast->set_is_thread( true ); break;
-    }
+        auto ast = std::make_shared<x::local_stat_ast>();
+        ast->set_location( _location );
 
-    ast->set_name( validity( x::token_t::TK_IDENTIFIER ).str );
-
-    if ( verify( x::token_t::TK_TYPECAST ) )
-        ast->set_valuetype( type() );
-    else
-        ast->set_valuetype( anytype() );
-
-    if ( verify( x::token_t::TK_ASSIGN ) )
-    {
-        if ( lookup().type == x::token_t::TK_LEFT_CURLY_BRACES )
+        switch ( verify( { x::token_t::TK_LOCAL, x::token_t::TK_STATIC, x::token_t::TK_THREAD } ).type )
         {
-            ast->set_init( initializer_exp() );
+        case x::token_t::TK_LOCAL: ast->set_is_local( true ); break;
+        case x::token_t::TK_STATIC: ast->set_is_static( true ); break;
+        case x::token_t::TK_THREAD: ast->set_is_thread( true ); break;
         }
+
+        ast->set_name( validity( x::token_t::TK_IDENTIFIER ).str );
+
+        if ( verify( x::token_t::TK_TYPECAST ) )
+            ast->set_valuetype( type() );
         else
+            ast->set_valuetype( anytype() );
+
+        if ( verify( x::token_t::TK_ASSIGN ) )
         {
-            auto init = std::make_shared<x::initializer_expr_ast>();
-            init->set_location( _location );
+            if ( lookup().type == x::token_t::TK_LEFT_CURLY_BRACES )
+            {
+                ast->set_init( initializer_exp() );
+            }
+            else
+            {
+                auto init = std::make_shared<x::initializer_expr_ast>();
+                init->set_location( _location );
 
-            init->insert_arg( express() );
+                init->insert_arg( express() );
 
-            ast->set_init( init );
+                ast->set_init( init );
+            }
         }
-    }
 
-    return ast;
+        return ast;
+    }
+    else
+    {
+        auto ast = std::make_shared<x::mulocal_stat_ast>();
+        ast->set_location( _location );
+
+        do
+        {
+            auto local = std::make_shared<x::local_stat_ast>();
+            local->set_location( _location );
+
+            local->set_name( validity( x::token_t::TK_IDENTIFIER ).str );
+            local->set_valuetype( autotype() );
+
+            ast->insert_local( local );
+        } while ( verify( x::token_t::TK_COMMA ) );
+
+        validity( x::token_t::TK_RIGHT_INDEX );
+
+        validity( x::token_t::TK_ASSIGN );
+
+        ast->set_init( initializer_exp() );
+
+        return ast;
+    }
 }
 
 x::expr_stat_ast_ptr x::grammar::express()
@@ -1800,6 +1825,22 @@ std::string x::grammar::type_name()
 x::type_ast_ptr x::grammar::anytype()
 {
     auto ast = std::make_shared<x::type_ast>();
+    ast->set_location( _location );
+    ast->set_name( "any" );
+    return ast;
+}
+
+x::type_ast_ptr x::grammar::autotype()
+{
+    auto ast = std::make_shared<x::type_ast>();
+    ast->set_location( _location );
+    ast->set_name( "auto" );
+    return ast;
+}
+
+x::type_ast_ptr x::grammar::anylisttype()
+{
+    auto ast = std::make_shared<x::list_type_ast>();
     ast->set_location( _location );
     ast->set_name( "any" );
     return ast;

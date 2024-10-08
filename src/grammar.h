@@ -49,7 +49,7 @@ namespace x
 		x::try_stat_ast_ptr try_stat();
 		x::throw_stat_ast_ptr throw_stat();
 		x::continue_stat_ast_ptr continue_stat();
-		x::local_stat_ast_ptr local_stat();
+		x::stat_ast_ptr local_stat();
 
 		x::expr_stat_ast_ptr express();
 		x::expr_stat_ast_ptr assignment_exp();
@@ -91,6 +91,8 @@ namespace x
 		x::access_t access();
 		std::string type_name();
 		x::type_ast_ptr anytype();
+		x::type_ast_ptr autotype();
+		x::type_ast_ptr anylisttype();
 		
 	private:
 		x::token next();

@@ -33,6 +33,9 @@
 
 namespace x
 {
+    static constexpr const char * source_extension = ".xs";
+    static constexpr const char * module_extension = ".xmod";
+
     using byte = std::byte;
     using int8 = std::int8_t;
     using int16 = std::int16_t;
@@ -86,6 +89,7 @@ namespace x
         THROW_STAT,
         CONTINUE_STAT,
         LOCAL_STAT,
+        MULOCAL_STAT,
 
         BINRARY_EXP,
         UNARY_EXP,
@@ -113,7 +117,7 @@ namespace x
     };
     enum class call_t
     {
-        DECLC,
+        CALLC,
         CALLSTD,
         CALLFAST,
         CALLTHIS,
@@ -317,67 +321,7 @@ namespace x
     };
     enum class opcode_t : x::uint8
     {
-        OP_NOP = 0,       // nop(TKPLS)                                                     1 byte
-        OP_MOV,           // mov(dr)            REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF         3-9 byte
-        OP_ADDI,          // add(dr)            REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF         3-9 byte
-        OP_SUBI,          // sub
-        OP_MULI,          // mul
-        OP_DIVI,          // div
-        OP_MODI,          // mod
-        OP_ADDR,          // add(dr)            REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF         3-9 byte
-        OP_SUBR,          // sub
-        OP_MULR,          // mul
-        OP_DIVR,          // div
-        OP_MODR,          // mod
-        OP_ADDH,          // add(dr)            REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF         3-9 byte
-        OP_SUBH,          // sub
-        OP_ADDS,          // add(dr)            REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF         3-9 byte
-        OP_PSH,           // psh(dr_0)          REGID(1BYTE)/DIFF(4BYTE)                    2-5 byte
-        OP_POP,           // pop(dr_STORED?)    REGID(1BYTE)/DIFF(4BYTE)/COUNT(2BYTE)       2-5 byte
-        OP_SIDARR,        // sidarr(dr)         REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF  REGID
-        OP_SIDSTRUCT,     // sidstruct(dr)      REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF  REGID
-        OP_LDS,           // lds(dr)            REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF   
-        OP_STS,           // sts(dr)            REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF  
-        OP_EQUB,          // equb(dr)           REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF         3-9 byte
-        OP_NEQUB,         // nequb
-        OP_LTI,           // lt
-        OP_GTI,           // gt
-        OP_ELTI,          // elt
-        OP_EGTI,          // egt
-        OP_LAND,          // land             
-        OP_LOR,           // lor
-        OP_SIDMAP,        // sidmap(dr)         REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF  REGID
-        OP_LTX,           // lt
-        OP_GTX,           // gt
-        OP_ELTX,          // elt
-        OP_EGTX,          // egt
-        OP_LTR,           // lt
-        OP_GTR,           // gt
-        OP_ELTR,          // elt
-        OP_EGTR,          // egt
-        OP_CALL,          // call(dr_0)         REGID(1BYTE)/DIFF(4BYTE) 
-        OP_CALLN,         // calln(0_ISNATIVE)  VM_IR_DIFF(4BYTE)/NATIVE_FUNC(8BYTE)
-        OP_RET,           // ret(dr_0)          POP_SIZE(2 BYTE if dr)
-        OP_JT,            // jt                 DIFF(4BYTE)
-        OP_JF,            // jf                 DIFF(4BYTE)
-        OP_JMP,           // jmp                DIFF(4BYTE)
-        OP_MOVCAST,       // movcast(dr)        REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF TYPE  4-10 byte
-        OP_MKCLOS,        // mkclos(00)         FUNC(8BYTE) CAPTURE_ARG_COUNT(2BYTE) 11 byte
-        OP_TYPEAS,        // typeas(dr_0)       REGID(1BYTE)/DIFF(4BYTE) TYPE             3-6 byte
-        OP_MKSTRUCT,      // mkstruct(dr_0)     REGID(1BYTE)/DIFF(4BYTE) SZ(2BYTE)               4-7 byte
-        OP_ABRT,          // abrt(0_1/0)        (0xcc 0xcd can use it to abort)     
-        OP_IDARR,         // idarr(dr)          REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF [Used for array]
-        OP_IDDICT,        // iddict(dr)         REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF [Used for dict]
-        OP_MKARR,         // mkarr(dr_0)        REGID(1BYTE)/DIFF(4BYTE) SZ(2BYTE)
-        OP_MKMAP,         // mkmap(dr_0)        REGID(1BYTE)/DIFF(4BYTE) SZ(2BYTE)
-        OP_IDSTR,         // idstr(dr)          REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF [Used for string]
-        OP_EQUR,          // equr(dr)           REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF  
-        OP_NEQUR,         // nequr
-        OP_EQUS,          // equs
-        OP_NEQUS,         // nequs
-        OP_SIDDICT,       // siddict(dr)        REGID(1BYTE)/DIFF(4BYTE) REGID/DIFF  REGID 
-        OP_JNEQUB,        // jnequb(dr_0)       REGID(1BYTE)/DIFF(4BYTE) PLACE(4BYTE)            6-9 byte
-        OP_IDSTRUCT,      // idstruct(dr_0)     REGID(1BYTE)/DIFF(4BYTE) OFFSET(2BYTE)   4-7 byte
+        NOOP = 0,
     };
     enum class valloc_t
     {
@@ -398,6 +342,7 @@ namespace x
         OPCODEDATA,
         STRINGDATA,
         CUSTOMDATA,
+        THIRDPARTY,
     };
     enum class gcstage_t
     {
@@ -478,105 +423,6 @@ namespace x
         SUSPEND,
         READY,
         EXCEPT,
-    };
-    enum class http_header_t
-    {
-        Accept,
-        Accept_CH,
-        Accept_Charset,
-        Accept_Encoding,
-        Accept_Language,
-        Accept_Patch,
-        Accept_Post,
-        Accept_Ranges,
-        Access_Control_Allow_Credentials,
-        Access_Control_Allow_Headers,
-        Access_Control_Allow_Methods,
-        Access_Control_Allow_Origin,
-        Access_Control_Expose_Headers,
-        Access_Control_Max_Age,
-        Access_Control_Request_Headers,
-        Access_Control_Request_Method,
-        Age,
-        Allow,
-        Alt_Svc,
-        Alt_Used,
-        Authorization,
-        Cache_Control,
-        Clear_Site_Data,
-        Connection,
-        Content_Disposition,
-        Content_Encoding,
-        Content_Language,
-        Content_Length,
-        Content_Location,
-        Content_Range,
-        Content_Security_Policy,
-        Content_Security_Policy_Report_Only,
-        Content_Type,
-        Cookie,
-        Cross_Origin_Embedder_Policy,
-        Cross_Origin_Opener_Policy,
-        Cross_Origin_Resource_Policy,
-        Date,
-        Device_Memory,
-        ETag,
-        Expect,
-        Expect_CT,
-        Expires,
-        Forwarded,
-        From,
-        Host,
-        If_Match,
-        If_Modified_Since,
-        If_None_Match,
-        If_Range,
-        If_Unmodified_Since,
-        Keep_Alive,
-        Last_Modified,
-        Link,
-        Location,
-        Max_Forwards,
-        Origin,
-        Permissions_Policy,
-        Priority,
-        Proxy_Authenticate,
-        Proxy_Authorization,
-        Range,
-        Referer,
-        Referrer_Policy,
-        Reporting_Endpoints,
-        Retry_After,
-        Sec_Fetch_Dest,
-        Sec_Fetch_Mode,
-        Sec_Fetch_Site,
-        Sec_Fetch_User,
-        Sec_Purpose,
-        Sec_WebSocket_Accept,
-        Server,
-        Server_Timing,
-        Service_Worker_Navigation_Preload,
-        Set_Cookie,
-        SourceMap,
-        Strict_Transport_Security,
-        TE,
-        Timing_Allow_Origin,
-        Trailer,
-        Transfer_Encoding,
-        Upgrade,
-        Upgrade_Insecure_Requests,
-        User_Agent,
-        Vary,
-        Via,
-        WWW_Authenticate,
-        X_Content_Type_Options,
-        X_Frame_Options,
-    };
-    enum class http_version_t
-    {
-        HTTP_1_0,
-        HTTP_1_1,
-        HTTP_2_0,
     };
 
     using value_flags = flags<x::value_t>;
@@ -665,6 +511,7 @@ namespace x
     PTR( throw_stat_ast );
     PTR( continue_stat_ast );
     PTR( local_stat_ast );
+    PTR( mulocal_stat_ast );
     PTR( expr_stat_ast );
     PTR( binary_expr_ast );
     PTR( unary_expr_ast );
@@ -870,19 +717,10 @@ namespace x
 
 namespace llvm
 {
-    class Module;
-    class LLVMContext;
-
-    using module = llvm::Module;
-    using context = llvm::LLVMContext;
-
-    using module_ptr = std::shared_ptr<llvm::module>;
-    using context_ptr = std::shared_ptr<llvm::context>;
+    PTR( module );
 }
 
 namespace spirv
 {
-    class module;
-
-    using module_ptr = std::shared_ptr<spirv::module>;
+    PTR( module );
 }

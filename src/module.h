@@ -191,6 +191,19 @@ namespace x
         std::vector<std::string> datas;
     };
 
+    struct thirdparty_section
+    {
+        struct item
+        {
+            std::string name;
+            std::string author;
+            std::string origin;
+            x::uint32   version;
+        };
+
+        std::vector<item> items;
+    };
+
 	class module : private std::enable_shared_from_this<module>
 	{
 	public:
@@ -203,14 +216,12 @@ namespace x
 	public:
         bool merge( const x::module_ptr & other );
 		
-    public:
-        x::range transfer( std::string_view str );
-
 	public:
-        x::uint32 version = 0;
-        x::uint64 global = 0;
-        x::uint64 thread = 0;
+        x::int32 version = 0;
+        x::int64 lasttime = 0;
         std::string name;
+        std::string author;
+        std::string origin;
 		type_section types;
 		temp_section temps;
         desc_section descs;
@@ -223,4 +234,20 @@ namespace x
 		stringdata_section stringdatas;
 		customdata_section customdatas;
 	};
+}
+
+namespace llvm
+{
+    class module : private std::enable_shared_from_this<module>
+    {
+
+    };
+}
+
+namespace spirv
+{
+    class module : private std::enable_shared_from_this<module>
+    {
+
+    };
 }

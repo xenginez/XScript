@@ -330,6 +330,9 @@ namespace x
 		~symbols();
 
 	public:
+		void add_module( x::module * val );
+
+	public:
 		x::unit_symbol_ptr add_unit( x::unit_ast * val );
 		x::enum_symbol_ptr add_enum( x::enum_decl_ast * val );
 		x::using_symbol_ptr add_using( x::using_decl_ast * val );

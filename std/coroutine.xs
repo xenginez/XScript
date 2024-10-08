@@ -4,9 +4,9 @@ namespace std
 	{
 		friend std.scheduler;
 		
-		public var const STATUS_START: int32 = 0;
-		public var const STATUS_DONE: int32 = -1;
-		public var const STATUS_EXCEPT: int32 = -2;
+		public var static const STATUS_START: int32 = 0;
+		public var static const STATUS_DONE: int32 = -1;
+		public var static const STATUS_EXCEPT: int32 = -2;
 
 		protected var _value: any = {};
 		protected var _state: int32 = STATUS_START;
@@ -40,7 +40,7 @@ namespace std
 			return this;
 		}
 
-		protected func virtual run( var state: int32 ) -> int32;
+		protected func virtual run( state: int32 ) -> int32;
 	}
 	
 	public template future< __: void > : std.coroutine
@@ -84,7 +84,7 @@ namespace std
 			return results;
 		}
 		
-		protected func override run( var state: int32 ) -> int32;
+		protected func override run( state: int32 ) -> int32;
 		{
 			if( state < 0 )
 				return state;
@@ -106,7 +106,7 @@ namespace std
 	public class scheduler
 	{
 		public func sleep_for( millisec: int64 ) -> std.future< void >;
-		public func sleep_until(t ime: std.time ) -> std.future< void >;
+		public func sleep_until( time: std.time ) -> std.future< void >;
 
 		public func transfer_main() -> std.future< void >;
 		public func transfer_pool() -> std.future< void >;

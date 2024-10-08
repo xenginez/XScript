@@ -257,6 +257,7 @@ extern "C"{
     x_path x_path_app_path();
     x_path x_path_temp_path();
     x_path x_path_home_path();
+    x_path x_path_current_path();
     void x_path_copy( x_path frompath, x_path topath, bool recursive, bool overwrite );
     void x_path_create( x_path path, bool recursive );
     void x_path_remove( x_path path );
@@ -265,7 +266,7 @@ extern "C"{
     bool x_path_is_directory( x_path path );
     uint64 x_path_entry_count( x_path path );
     x_path x_path_at_entry( x_path path, uint64 idx );
-
+    
 	// file
     x_file x_file_create();
     bool x_file_open( x_file file, x_path path, uint32 mode );
@@ -285,8 +286,6 @@ extern "C"{
 
 	// time
     int64 x_time_now();
-    void x_time_sleep_for( int64 milliseconds );
-    void x_time_sleep_until( int64 time );
     int32 x_time_year( int64 time );
     int32 x_time_month( int64 time );
     int32 x_time_day( int64 time );
@@ -330,8 +329,16 @@ extern "C"{
     // iconv
     x_string x_iconv_codepage();
     x_iconv x_iconv_create( x_string fromcode, x_string tocode );
-    uint64 x_iconv_iconv( x_iconv iconv, x_string inbuf, uint64 inbytes, x_buffer outbuf );
+    uint64 x_iconv_translate( x_iconv iconv, x_string inbuf, uint64 inbytes, x_buffer outbuf );
     void x_iconv_release( x_iconv iconv );
+
+    // locale
+    x_string x_locale_utf8_local( x_string utf8_str );
+    x_string x_locale_utf8_utf16( x_string utf8_str );
+    x_string x_locale_local_utf8( x_string local_str );
+    x_string x_locale_local_utf16( x_string local_str );
+    x_string x_locale_utf16_utf8( x_string utf16_str );
+    x_string x_locale_utf16_local( x_string utf16_str );
 
     // atomic
     x_atomic x_atomic_create();

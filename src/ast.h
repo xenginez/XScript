@@ -51,11 +51,11 @@ namespace x
 		void accept( visitor * val ) override;
 
 	public:
-		const std::string & get_path() const;
-		void set_path( const std::string & val );
+		const std::string & get_modulename() const;
+		void set_modulename( const std::string & val );
 
 	private:
-		std::string _path;
+		std::string _modulename;
 	};
 
 	class attribute_ast : public ast
@@ -250,8 +250,8 @@ namespace x
 	public:
 		const x::type_ast_ptr & get_base() const;
 		void set_base( const x::type_ast_ptr & val );
-		const x::compound_stat_ast_ptr & get_where() const;
-		void set_where( const x::compound_stat_ast_ptr & val );
+		const x::expr_stat_ast_ptr & get_where() const;
+		void set_where( const x::expr_stat_ast_ptr & val );
 		const x::function_decl_ast_ptr & get_construct() const;
 		void set_construct( const x::function_decl_ast_ptr & val );
 		const x::function_decl_ast_ptr & get_finalize() const;
@@ -271,7 +271,7 @@ namespace x
 
 	private:
 		x::type_ast_ptr _base;
-		x::compound_stat_ast_ptr _where;
+		x::expr_stat_ast_ptr _where;
 		x::function_decl_ast_ptr _construct;
 		x::function_decl_ast_ptr _finalize;
 		std::vector<x::type_ast_ptr> _friends;
@@ -394,7 +394,7 @@ namespace x
 		void set_funcname( const std::string & val );
 
 	private:
-		x::call_t _call = x::call_t::DECLC;
+		x::call_t _call = x::call_t::CALLC;
 		std::string _libname;
 		std::string _funcname;
 	};
@@ -629,6 +629,25 @@ namespace x
 		bool _is_thread = false;
 		x::type_ast_ptr _valuetype;
 		x::initializer_expr_ast_ptr _init;
+	};
+	class mulocal_stat_ast : public stat_ast
+	{
+	public:
+		using local_pair = std::pair<std::string, x::type_ast_ptr>;
+
+	public:
+		x::ast_t type() const override;
+		void accept( visitor * val ) override;
+
+	public:
+		const x::expr_stat_ast_ptr & get_init() const;
+		void set_init( const x::expr_stat_ast_ptr & val );
+		std::span<const x::local_stat_ast_ptr> get_locals() const;
+		void insert_local( const x::local_stat_ast_ptr & val );
+
+	private:
+		x::expr_stat_ast_ptr _init;
+		std::vector<x::local_stat_ast_ptr> _locals;
 	};
 
 	class expr_stat_ast : public stat_ast

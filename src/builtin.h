@@ -76,7 +76,7 @@ namespace x
 	public:
 		x::ast_ptr translate( const x::symbols_ptr & sym, const x::ast_ptr & ast ) const override;
 	};
-	// bool builtin_is_template_of( instant_template_type, template_type )
+	// bool builtin_is_template_of( type, template_type )
 	class builtin_is_template_of : public x::builtin
 	{
 	public:

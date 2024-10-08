@@ -5,6 +5,7 @@
 
 #include "xlib.h"
 #include "value.h"
+#include "buffer.h"
 #include "object.h"
 #include "logger.h"
 #include "module.h"
@@ -34,6 +35,104 @@ x::compiler::~compiler()
 {
 }
 
+void x::compiler::reload( const std::filesystem::path & file )
+{
+	XTHROW( x::compile_exception, !std::filesystem::exists( file ), "" );
+
+	object_ptr obj = nullptr;
+	auto time = std::filesystem::last_write_time( file );
+
+	auto it = std::find_if( _objects.begin(), _objects.end(), [file]( const auto & val ) { return val->path == file; } );
+	if ( it != _objects.end() )
+	{
+		if ( time != (*it)->time )
+			( *it )->reset = true;
+
+		obj = *it;
+	}
+	else
+	{
+		obj = std::make_shared<x::compiler::object>();
+		obj->path = file;
+		obj->reset = true;
+		_objects.push_back( obj );
+	}
+
+	obj->time = time;
+
+	if ( obj->reset )
+	{
+		std::ifstream ifs( file );
+		
+		XTHROW( x::compile_exception, !ifs.is_open(), "" );
+
+		obj->ast = _grammar->parse( ifs, file.string() );
+
+		logger()->info( std::format( "load file: {}", file.string() ) );
+	}
+}
+
+bool x::compiler::compile( const std::filesystem::path & path )
+{
+	_symbols = make_symbols();
+
+	try
+	{
+		if ( std::filesystem::is_directory( path ) )
+		{
+			for ( std::filesystem::recursive_directory_iterator it( path ), end; it != end; ++it )
+			{
+				if ( !it->is_directory() )
+				{
+					auto ext = it->path().extension().string();
+					std::transform( ext.begin(), ext.end(), ext.begin(), ::tolower );
+
+					if ( ext == x::source_extension )
+						reload( it->path() );
+				}
+			}
+		}
+		else
+		{
+			auto ext = path.extension().string();
+			std::transform( ext.begin(), ext.end(), ext.begin(), ::tolower );
+
+			XTHROW( x::compile_exception, ext != x::source_extension, "" );
+
+			reload( path );
+		}
+
+		scanner();
+
+		analyzer();
+
+		import_module();
+
+		create_module();
+
+		linking_module();
+
+		compile_module();
+
+		logger()->info("compile success!" );
+	}
+	catch ( const std::exception & e )
+	{
+		_logger->error( e.what() );
+
+		logger()->error( "compile fail!" );
+
+		return false;
+	}
+
+	return true;
+}
+
+x::module_ptr x::compiler::module() const
+{
+	return _module;
+}
+
 x::logger_ptr x::compiler::logger() const
 {
 	return _logger;
@@ -44,41 +143,49 @@ x::symbols_ptr x::compiler::symbols() const
 	return _symbols;
 }
 
-std::span<const x::compiler::object_ptr> x::compiler::objects() const
+x::uint32 x::compiler::get_module_version() const
 {
-	return _objects;
+	return _version;
 }
 
-void x::compiler::add_search_path( const std::filesystem::path & path )
+void x::compiler::set_module_version( x::uint32 version )
 {
-	if ( std::find( _absolute_paths.begin(), _absolute_paths.end(), path ) == _absolute_paths.end() )
-		_absolute_paths.push_back( path );
+	_version = version;
 }
 
-bool x::compiler::compile( const std::filesystem::path & file )
+const std::string & x::compiler::get_module_name() const
 {
-	_symbols = make_symbols();
+	return _name;
+}
 
-	try
-	{
-		loading( file );
+void x::compiler::set_module_name( const std::string & name )
+{
+	_name = name;
+}
 
-		scanner();
+const std::string & x::compiler::get_module_author() const
+{
+	return _author;
+}
 
-		analyzer();
+void x::compiler::set_module_author( const std::string & author )
+{
+	_author = author;
+}
 
-		genmodules();
+const std::string & x::compiler::get_module_origin() const
+{
+	return _origin;
+}
 
-		linkmodule();
-	}
-	catch ( const std::exception & e )
-	{
-		_logger->error( e.what() );
+void x::compiler::set_module_origin( const std::string & origin )
+{
+	_origin = origin;
+}
 
-		return false;
-	}
-
-	return true;
+void x::compiler::add_link_path( const std::filesystem::path & path )
+{
+	_linkpaths.push_back( path );
 }
 
 void x::compiler::scanner()
@@ -97,127 +204,58 @@ void x::compiler::analyzer()
 		analyzer.analysis( _logger, _symbols, it->ast );
 }
 
-void x::compiler::loading( const x::url & url )
+void x::compiler::import_module()
 {
-}
-
-void x::compiler::loading( const std::filesystem::path & file )
-{
-	std::filesystem::path path;
-	
-	if ( std::filesystem::exists( file ) )
+	for ( const auto & obj : _objects )
 	{
-		path = file;
-	}
-	else if ( file.is_relative() )
-	{
-		auto tmp = ( _relative_paths.back() / file );
-		if ( std::filesystem::exists( tmp ) )
-			path = tmp;
-	}
-	else
-	{
-		for ( const auto & it : _absolute_paths )
+		for ( const auto & it : obj->ast->get_imports() )
 		{
-			auto tmp = it / file;
-			if ( std::filesystem::exists( tmp ) )
-			{
-				path = tmp;
-				break;
-			}
+			load_module( it->get_modulename() );
 		}
 	}
-
-	path.make_preferred();
-
-	XTHROW( x::compile_exception, path.empty(), "" );
-
-	object_ptr obj = nullptr;
-	auto time = std::filesystem::last_write_time( path );
-
-	auto it = std::find_if( _objects.begin(), _objects.end(), [path]( const auto & val ) { return val->path == path; } );
-	if ( it != _objects.end() )
-	{
-		if ( time != (*it)->time )
-			( *it )->reset = true;
-
-		obj = *it;
-	}
-	else
-	{
-		obj = make_object();
-		obj->path = path;
-		obj->reset = true;
-		_objects.push_back( obj );
-	}
-
-	obj->time = time;
-
-	if ( obj->reset )
-	{
-		std::ifstream ifs( path );
-		
-		XTHROW( x::compile_exception, !ifs.is_open(), "" );
-
-		obj->ast = x::grammar().parse( ifs, path.string() );
-
-		logger()->info( std::format( "loading script {}", path.string() ) );
-	}
-
-	_relative_paths.push_back( path.parent_path() );
-	for ( const auto & it : obj->ast->get_imports() )
-	{
-		loading( std::filesystem::path( it->get_path() ) );
-	}
-	_relative_paths.pop_back();
 }
 
-x::module_compiler::module_compiler( const x::logger_ptr & logger )
-	: compiler( logger )
+void x::compiler::create_module()
 {
-}
+	x::module_generater generater;
 
-x::module_compiler::~module_compiler()
-{
-}
-
-x::module_ptr x::module_compiler::module() const
-{
-	return _module;
-}
-
-void x::module_compiler::genmodules()
-{
-	for ( auto & it : objects() )
+	for ( auto & it : _objects )
 	{
-		auto obj = std::static_pointer_cast<x::module_compiler::object>( it );
+		auto obj = std::static_pointer_cast<x::compiler::object>( it );
 		if ( obj->reset )
 		{
 			obj->reset = false;
-			obj->module = std::make_shared<x::module>();
 
-			x::module_scanner_visitor().scanner( obj->module, logger(), symbols(), obj->ast );
-
-			x::module_generater_visitor().generate( obj->module, logger(), symbols(), obj->ast );
+			generater.generate( _module, logger(), symbols(), obj->ast );
 
 			logger()->info( std::format( "gen module: {}", obj->path.string() ) );
 		}
 	}
 }
 
-void x::module_compiler::linkmodule()
+void x::compiler::linking_module()
 {
 	_module = std::make_shared<x::module>();
 
-	for ( auto & it : objects() )
+	for ( auto & it : _modules )
 	{
-		_module->merge( std::static_pointer_cast<x::module_compiler::object>( it )->module );
+		_module->merge( it );
 
-		logger()->info( std::format( "link module: {}", it->path.string() ) );
+		logger()->info( std::format( "link module: {}", it->name ) );
 	}
+
+	_module->name = _name;
+	_module->author = _author;
+	_module->origin = _origin;
+	_module->version = _version;
 }
 
-x::symbols_ptr x::module_compiler::make_symbols()
+void x::compiler::compile_module()
+{
+	logger()->info( std::format( "compile module: {}", _name ) );
+}
+
+x::symbols_ptr x::compiler::make_symbols() const
 {
 	auto symbols = std::make_shared<x::symbols>();
 
@@ -225,8 +263,9 @@ x::symbols_ptr x::module_compiler::make_symbols()
 #define BEG( TYPE ) auto TYPE##_type = symbols->add_foundation( #TYPE, sizeof( TYPE ) ); symbols->push_scope( TYPE##_type );
 #define END() symbols->pop_scope();
 
+	using buffer = x::buffer;
 	auto void_type = symbols->add_foundation( "void", 0 );
-	
+
 	BEG( any );
 	END();
 	BEG( bool );
@@ -332,64 +371,146 @@ x::symbols_ptr x::module_compiler::make_symbols()
 	return symbols;
 }
 
-x::compiler::object_ptr x::module_compiler::make_object()
+std::filesystem::path x::compiler::make_std_path() const
 {
-	return std::make_shared<x::module_compiler::object>();
+	return std::filesystem::path( x_path_app_path() ) / "std";
+}
+
+void x::compiler::load_module( const std::string & modulename )
+{
+	auto it = std::find_if( _modules.begin(), _modules.end(), [&modulename]( const auto & val )
+	{
+		return val->name == modulename || val->origin == modulename;
+	} );
+	if ( it != _modules.end() )
+		return;
+
+	x::module_ptr module = nullptr;
+
+	if ( modulename == "std" )
+		module = load_std_module( modulename );
+	else if ( modulename.find( "std." ) == 0 )
+		module = load_std_module( modulename );
+	else if ( modulename.find( "http://" ) == 0 )
+		module = load_network_module( modulename );
+	else if ( modulename.find( "https://" ) == 0 )
+		module = load_network_module( modulename );
+	else
+		module = load_filesystem_module( modulename + x::module_extension );
+
+	XTHROW( x::compile_exception, module == nullptr, "" );
+
+	_modules.emplace_back( module );
+
+	symbols()->add_module( module.get() );
+}
+
+x::module_ptr x::compiler::load_std_module( const std::string & modulename )
+{
+	auto stdpath = make_std_path();
+	std::string modulepath = modulename;
+#ifdef _WIN32
+	for ( auto i = modulepath.find( '.' ); i != std::string::npos; i = modulepath.find( '.' ) )
+	{
+		modulepath.replace( i, 1, "\\" );
+	}
+#endif // _WIN32
+
+	x::compiler compiler( logger() );
+
+	if ( compiler.compile( stdpath / modulepath ) )
+	{
+		return compiler.module();
+	}
+
+	return nullptr;
+}
+
+x::module_ptr x::compiler::load_network_module( const std::string & modulename )
+{
+	x::url uri( modulename );
+
+
+
+	return nullptr;
+}
+
+x::module_ptr x::compiler::load_filesystem_module( const std::string & modulename )
+{
+	std::string modulepath = modulename;
+#ifdef _WIN32
+	for ( auto i = modulepath.find( '/' ); i != std::string::npos; i = modulepath.find( '/' ) )
+	{
+		modulepath.replace( i, 1, "\\" );
+	}
+#endif // _WIN32
+
+	std::filesystem::path path = modulepath;
+
+	if ( !std::filesystem::exists( path ) )
+	{
+		for ( size_t i = 0; i < _linkpaths.size(); ++i )
+		{
+			path = std::filesystem::path( _linkpaths[i] ) / modulepath;
+			if ( std::filesystem::exists( path ) )
+				break;
+
+			path = path / x::module_extension;
+			if ( std::filesystem::exists( path ) )
+				break;
+		}
+	}
+
+	if ( std::filesystem::exists( path ) )
+	{
+		auto module = std::make_shared<x::module>();
+
+		std::ifstream ifs( path, std::ios::in | std::ios::binary );
+		if ( ifs.is_open() )
+		{
+			module->load( ifs );
+			return module;
+		}
+	}
+
+	return nullptr;
 }
 
 x::llvm_compiler::llvm_compiler( const x::logger_ptr & logger )
 	: compiler( logger )
 {
-	// _context = std::make_shared<llvm::context>();
 }
 
 x::llvm_compiler::~llvm_compiler()
 {
-	// if ( _context ) delete _context;
 }
 
-llvm::module_ptr x::llvm_compiler::module() const
+llvm::module_ptr x::llvm_compiler::llvm_module() const
 {
 	return _module;
 }
 
-void x::llvm_compiler::genmodules()
+void x::llvm_compiler::compile_module()
 {
-	for ( auto & it : objects() )
-	{
-		auto obj = std::static_pointer_cast<x::llvm_compiler::object>( it );
-		if ( obj->reset )
-		{
-			obj->reset = false;
-			//obj->module = std::make_shared<llvm::module>( obj->path.string(), *_context );
+	_module = std::make_shared<llvm::module>();
 
-			x::llvm_scanner_visitor().scanner( obj->module, logger(), symbols(), obj->ast );
+	x::llvm_module_generater generater;
 
-			x::llvm_generater_visitor().generate( obj->module, logger(), symbols(), obj->ast );
-		}
-	}
+	generater.generate( _module, logger(), symbols(), module() );
+
+	logger()->info( std::format( "compile llvm module: {}", module()->name ) );
 }
 
-void x::llvm_compiler::linkmodule()
-{
-	// _module = std::make_shared<llvm::module>( "", *_context );
-
-	for ( auto & it : objects() )
-	{
-		// llvm::Linker::linkModules( *_module, *it->module );
-	}
-}
-
-x::symbols_ptr x::llvm_compiler::make_symbols()
+x::symbols_ptr x::llvm_compiler::make_symbols() const
 {
 	auto sym = std::make_shared<x::symbols>();
 
 	return sym;
 }
 
-x::compiler::object_ptr x::llvm_compiler::make_object()
+std::filesystem::path x::llvm_compiler::make_std_path() const
 {
-	return std::make_shared<x::llvm_compiler::object>();
+	return std::filesystem::path( x_path_app_path() ) / "llvm";
 }
 
 x::spirv_compiler::spirv_compiler( const x::logger_ptr & logger )
@@ -401,46 +522,30 @@ x::spirv_compiler::~spirv_compiler()
 {
 }
 
-spirv::module_ptr x::spirv_compiler::module() const
+spirv::module_ptr x::spirv_compiler::spirv_module() const
 {
 	return _module;
 }
 
-void x::spirv_compiler::genmodules()
+void x::spirv_compiler::compile_module()
 {
-	for ( auto & it : objects() )
-	{
-		auto obj = std::static_pointer_cast<x::spirv_compiler::object>( it );
-		if ( obj->reset )
-		{
-			obj->reset = false;
-			//obj->module = std::make_shared<spirv::module>( obj->path.string(), *_context );
+	_module = std::make_shared<spirv::module>();
 
-			x::spirv_scanner_visitor().scanner( obj->module, logger(), symbols(), obj->ast );
+	x::spirv_module_generater generater;
 
-			x::spirv_generater_visitor().generate( obj->module, logger(), symbols(), obj->ast );
-		}
-	}
+	generater.generate( _module, logger(), symbols(), module() );
+
+	logger()->info( std::format( "compile spirv module: {}", module()->name ) );
 }
 
-void x::spirv_compiler::linkmodule()
-{
-	// _module = std::make_shared<spirv::module>( "", *_context );
-
-	for ( auto & it : objects() )
-	{
-		// spirv::Linker::linkModules( *_module, *it->module );
-	}
-}
-
-x::symbols_ptr x::spirv_compiler::make_symbols()
+x::symbols_ptr x::spirv_compiler::make_symbols() const
 {
 	auto sym = std::make_shared<x::symbols>();
 
 	return sym;
 }
 
-x::compiler::object_ptr x::spirv_compiler::make_object()
+std::filesystem::path x::spirv_compiler::make_std_path() const
 {
-	return std::make_shared<x::spirv_compiler::object>();
+	return std::filesystem::path( x_path_app_path() ).parent_path() / "spirv";
 }

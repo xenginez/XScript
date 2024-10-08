@@ -4,73 +4,31 @@
 
 namespace x
 {
-	class module_scanner_visitor : public x::scope_scanner_visitor
+	class module_generater : public x::scope_scanner_visitor
 	{
 	public:
 		using scope_scanner_visitor::visit;
 
 	public:
-		void scanner( const x::module_ptr & module, const x::logger_ptr & logger, const x::symbols_ptr & symbols, x::ast_ptr ast );
+		void generate( const x::module_ptr & module, const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast );
 
 	private:
 		x::module_ptr _module;
 	};
 
-	class module_generater_visitor : public x::scope_scanner_visitor
+	class llvm_module_generater
 	{
 	public:
-		using scope_scanner_visitor::visit;
-
-	public:
-		void generate( const x::module_ptr & module, const x::logger_ptr & logger, const x::symbols_ptr & symbols, x::ast_ptr ast );
-
-	private:
-		x::module_ptr _module;
-	};
-
-	class llvm_scanner_visitor : public x::scope_scanner_visitor
-	{
-	public:
-		using scope_scanner_visitor::visit;
-
-	public:
-		void scanner( const llvm::module_ptr & module, const x::logger_ptr & logger, const x::symbols_ptr & symbols, x::ast_ptr ast );
+		void generate( const llvm::module_ptr & llvm_module, const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::module_ptr & module );
 
 	private:
 		llvm::module_ptr _module;
 	};
 
-	class llvm_generater_visitor : public x::scope_scanner_visitor
+	class spirv_module_generater
 	{
 	public:
-		using scope_scanner_visitor::visit;
-
-	public:
-		void generate( const llvm::module_ptr & module, const x::logger_ptr & logger, const x::symbols_ptr & symbols, x::ast_ptr ast );
-
-	private:
-		llvm::module_ptr _module;
-	};
-
-	class spirv_scanner_visitor : public x::scope_scanner_visitor
-	{
-	public:
-		using scope_scanner_visitor::visit;
-
-	public:
-		void scanner( const spirv::module_ptr & module, const x::logger_ptr & logger, const x::symbols_ptr & symbols, x::ast_ptr ast );
-
-	private:
-		spirv::module_ptr _module;
-	};
-
-	class spirv_generater_visitor : public x::scope_scanner_visitor
-	{
-	public:
-		using scope_scanner_visitor::visit;
-
-	public:
-		void generate( const spirv::module_ptr & module, const x::logger_ptr & logger, const x::symbols_ptr & symbols, x::ast_ptr ast );
+		void generate( const spirv::module_ptr & spirv_module, const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::module_ptr & module );
 
 	private:
 		spirv::module_ptr _module;

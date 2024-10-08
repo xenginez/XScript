@@ -140,23 +140,13 @@ void x_zip_decompression( x_buffer inbuf, x_buffer outbuf )
 	x::zip::decompression( is, os );
 }
 
-x_path x_path_app_path()
-{
-	return x::allocator::salloc( std::filesystem::current_path().string() );
-}
 x_path x_path_temp_path()
 {
-	return x::allocator::salloc( std::filesystem::temp_directory_path().string() );
+	return x_locale_local_utf8( std::filesystem::temp_directory_path().string().c_str() );
 }
-x_path x_path_home_path()
+x_path x_path_current_path()
 {
-	char homedir[MAX_PATH];
-#ifdef _WIN32
-	snprintf( homedir, MAX_PATH, "%s%s", getenv( "HOMEDRIVE" ), getenv( "HOMEPATH" ) );
-#else
-	snprintf( homedir, MAX_PATH, "%s", getenv( "HOME" ) );
-#endif
-	return x::allocator::salloc( homedir );
+	return x_locale_local_utf8( std::filesystem::current_path().string().c_str() );
 }
 void x_path_copy( x_path frompath, x_path topath, bool recursive, bool overwrite )
 {
@@ -210,7 +200,7 @@ x_path x_path_at_entry( x_path path, uint64 idx )
 	for ( size_t i = 0; it != end; i++, it++ )
 	{
 		if ( i == idx )
-			return x::allocator::salloc( it->path().filename().string() );
+			return x_locale_local_utf8( it->path().filename().string().c_str() );
 	}
 
 	return nullptr;
@@ -219,14 +209,6 @@ x_path x_path_at_entry( x_path path, uint64 idx )
 int64 x_time_now()
 {
 	return x::time_2_stamp( std::chrono::system_clock::now() );
-}
-void x_time_sleep_for( int64 milliseconds )
-{
-	std::this_thread::sleep_for( std::chrono::milliseconds( milliseconds ) );
-}
-void x_time_sleep_until( int64 time )
-{
-	std::this_thread::sleep_until( x::stamp_2_time<std::chrono::system_clock>( time ) );
 }
 int32 x_time_year( int64 time )
 {
@@ -254,7 +236,7 @@ int32 x_time_weekday( int64 time )
 	auto tp = x::stamp_2_time<std::chrono::system_clock>( time );
 	auto dp = std::chrono::floor<std::chrono::days>( tp );
 	std::chrono::year_month_weekday ymd{ dp };
-	return (int32)ymd.weekday().c_encoding();
+	return (int32)ymd.weekday().iso_encoding();
 }
 int32 x_time_hour( int64 time )
 {
@@ -346,12 +328,34 @@ x_string x_time_to_string( int64 time, x_string fmt )
 	auto year = int( ymd.year() );
 	auto month = unsigned int( ymd.month() );
 	auto day = unsigned int( ymd.day() );
-	auto week = ymwd.weekday().c_encoding();
+	auto week = ymwd.weekday().iso_encoding();
 	auto hour = tm.hours().count();
 	auto minute = tm.minutes().count();
 	auto second = tm.seconds().count();
 	auto millisecond = tm.subseconds().count();
-	
+
+	/*
+		d		日期为数字，不带零（1到31）
+		dd		日数以零开头（01到31）
+		ddd		星期名称（例如“Mon”到“Sun”）
+		dddd	长星期名称（例如“Monday”到“Sunday”）
+		M		月份为数字，不带零（1-12）
+		MM		月份以零开头（01-12）
+		MMM		是本地化月份名称（例如“Jan”到“Dec”）
+		MMMM	长本地化月份名称（例如“January”到“December”）
+		yy		以两位数表示的年份（00-99）
+		yyyy	以四位数表示的年份
+
+		h		不带零的小时（0到23）
+		hh		以零开头的小时（00至23）
+		m		不带零的分钟（0到59）
+		mm		以零开头的分钟（00到59）
+		s		不带零的秒（0到59）
+		ss		以零开头的秒（00到59）
+		z		不带零的毫秒（0到999）
+		zzz		以零开头的毫秒（000到999）
+	*/
+
 	for ( int i = 0; i < fmt_view.size(); )
 	{
 		int j = 0;
@@ -454,9 +458,9 @@ x_string x_time_to_string( int64 time, x_string fmt )
 			else if ( strcmp( key, "M" ) == 0 )
 				buf.append( std::format( "{}", month ) );
 			else if ( strcmp( key, "dddd" ) == 0 )
-				buf.append( dddd[week] );
+				buf.append( dddd[week - 1] );
 			else if ( strcmp( key, "ddd" ) == 0 )
-				buf.append( ddd[week] );
+				buf.append( ddd[week - 1] );
 			else if ( strcmp( key, "dd" ) == 0 )
 				buf.append( std::format( "{:02d}", day ) );
 			else if ( strcmp( key, "d" ) == 0 )
@@ -852,8 +856,10 @@ x_iconv x_iconv_create( x_string fromcode, x_string tocode )
 {
 	return iconv_open( tocode, fromcode );
 }
-uint64 x_iconv_iconv( x_iconv iconv, x_string inbuf, uint64 inbytes, x_buffer outbuf )
+uint64 x_iconv_translate( x_iconv iconv, x_string inbuf, uint64 inbytes, x_buffer outbuf )
 {
+	inbytes = std::min<uint64>( inbytes, strlen( inbuf ) );
+
 	auto buf = (x::buffer *)outbuf;
 
 	auto sz = ::iconv( iconv, &inbuf, &inbytes, nullptr, nullptr );
