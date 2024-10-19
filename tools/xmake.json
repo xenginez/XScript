@@ -1,12 +1,12 @@
 {
   "main project": {
     "archive": "x",
-    "type": "execute|module",
+    "type": "ignore",
     "mode": "debug|release",
-    "name": "",
+    "name": "main",
     "auther": "",
     "origin": "",
-    "version": "0",
+    "version": "255.255.255.255",
     "entry": "test_namespace.test_class.main",
     "srcpath": "{current_path}/11/",
     "install": "{current_path}/build/",
@@ -22,7 +22,6 @@
   },
   "sub project": {
     "archive": "x",
-    "type": "module",
     "mode": "debug|release",
     "name": "sub",
     "auther": "",
@@ -44,6 +43,7 @@
     "auther": "",
     "origin": "",
     "version": "0",
+    "entry": "test_namespace.test_class.main",
     "srcpath": "{current_path}/11/",
     "install": "{current_path}/build/",
     "linkpaths": [
@@ -53,8 +53,6 @@
   },
   "spirv project": {
     "archive": "spirv",
-    "type": "ignore",
-    "mode": "ignore",
     "name": "spirv",
     "auther": "",
     "origin": "",

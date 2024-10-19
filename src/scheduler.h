@@ -4,7 +4,6 @@
 #include <variant>
 #include <coroutine>
 #include <functional>
-#include <type_traits>
 
 namespace x
 {
@@ -74,31 +73,19 @@ namespace x
 		}
 	};
 
-	class awaitable_promise_base
-	{
-	public:
-		auto initial_suspend()
-		{
-			return std::suspend_always{};
-		}
-
-		template <typename A, std::enable_if_t<is_awaiter_v<A>, int> = 0> auto await_transform( A awaiter ) const
-		{
-			return awaiter;
-		}
-
-	public:
-		std::coroutine_handle<> _handle;
-	};
-
 	template <typename T> class awaitable
 	{
 	public:
-		struct promise_type : public awaitable_promise_base
+		struct promise_type
 		{
 			awaitable<T> get_return_object()
 			{
-				return awaitable<T>{ std::coroutine_handle<promise_type<T>>::from_promise( *this ) };
+				return awaitable<T>{ std::coroutine_handle<promise_type>::from_promise( *this ) };
+			}
+
+			auto initial_suspend()
+			{
+				return std::suspend_always{};
 			}
 
 			auto final_suspend() noexcept
@@ -111,11 +98,17 @@ namespace x
 				_value.template emplace<T>( std::forward<V>( val ) );
 			}
 
+			template <typename A, std::enable_if_t<is_awaiter_v<A>, int> = 0> auto await_transform( A awaiter ) const
+			{
+				return awaiter;
+			}
+
 			void unhandled_exception() noexcept
 			{
 				_value.template emplace<std::exception_ptr>( std::current_exception() );
 			}
 
+			std::coroutine_handle<> _handle;
 			std::variant<std::exception_ptr, T> _value{ nullptr };
 		};
 
@@ -160,11 +153,11 @@ namespace x
 	public:
 		T operator()()
 		{
-			return get();
+			return wait();
 		}
 
 	public:
-		T get()
+		T wait()
 		{
 			return std::move( _current_handle.promise()._value );
 		}
@@ -202,12 +195,7 @@ namespace x
 		template <typename PromiseType> auto await_suspend( std::coroutine_handle<PromiseType> handle )
 		{
 			_current_handle.promise()._handle = handle;
-
-			if constexpr ( std::is_base_of_v<awaitable_promise_base, PromiseType> )
-			{
-				_current_handle.promise().local_ = handle.promise().local_;
-			}
-
+			
 			return _current_handle;
 		}
 
@@ -218,11 +206,16 @@ namespace x
 	template <> class awaitable<void>
 	{
 	public:
-		struct promise_type : public awaitable_promise_base
+		struct promise_type
 		{
 			awaitable<void> get_return_object()
 			{
 				return awaitable<void>{ std::coroutine_handle<promise_type>::from_promise( *this ) };
+			}
+
+			auto initial_suspend()
+			{
+				return std::suspend_always{};
 			}
 
 			auto final_suspend() noexcept
@@ -234,11 +227,17 @@ namespace x
 			{
 			}
 
+			template <typename A, std::enable_if_t<is_awaiter_v<A>, int> = 0> auto await_transform( A awaiter ) const
+			{
+				return awaiter;
+			}
+
 			void unhandled_exception() noexcept
 			{
 				_exception = std::current_exception();
 			}
 
+			std::coroutine_handle<> _handle;
 			std::exception_ptr _exception{ nullptr };
 		};
 
@@ -283,11 +282,11 @@ namespace x
 	public:
 		void operator()()
 		{
-			get();
+			wait();
 		}
 
 	public:
-		void get()
+		void wait()
 		{
 			(void)_current_handle.promise();
 		}
@@ -324,11 +323,6 @@ namespace x
 		{
 			_current_handle.promise()._handle = handle;
 
-			if constexpr ( std::is_base_of_v<awaitable_promise_base, PromiseType> )
-			{
-				_current_handle.promise().local_ = handle.promise().local_;
-			}
-
 			return _current_handle;
 		}
 
@@ -339,7 +333,7 @@ namespace x
 	{
 	public:
 		executor_awaiter( const std::function<void( std::coroutine_handle<> )> & callback )
-			: _callback( std::move( callback ) )
+			: _callback( callback )
 		{
 		}
 
@@ -365,99 +359,32 @@ namespace x
     class scheduler
     {
     private:
-        struct main_executor
-        {
-            struct private_p;
-
-        public:
-            main_executor();
-            ~main_executor();
-
-        public:
-            void post( const std::function<void()> & callback );
-            void run();
-            void shutdown();
-
-        private:
-            private_p * _p;
-        };
-        struct time_executor
-        {
-            struct private_p;
-
-        public:
-            using clock = std::chrono::system_clock;
-            using duration = clock::duration;
-            using time_point = clock::time_point;
-
-        public:
-            time_executor();
-            ~time_executor();
-
-        public:
-            void post( time_point time, const std::function<void()> & callback );
-            void shutdown();
-
-        public:
-            void tick();
-
-        private:
-            private_p * _p;
-        };
-        struct work_executor
-        {
-            struct private_p;
-
-        public:
-            work_executor();
-            ~work_executor();
-
-        public:
-            void post( const std::function<void()> & callback );
-            void shutdown();
-
-        private:
-            private_p * _p;
-        };
-        struct alone_executor
-        {
-            struct private_p;
-
-        public:
-            alone_executor();
-            ~alone_executor();
-
-        public:
-            void post( const std::function<void()> & callback );
-            void shutdown();
-
-        private:
-            private_p * _p;
-        };
+		struct private_p;
 
     private:
         scheduler();
         ~scheduler();
+		scheduler( scheduler && ) = delete;
+		scheduler( const scheduler & ) = delete;
+		scheduler & operator=( scheduler && ) = delete;
+		scheduler & operator=( const scheduler & ) = delete;
 
-    public:
+	private:
         static scheduler * instance();
 
     public:
-        void init();
-        bool run();
-        void shutdown();
+        static void init();
+        static bool run();
+        static void shutdown();
 
     public:
-        x::executor_awaiter transfer_main();
-        x::executor_awaiter transfer_work();
-        x::executor_awaiter transfer_alone();
-        x::executor_awaiter sleep_for( std::chrono::system_clock::duration duration );
-        x::executor_awaiter sleep_until( std::chrono::system_clock::time_point time_point );
+		static x::executor_awaiter transfer_main();
+		static x::executor_awaiter transfer_work();
+		static x::executor_awaiter transfer_alone();
+		static x::executor_awaiter sleep_for( std::chrono::system_clock::duration duration );
+		static x::executor_awaiter sleep_until( std::chrono::system_clock::time_point time_point );
 
     private:
-        std::unique_ptr<main_executor> _main;
-        std::unique_ptr<time_executor> _timer;
-        std::unique_ptr<work_executor> _works;
-        std::unique_ptr<alone_executor> _alones;
+		private_p * _p;
     };
 }

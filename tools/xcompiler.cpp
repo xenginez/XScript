@@ -2,6 +2,7 @@
 
 #include <xlib.h>
 #include <json.hpp>
+#include <logger.h>
 #include <compiler.h>
 #include <scheduler.h>
 
@@ -11,7 +12,7 @@ namespace
 	{
 		std::string archive = "x";
 		std::string type = "module";
-		std::string mode = "debug";
+		std::string mode = "debug|release";
 		std::string name = "";
 		std::string auther;
 		std::string origin;
@@ -21,39 +22,74 @@ namespace
 		std::string install;
 		std::vector<std::string> depends;
 		std::vector<std::string> linkpaths;
+
+		x::uint64 priority = 0;
+		x::compiler_ptr compiler;
 	};
 
+	x::logger _logger;
 	std::vector<project> _projects;
+
+	x::uint32 version_str_to_num( std::string_view str )
+	{
+		x::uint32 v1 = 0, v2 = 0, v3 = 0, v4 = 0;
+
+		auto beg = str.data();
+		auto end = str.data() + str.size();
+		auto cur = str.data();
+		
+		for ( ; *cur != '.' && cur <= end; ++cur );
+		std::from_chars( beg, cur, v1 ); ++cur;
+		for ( beg = cur; *cur != '.' && cur <= end; ++cur );
+		std::from_chars( beg, cur, v2 ); ++cur;
+		for ( beg = cur; *cur != '.' && cur <= end; ++cur );
+		std::from_chars( beg, cur, v3 ); ++cur;
+		for ( beg = cur; *cur != '.' && cur <= end; ++cur );
+		std::from_chars( beg, cur, v4 ); ++cur;
+
+		return ( ( v1 << 24 ) | ( v2 << 16 ) | ( v3 << 8 ) | v4 );
+	}
 }
 
-void scanner_project()
+bool scanner_project()
 {
 	auto xmake = std::filesystem::current_path() / "xmake.json";
 
 	if ( !std::filesystem::exists( xmake ) )
 	{
-		std::cout << std::format( "[xcompiler] error: \'xmake.json\' does not exist in the {}", std::filesystem::current_path().string() ) << std::endl;
-		return;
+		_logger.error( std::format( "\'xmake.json\' does not exist in the \'{}\'!", std::filesystem::current_path().string() ) );
+		return false;
 	}
 
 	auto json = x::json::load( xmake );
-	std::string timenow = x_time_to_string( x_time_now(), "yyyyMMddhhmmss" );
 
 	for ( const auto & it : json.to_object() )
 	{
 		project proj;
 		const auto & json = it.second;
 
-		if ( json.contains( "archive" ) ) proj.archive = json["archive"];
+#define CHECKER( KEY ) \
+		if ( json.contains( #KEY ) ) \
+		{ \
+			_logger.error( std::format( "project \'{}\' does not fill in the \'{}\'!", it.first, #KEY ) ); \
+			return false; \
+		} \
+		else \
+		{ \
+			proj.name = json[#KEY]; \
+		}
+
+		CHECKER( name );
+		CHECKER( version );
+		CHECKER( archive );
+		CHECKER( srcpath );
+#undef CHECKER
+
 		if ( json.contains( "type" ) ) proj.type = json["type"];
 		if ( json.contains( "mode" ) ) proj.mode = json["mode"];
-		if ( json.contains( "name" ) ) proj.name = json["name"];
 		if ( json.contains( "auther" ) ) proj.auther = json["auther"];
 		if ( json.contains( "origin" ) ) proj.origin = json["origin"];
 		if ( json.contains( "entry" ) ) proj.entry = json["entry"];
-		if ( json.contains( "srcpath" ) ) proj.srcpath = json["srcpath"];
-
-		if ( json.contains( "version" ) ) proj.version = json["version"]; else proj.version = timenow;
 		if ( json.contains( "install" ) ) proj.install = json["install"]; else proj.install = std::filesystem::current_path().string();
 
 		if ( json.contains( "depends" ) )
@@ -73,50 +109,96 @@ void scanner_project()
 
 		_projects.push_back( proj );
 	}
+
+	return !_projects.empty();
 }
-bool setting_compiler( x::compiler * comp, project * proj )
+bool setting_compiler()
 {
-
-}
-x::awaitable<void> task_compile( int i )
-{
-	printf( std::format( "{} - {}: main {}\n", std::bit_cast<unsigned int>( std::this_thread::get_id() ), i, x_time_to_string( x_time_now(), "yyyy-MM-dd hh:mm:ss.zzz" ) ).c_str() );
-
-	co_await x::scheduler::instance()->sleep_for( std::chrono::seconds( 1 ) );
-
-	printf( std::format( "{} - {}: time {}\n", std::bit_cast<unsigned int>( std::this_thread::get_id() ), i, x_time_to_string( x_time_now(), "yyyy-MM-dd hh:mm:ss.zzz" ) ).c_str() );
-
-	co_await x::scheduler::instance()->sleep_for( std::chrono::seconds( 1 ) );
-
-	co_await x::scheduler::instance()->transfer_main();
-	printf( std::format( "{} - {}: main {}\n", std::bit_cast<unsigned int>( std::this_thread::get_id() ), i, x_time_to_string( x_time_now(), "yyyy-MM-dd hh:mm:ss.zzz" ) ).c_str() );
-
-	for ( size_t i = 0; i < std::thread::hardware_concurrency(); i++ )
+	for ( auto & it : _projects )
 	{
-		co_await x::scheduler::instance()->transfer_work();
-		printf( std::format( "{} - {}: work {}\n", std::bit_cast<unsigned int>( std::this_thread::get_id() ), i, x_time_to_string( x_time_now(), "yyyy-MM-dd hh:mm:ss.zzz" ) ).c_str() );
+		if ( it.archive == "x" )
+			it.compiler = std::make_shared<x::compiler>();
+		else if ( it.archive == "llvm" )
+			it.compiler = std::make_shared<x::llvm_compiler>();
+		else if ( it.archive == "spirv" )
+			it.compiler = std::make_shared<x::spirv_compiler>();
+
+		it.compiler->set_module_name( it.name );
+		it.compiler->set_module_author( it.auther );
+		it.compiler->set_module_origin( it.origin );
+		it.compiler->set_module_version( version_str_to_num( it.version ) );
+
+		for ( const auto & iter : it.linkpaths )
+		{
+			it.compiler->add_link_path( iter );
+		}
 	}
 
-	x::scheduler::instance()->shutdown();
+	return true;
+}
+bool priority_project()
+{
+	for ( auto & it : _projects )
+	{
+		for ( const auto & iter : it.depends )
+		{
+			auto it2 = std::find_if( _projects.begin(), _projects.end(), [&]( const auto & val ) { return val.name == iter; } );
+			if ( it2 != _projects.end() )
+			{
+				it2->priority++;
+			}
+			else
+			{
+				return false;
+			}
+		}
+	}
 
-	co_return;
+	return true;
+}
+x::awaitable<bool> compile_project( project * pro )
+{
+	co_await x::scheduler::transfer_work();
+
+	if ( pro->compiler->compile( pro->srcpath ) )
+	{
+
+		co_return true;
+	}
+
+
+	co_return false;
+}
+x::awaitable<void> taskgraph_compile()
+{
+	for ( size_t i = _projects.size() - 1; i >= 0; --i )
+	{
+		for ( auto & it : _projects )
+		{
+			if ( it.priority == i )
+			{
+				if ( !( co_await compile_project( &it ) ) )
+				{
+					co_return;
+				}
+			}
+		}
+	}
 }
 
 int main( int argc, char * argv[] )
 {
-	printf( "main thread: %d\n", std::bit_cast<unsigned int>( std::this_thread::get_id() ) );
-
-	x::scheduler::instance()->init();
-
-	task_compile( 0 ).detach();
-
-	while ( x::scheduler::instance()->run() );
-
-	scanner_project();
-	if ( !_projects.empty() )
+	if ( scanner_project() )
 	{
-	
+		if ( setting_compiler() )
+		{
+			taskgraph_compile().detach();
+		}
 	}
+
+	x::scheduler::init();
+
+	while ( x::scheduler::run() );
 
 	return 0;
 }

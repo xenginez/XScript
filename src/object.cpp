@@ -12,21 +12,6 @@ void x::object::finalize()
 {
 }
 
-bool x::object::is_array() const
-{
-	return false;
-}
-
-bool x::object::is_callable() const
-{
-	return false;
-}
-
-bool x::object::is_coroutine() const
-{
-	return false;
-}
-
 x::uint64 x::object::size() const
 {
 	return x::uint64();
@@ -88,11 +73,6 @@ x::gcstatus_t x::object::get_gcstatus() const
 void x::object::set_gcstatus( x::gcstatus_t status )
 {
 	*( reinterpret_cast<x::uint8 *>( this ) - 1 ) &= static_cast<x::uint8>( status );
-}
-
-bool x::coroutine::is_coroutine() const
-{
-	return true;
 }
 
 bool x::coroutine::done() const

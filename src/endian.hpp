@@ -61,5 +61,21 @@ namespace x
 			else
 				return swap_endian( val );
 		}
+
+		template<typename T> inline static T big_to_native( T val )
+		{
+			if constexpr ( std::endian::native == std::endian::big )
+				return val;
+			else
+				return swap_endian( val );
+		}
+
+		template<typename T> inline static T little_to_native( T val )
+		{
+			if constexpr ( std::endian::native == std::endian::little )
+				return val;
+			else
+				return swap_endian( val );
+		}
 	};
 }

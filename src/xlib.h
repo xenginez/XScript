@@ -231,11 +231,16 @@ extern "C"{
 #define SOCKET_PROTOCOL_TCP                 uint32( 2 )
 #define SOCKET_PROTOCOL_ICMP                uint32( 3 )
 
-    // os
+    // x
     int x_main( int argc, const char ** argv );
+    uint64 x_argc();
+    x_string x_argv( uint64 index );
+
+    // os
+    void x_os_init();
     uint8 x_os_arch();
     x_string x_os_name();
-    x_string x_os_stacktrace(int ignore = 1);
+    x_string x_os_stacktrace();
 
     // zip
     x_zip x_zip_create();
@@ -348,6 +353,43 @@ extern "C"{
     void x_atomic_store( x_atomic atomic, intptr val );
     void x_atomic_release( x_atomic atomic );
 
+    // buffer
+    x_buffer x_buffer_create();
+    int8 x_buffer_read_i8( x_buffer buffer );
+    int16 x_buffer_read_i16( x_buffer buffer );
+    int32 x_buffer_read_i32( x_buffer buffer );
+    int64 x_buffer_read_i64( x_buffer buffer );
+    uint8 x_buffer_read_u8( x_buffer buffer );
+    uint16 x_buffer_read_u16( x_buffer buffer );
+    uint32 x_buffer_read_u32( x_buffer buffer );
+    uint64 x_buffer_read_u64( x_buffer buffer );
+    float16 x_buffer_read_f16( x_buffer buffer );
+    float32 x_buffer_read_f32( x_buffer buffer );
+    float64 x_buffer_read_f64( x_buffer buffer );
+    x_string x_buffer_read_str( x_buffer buffer );
+    void x_buffer_write_i8( x_buffer buffer, int8 val );
+    void x_buffer_write_i16( x_buffer buffer, int16 val );
+    void x_buffer_write_i32( x_buffer buffer, int32 val );
+    void x_buffer_write_i64( x_buffer buffer, int64 val );
+    void x_buffer_write_u8( x_buffer buffer, uint8 val );
+    void x_buffer_write_u16( x_buffer buffer, uint16 val );
+    void x_buffer_write_u32( x_buffer buffer, uint32 val );
+    void x_buffer_write_u64( x_buffer buffer, uint64 val );
+    void x_buffer_write_f16( x_buffer buffer, float16 val );
+    void x_buffer_write_f32( x_buffer buffer, float32 val );
+    void x_buffer_write_f64( x_buffer buffer, float64 val );
+    void x_buffer_write_str( x_buffer buffer, x_string val );
+    intptr x_buffer_prepare( x_buffer buffer, uint64 size );
+    void x_buffer_commit( x_buffer buffer, uint64 size );
+    void x_buffer_consume( x_buffer buffer, uint64 size );
+    uint64 x_buffer_size( x_buffer buffer );
+    intptr x_buffer_data( x_buffer buffer );
+    int64 x_buffer_tellg( x_buffer buffer );
+    int64 x_buffer_tellp( x_buffer buffer );
+    void x_buffer_seekg( x_buffer buffer, uint32 pos, int64 offset );
+    void x_buffer_seekp( x_buffer buffer, uint32 pos, int64 offset );
+    void x_buffer_release( x_buffer buffer );
+
     // window
     x_window x_window_create();
     float32 x_window_dpi_scale( x_window window );
@@ -410,13 +452,6 @@ extern "C"{
     void x_condition_release( x_condition cond );
 
     // coroutine
-    bool x_coroutine_done( x_coroutine coroutine );
-    void x_coroutine_yield( x_coroutine coroutine );
-    void x_coroutine_await( x_coroutine coroutine );
-    void x_coroutine_return( x_coroutine coroutine );
-    void x_coroutine_resume( x_coroutine coroutine );
-    void x_coroutine_sleep_for( x_coroutine coroutine, int64 duration );
-    void x_coroutine_sleep_until( x_coroutine coroutine, int64 time );
     void x_coroutine_file_read( x_coroutine coroutine, x_file file, intptr buffer, uint64 size );
     void x_coroutine_file_write( x_coroutine coroutine, x_file file, intptr buffer, uint64 size );
     void x_coroutine_socket_accept( x_coroutine coroutine, x_socket socket );

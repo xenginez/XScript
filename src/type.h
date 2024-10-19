@@ -440,6 +440,7 @@ namespace x
     PTR( symbols );
     PTR( context );
     PTR( runtime );
+    PTR( compiler );
     PTR( interpreter );
     PTR( virtual_machine );
 

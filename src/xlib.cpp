@@ -31,6 +31,7 @@
 
 #include "zip.h"
 #include "buffer.h"
+#include "endian.hpp"
 #include "allocator.h"
 #include "exception.h"
 #include "scheduler.h"
@@ -47,10 +48,34 @@ namespace
 		std::condition_variable var;
 	};
 
+	static int ARGC = 0;
+	static const char ** ARGV = nullptr;
 	static const char * MMMM[12] = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" };
 	static const char * MMM[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 	static const char * dddd[7] = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday","Sunday" };
 	static const char * ddd[7] = { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
+}
+
+int x_main( int argc, const char ** argv )
+{
+	ARGC = argc;
+	ARGV = argv;
+
+	x_os_init();
+
+	x::scheduler::init();
+
+	while ( x::scheduler::run() );
+
+	return 0;
+}
+uint64 x_argc()
+{
+	return ARGC;
+}
+x_string x_argv( uint64 index )
+{
+	return ARGV[index];
 }
 
 x_zip x_zip_create()
@@ -902,6 +927,211 @@ void x_atomic_release( x_atomic atomic )
 	delete reinterpret_cast<std::atomic<intptr> *>( atomic );
 }
 
+x_buffer x_buffer_create()
+{
+	return new x::buffer;
+}
+int8 x_buffer_read_i8( x_buffer buffer )
+{
+	int8 result = 0;
+	std::istream( static_cast<x::buffer *>( buffer ) ).read( (char *)( &result ), sizeof( result ) );
+	return x::endian::little_to_native( result );
+}
+int16 x_buffer_read_i16( x_buffer buffer )
+{
+	int16 result = 0;
+	std::istream( static_cast<x::buffer *>( buffer ) ).read( (char *)( &result ), sizeof( result ) );
+	return x::endian::little_to_native( result );
+}
+int32 x_buffer_read_i32( x_buffer buffer )
+{
+	int32 result = 0;
+	std::istream( static_cast<x::buffer *>( buffer ) ).read( (char *)( &result ), sizeof( result ) );
+	return x::endian::little_to_native( result );
+}
+int64 x_buffer_read_i64( x_buffer buffer )
+{
+	int64 result = 0;
+	std::istream( static_cast<x::buffer *>( buffer ) ).read( (char *)( &result ), sizeof( result ) );
+	return x::endian::little_to_native( result );
+}
+uint8 x_buffer_read_u8( x_buffer buffer )
+{
+	uint8 result = 0;
+	std::istream( static_cast<x::buffer *>( buffer ) ).read( (char *)( &result ), sizeof( result ) );
+	return x::endian::little_to_native( result );
+}
+uint16 x_buffer_read_u16( x_buffer buffer )
+{
+	uint16 result = 0;
+	std::istream( static_cast<x::buffer *>( buffer ) ).read( (char *)( &result ), sizeof( result ) );
+	return x::endian::little_to_native( result );
+}
+uint32 x_buffer_read_u32( x_buffer buffer )
+{
+	uint32 result = 0;
+	std::istream( static_cast<x::buffer *>( buffer ) ).read( (char *)( &result ), sizeof( result ) );
+	return x::endian::little_to_native( result );
+}
+uint64 x_buffer_read_u64( x_buffer buffer )
+{
+	uint64 result = 0;
+	std::istream( static_cast<x::buffer *>( buffer ) ).read( (char *)( &result ), sizeof( result ) );
+	return x::endian::little_to_native( result );
+}
+float16 x_buffer_read_f16( x_buffer buffer )
+{
+	float16 result = 0;
+	std::istream( static_cast<x::buffer *>( buffer ) ).read( (char *)( &result ), sizeof( result ) );
+	return x::endian::little_to_native( result );
+}
+float32 x_buffer_read_f32( x_buffer buffer )
+{
+	float32 result = 0;
+	std::istream( static_cast<x::buffer *>( buffer ) ).read( (char *)( &result ), sizeof( result ) );
+	return result;
+}
+float64 x_buffer_read_f64( x_buffer buffer )
+{
+	float64 result = 0;
+	std::istream( static_cast<x::buffer *>( buffer ) ).read( (char *)( &result ), sizeof( result ) );
+	return result;
+}
+x_string x_buffer_read_str( x_buffer buffer )
+{
+	std::string str;
+	std::istream is( static_cast<x::buffer *>( buffer ) );
+	do
+	{
+		str.push_back( is.get() );
+	} while ( str.back() != 0 );
+
+	return x::allocator::salloc( str );
+}
+void x_buffer_write_i8( x_buffer buffer, int8 val )
+{
+	val = x::endian::native_to_little( val );
+	std::ostream( static_cast<x::buffer *>( buffer ) ).write( (const char *)( &val ), sizeof( val ) );
+}
+void x_buffer_write_i16( x_buffer buffer, int16 val )
+{
+	val = x::endian::native_to_little( val );
+	std::ostream( static_cast<x::buffer *>( buffer ) ).write( (const char *)( &val ), sizeof( val ) );
+}
+void x_buffer_write_i32( x_buffer buffer, int32 val )
+{
+	val = x::endian::native_to_little( val );
+	std::ostream( static_cast<x::buffer *>( buffer ) ).write( (const char *)( &val ), sizeof( val ) );
+}
+void x_buffer_write_i64( x_buffer buffer, int64 val )
+{
+	val = x::endian::native_to_little( val );
+	std::ostream( static_cast<x::buffer *>( buffer ) ).write( (const char *)( &val ), sizeof( val ) );
+}
+void x_buffer_write_u8( x_buffer buffer, uint8 val )
+{
+	val = x::endian::native_to_little( val );
+	std::ostream( static_cast<x::buffer *>( buffer ) ).write( (const char *)( &val ), sizeof( val ) );
+}
+void x_buffer_write_u16( x_buffer buffer, uint16 val )
+{
+	val = x::endian::native_to_little( val );
+	std::ostream( static_cast<x::buffer *>( buffer ) ).write( (const char *)( &val ), sizeof( val ) );
+}
+void x_buffer_write_u32( x_buffer buffer, uint32 val )
+{
+	val = x::endian::native_to_little( val );
+	std::ostream( static_cast<x::buffer *>( buffer ) ).write( (const char *)( &val ), sizeof( val ) );
+}
+void x_buffer_write_u64( x_buffer buffer, uint64 val )
+{
+	val = x::endian::native_to_little( val );
+	std::ostream( static_cast<x::buffer *>( buffer ) ).write( (const char *)( &val ), sizeof( val ) );
+}
+void x_buffer_write_f16( x_buffer buffer, float16 val )
+{
+	val = x::endian::native_to_little( val );
+	std::ostream( static_cast<x::buffer *>( buffer ) ).write( (const char *)( &val ), sizeof( val ) );
+}
+void x_buffer_write_f32( x_buffer buffer, float32 val )
+{
+	std::ostream( static_cast<x::buffer *>( buffer ) ).write( (const char *)( &val ), sizeof( val ) );
+}
+void x_buffer_write_f64( x_buffer buffer, float64 val )
+{
+	std::ostream( static_cast<x::buffer *>( buffer ) ).write( (const char *)( &val ), sizeof( val ) );
+}
+void x_buffer_write_str( x_buffer buffer, x_string val )
+{
+	std::ostream( static_cast<x::buffer *>( buffer ) ).write( val, strlen( val ) + 1 );
+}
+intptr x_buffer_prepare( x_buffer buffer, uint64 size )
+{
+	return static_cast<x::buffer *>( buffer )->prepare( size );
+}
+void x_buffer_commit( x_buffer buffer, uint64 size )
+{
+	static_cast<x::buffer *>( buffer )->commit( size );
+}
+void x_buffer_consume( x_buffer buffer, uint64 size )
+{
+	static_cast<x::buffer *>( buffer )->consume( size );
+}
+uint64 x_buffer_size( x_buffer buffer )
+{
+	return static_cast<x::buffer *>( buffer )->size();
+}
+intptr x_buffer_data( x_buffer buffer )
+{
+	return ( intptr )static_cast<x::buffer *>( buffer )->data();
+}
+int64 x_buffer_tellg( x_buffer buffer )
+{
+	return std::istream( static_cast<x::buffer *>( buffer ) ).tellg();
+}
+int64 x_buffer_tellp( x_buffer buffer )
+{
+	return std::ostream( static_cast<x::buffer *>( buffer ) ).tellp();
+}
+void x_buffer_seekg( x_buffer buffer, uint32 pos, int64 offset )
+{
+	switch ( pos )
+	{
+	case SEEK_POS_BEG:
+		std::istream( static_cast<x::buffer *>( buffer ) ).seekg( offset, std::ios::beg );
+		break;
+	case SEEK_POS_CUR:
+		std::istream( static_cast<x::buffer *>( buffer ) ).seekg( offset, std::ios::cur );
+		break;
+	case SEEK_POS_END:
+		std::istream( static_cast<x::buffer *>( buffer ) ).seekg( offset, std::ios::end );
+		break;
+	default:
+		break;
+	}
+}
+void x_buffer_seekp( x_buffer buffer, uint32 pos, int64 offset )
+{
+	switch ( pos )
+	{
+	case SEEK_POS_BEG:
+		std::ostream( static_cast<x::buffer *>( buffer ) ).seekp( offset, std::ios::beg );
+		break;
+	case SEEK_POS_CUR:
+		std::ostream( static_cast<x::buffer *>( buffer ) ).seekp( offset, std::ios::cur );
+		break;
+	case SEEK_POS_END:
+		std::ostream( static_cast<x::buffer *>( buffer ) ).seekp( offset, std::ios::end );
+		break;
+	default:
+		break;
+	}
+}
+void x_buffer_release( x_buffer buffer )
+{
+	delete static_cast<x::buffer *>( buffer );
+}
+
 x_uchardet x_uchardet_create()
 {
 	return uchardet_new();
@@ -950,35 +1180,4 @@ void x_condition_notify_all( x_condition cond )
 void x_condition_release( x_condition cond )
 {
 	delete reinterpret_cast<condition_info *>( cond );
-}
-
-bool x_coroutine_done( x_coroutine coroutine )
-{
-	return false;
-}
-void x_coroutine_yield( x_coroutine coroutine )
-{
-
-}
-void x_coroutine_await( x_coroutine coroutine )
-{
-
-}
-void x_coroutine_return( x_coroutine coroutine )
-{
-
-}
-void x_coroutine_resume( x_coroutine coroutine )
-{
-
-}
-
-void x_coroutine_sleep_for( x_coroutine coroutine, int64 milliseconds )
-{
-
-	//x::scheduler;
-}
-void x_coroutine_sleep_until( x_coroutine coroutine, int64 time )
-{
-	//x::scheduler;
 }

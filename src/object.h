@@ -13,11 +13,6 @@ namespace x
 		virtual void finalize();
 
 	public:
-		virtual bool is_array() const;
-		virtual bool is_callable() const;
-		virtual bool is_coroutine() const;
-
-	public:
 		virtual x::uint64 size() const;
 		virtual x::uint64 hashcode() const;
 		virtual x::string to_string() const;
@@ -36,11 +31,6 @@ namespace x
 
 	class coroutine : public object
 	{
-		friend class runtime;
-
-	public:
-		bool is_coroutine() const override;
-
 	public:
 		bool done() const;
 		bool next() const;

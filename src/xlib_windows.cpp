@@ -2,8 +2,6 @@
 
 #include "xlib.h"
 
-#include <deque>
-
 #define NOMINMAX
 #include <WinSock2.h>
 #include <mswsock.h>
@@ -11,11 +9,13 @@
 #include <ws2tcpip.h>
 #include <dbghelp.h>
 
+#include <concurrentqueue.h>
+
 #include "value.h"
 #include "object.h"
 #include "buffer.h"
 #include "allocator.h"
-#include <concurrentqueue.h>
+#include "scheduler.h"
 
 #pragma comment(lib, "Ws2_32.lib")
 #pragma comment(lib, "DbgHelp.lib")
@@ -37,7 +37,7 @@ namespace
     struct file_info;
     struct window_info;
     struct socket_info;
-    struct windows_scheduler;
+    struct iocp_scheduler;
     uint32 key_event( WPARAM wParam );
     std::string get_last_error_as_string( DWORD id = 0 );
     std::string get_last_wsa_error_as_string( DWORD id = 0 );
@@ -100,13 +100,13 @@ namespace
         LPFN_CONNECTEX ConnectEx = nullptr;
         LPFN_GETACCEPTEXSOCKADDRS GetAcceptExSockaddrs = nullptr;
     };
-    struct windows_scheduler
+    struct iocp_scheduler
     {
     public:
-        windows_scheduler()
+        iocp_scheduler()
         {
         }
-        ~windows_scheduler()
+        ~iocp_scheduler()
         {
             _thread.request_stop();
 
@@ -116,9 +116,9 @@ namespace
         }
 
     public:
-        static windows_scheduler * instance()
+        static iocp_scheduler * instance()
         {
-            static windows_scheduler io;
+            static iocp_scheduler io;
             return &io;
         }
 
@@ -171,7 +171,7 @@ namespace
 
             while ( !token.stop_requested() )
             {
-                if ( ::GetQueuedCompletionStatus( windows_scheduler::iocp_handle(), &bytes, &key, (LPOVERLAPPED *)&overlap, INFINITE ) )
+                if ( ::GetQueuedCompletionStatus( iocp_scheduler::iocp_handle(), &bytes, &key, (LPOVERLAPPED *)&overlap, INFINITE ) )
                 {
                     switch ( overlap->type )
                     {
@@ -923,7 +923,7 @@ namespace
     };
 }
 
-int x_main( int argc, const char ** argv )
+void x_os_init()
 {
 	WNDCLASSEXA wc;
 	wc.cbSize = sizeof( wc );
@@ -936,25 +936,29 @@ int x_main( int argc, const char ** argv )
 	wc.hCursor = LoadCursorA( nullptr, IDC_ARROW );
 	wc.hbrBackground = static_cast<HBRUSH>( GetStockObject( COLOR_WINDOW ) );
 	wc.lpszMenuName = nullptr;
-	wc.lpszClassName = "x_window_class";
+	wc.lpszClassName = "x_windows_class";
 	wc.hIconSm = nullptr;
 	RegisterClassExA( &wc );
 
-	while ( 1 )
-	{
-        MSG msg = {};
-		if ( GetMessageA( &msg, nullptr, 0, 0 ) )
-		{
-			if ( msg.message == WM_QUIT )
-				break;
+    std::jthread( []()
+    {
+        while ( 1 )
+        {
+            MSG msg = {};
+            if ( GetMessageA( &msg, nullptr, 0, 0 ) )
+            {
+                if ( msg.message == WM_QUIT )
+                {
+                    x::scheduler::shutdown();
+                    return;
+                }
 
-			TranslateMessage( &msg );
+                TranslateMessage( &msg );
 
-			DispatchMessageA( &msg );
-		}
-	}
-
-	return 0;
+                DispatchMessageA( &msg );
+            }
+        }
+    } ).detach();
 }
 uint8 x_os_arch()
 {
@@ -964,7 +968,7 @@ x_string x_os_name()
 {
 	return x::allocator::salloc( "windows" );
 }
-x_string x_os_stacktrace( int ignore )
+x_string x_os_stacktrace()
 {
     std::string result;
 
@@ -1012,10 +1016,7 @@ x_string x_os_stacktrace( int ignore )
     SymInitialize( process, NULL, TRUE );
     SymSetOptions( SymGetOptions() | SYMOPT_LOAD_LINES );
 
-    for ( size_t i = 0; i < ignore; i++ )
-    {
-        StackWalk( machine, process, thread, &frame, &context, NULL, SymFunctionTableAccess, SymGetModuleBase, NULL );
-    }
+    StackWalk( machine, process, thread, &frame, &context, NULL, SymFunctionTableAccess, SymGetModuleBase, NULL );
 
     while ( StackWalk( machine, process, thread, &frame, &context, NULL, SymFunctionTableAccess, SymGetModuleBase, NULL ) )
     {
@@ -1110,7 +1111,7 @@ bool x_file_open( x_file file, x_path path, uint32 mode )
             info->writeoff = end_off;
         }
 
-        ::CreateIoCompletionPort( info->handle, windows_scheduler::iocp_handle(), (ULONG_PTR)info, 0 );
+        ::CreateIoCompletionPort( info->handle, iocp_scheduler::iocp_handle(), (ULONG_PTR)info, 0 );
     }
 
     return info->handle != INVALID_HANDLE_VALUE;
@@ -1614,7 +1615,7 @@ x_buffer x_socket_getaddrinfo( uint32 protocol, x_string name, x_string service 
 }
 x_socket x_socket_create( uint32 protocol, uint32 family )
 {
-    windows_scheduler::init();
+    iocp_scheduler::init();
 
     auto info = new socket_info;
 
@@ -1655,7 +1656,7 @@ x_socket x_socket_create( uint32 protocol, uint32 family )
     GUID GetAcceptExSockaddrsGuid = WSAID_GETACCEPTEXSOCKADDRS;
 
     XTHROW( x::runtime_exception, ( info->handle = ::WSASocketW( info->info.ai_family, info->info.ai_socktype, info->info.ai_protocol, nullptr, 0, WSA_FLAG_OVERLAPPED ) ) == 0, get_last_wsa_error_as_string() );
-    XTHROW( x::runtime_exception, ::CreateIoCompletionPort( (HANDLE)info->handle, windows_scheduler::iocp_handle(), (ULONG_PTR)info, 0 ) == nullptr, get_last_error_as_string() );
+    XTHROW( x::runtime_exception, ::CreateIoCompletionPort( (HANDLE)info->handle, iocp_scheduler::iocp_handle(), (ULONG_PTR)info, 0 ) == nullptr, get_last_error_as_string() );
     XTHROW( x::runtime_exception, WSAIoctl( info->handle, SIO_GET_EXTENSION_FUNCTION_POINTER, &AcceptExGuid, sizeof( AcceptExGuid ), &info->AcceptEx, sizeof( info->AcceptEx ), &bytes, nullptr, nullptr ) != 0, get_last_error_as_string() );
     XTHROW( x::runtime_exception, WSAIoctl( info->handle, SIO_GET_EXTENSION_FUNCTION_POINTER, &ConnectExGuid, sizeof( ConnectExGuid ), &info->ConnectEx, sizeof( info->ConnectEx ), &bytes, nullptr, nullptr ) != 0, get_last_error_as_string() );
     XTHROW( x::runtime_exception, WSAIoctl( info->handle, SIO_GET_EXTENSION_FUNCTION_POINTER, &GetAcceptExSockaddrsGuid, sizeof( GetAcceptExSockaddrsGuid ), &info->GetAcceptExSockaddrs, sizeof( info->GetAcceptExSockaddrs ), &bytes, nullptr, nullptr ) != 0, get_last_error_as_string() );
@@ -1692,7 +1693,7 @@ x_socket x_socket_accept( x_socket socket )
     int len = sizeof( client_info->peeraddr );
     
     XTHROW( x::runtime_exception, ( client_info->handle = ::accept( info->handle, (sockaddr *)&client_info->peeraddr, &len ) ) == INVALID_SOCKET, get_last_wsa_error_as_string() );
-    XTHROW( x::runtime_exception, ::CreateIoCompletionPort( (HANDLE)client_info->handle, windows_scheduler::iocp_handle(), (ULONG_PTR)client_info, 0 ) == nullptr, get_last_error_as_string() );
+    XTHROW( x::runtime_exception, ::CreateIoCompletionPort( (HANDLE)client_info->handle, iocp_scheduler::iocp_handle(), (ULONG_PTR)client_info, 0 ) == nullptr, get_last_error_as_string() );
 
     return client_info;
 }
@@ -1798,7 +1799,7 @@ void x_coroutine_file_read( x_coroutine coroutine, x_file file, intptr buffer, u
 {
     auto info = (file_info *)file;
 
-    auto lap = windows_scheduler::dequeue();
+    auto lap = iocp_scheduler::dequeue();
     lap->type = IOCP_EVENT_READ;
     lap->file = info;
     lap->buffer.buf = reinterpret_cast<CHAR *>( buffer );
@@ -1812,7 +1813,7 @@ void x_coroutine_file_write( x_coroutine coroutine, x_file file, intptr buffer, 
 {
     auto info = (file_info *)file;
 
-    auto lap = windows_scheduler::dequeue();
+    auto lap = iocp_scheduler::dequeue();
     lap->type = IOCP_EVENT_WRITE;
     lap->file = info;
     lap->buffer.buf = reinterpret_cast<CHAR *>( buffer );
@@ -1825,7 +1826,7 @@ void x_coroutine_socket_accept( x_coroutine coroutine, x_socket socket )
 {
     auto info = reinterpret_cast<socket_info *>( socket );
 
-    auto lap = windows_scheduler::dequeue();
+    auto lap = iocp_scheduler::dequeue();
     lap->socket = info;
     lap->type = IOCP_EVENT_ACCEPT;
     lap->accept.client = reinterpret_cast<socket_info *>( x_socket_create( info->protocol, info->family ) );
@@ -1849,7 +1850,7 @@ void x_coroutine_socket_connect( x_coroutine coroutine, x_socket socket, x_strin
     info->peeraddr.sin_port = ::htons( port );
     ::inet_pton( info->peeraddr.sin_family, peername, &info->peeraddr.sin_addr.s_addr );
 
-    auto lap = windows_scheduler::dequeue();
+    auto lap = iocp_scheduler::dequeue();
     lap->socket = info;
     lap->type = IOCP_EVENT_CONNECT;
     lap->result = reinterpret_cast<x::coroutine *>( coroutine );
@@ -1860,7 +1861,7 @@ void x_coroutine_socket_recv( x_coroutine coroutine, x_socket socket, intptr buf
 {
     auto info = reinterpret_cast<socket_info *>( socket );
 
-    auto lap = windows_scheduler::dequeue();
+    auto lap = iocp_scheduler::dequeue();
     lap->type = IOCP_EVENT_RECV;
     lap->socket = info;
     lap->buffer.buf = reinterpret_cast<CHAR *>( buffer );
@@ -1876,7 +1877,7 @@ void x_coroutine_socket_send( x_coroutine coroutine, x_socket socket, intptr buf
 {
     auto info = reinterpret_cast<socket_info *>( socket );
 
-    auto lap = windows_scheduler::dequeue();
+    auto lap = iocp_scheduler::dequeue();
     lap->type = IOCP_EVENT_SEND;
     lap->socket = info;
     lap->buffer.buf = reinterpret_cast<CHAR *>( buffer );
@@ -1894,7 +1895,7 @@ void x_coroutine_socket_sendto( x_coroutine coroutine, x_socket socket, x_string
     info->peeraddr.sin_port = ::htons( port );
     ::inet_pton( info->peeraddr.sin_family, peername, &info->peeraddr.sin_addr.s_addr );
 
-    auto lap = windows_scheduler::dequeue();
+    auto lap = iocp_scheduler::dequeue();
     lap->type = IOCP_EVENT_SEND;
     lap->socket = info;
     lap->buffer.buf = reinterpret_cast<CHAR *>( buffer );

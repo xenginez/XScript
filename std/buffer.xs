@@ -1,0 +1,6 @@
+namespace std
+{
+	class buffer
+	{
+	}
+}
