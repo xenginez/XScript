@@ -38,6 +38,13 @@ namespace x
 		friend class context;
 
 	public:
+		struct element
+		{
+			x::int64 value;
+			std::string_view name;
+		};
+
+	public:
 		meta_enum();
 
 	public:
@@ -51,12 +58,12 @@ namespace x
 		void construct( void * ptr ) const override;
 
 	public:
-		std::span<const x::meta_element * const> elements() const;
+		std::span<const element> elements() const;
 
 	private:
 		std::string_view _name;
 		std::string_view _fullname;
-		std::vector<const x::meta_element *> _elements;
+		std::vector<element> _elements;
 	};
 
 	class meta_class : public meta_type
@@ -80,6 +87,41 @@ namespace x
 		const x::meta_class * base() const;
 		std::span<const x::meta_variable * const> variables() const;
 		std::span<const x::meta_function * const> functions() const;
+		std::span<const x::meta_interface * const> interfaces() const;
+
+	private:
+		x::uint64 _size = 0;
+		x::uint64 _construct = 0;
+		std::string_view _name;
+		std::string_view _fullname;
+		const x::meta_class * _base = nullptr;
+		std::vector<const x::meta_variable *> _variables;
+		std::vector<const x::meta_function *> _functions;
+		std::vector<const x::meta_interface *> _interfaces;
+	};
+
+	class meta_template : public meta_type
+	{
+		friend class context;
+
+	public:
+		meta_template();
+
+	public:
+		x::meta_t type() const override;
+		x::uint64 hashcode() const override;
+		std::string_view name() const override;
+		std::string_view fullname() const override;
+
+	public:
+		x::uint64 size() const override;
+		void construct( void * ptr ) const override;
+
+	public:
+		const x::meta_class * base() const;
+		std::span<const x::meta_variable * const> variables() const;
+		std::span<const x::meta_function * const> functions() const;
+		std::span<const x::meta_interface * const> interfaces() const;
 
 	private:
 		x::uint64 _size = 0;
@@ -89,28 +131,7 @@ namespace x
 		const x::meta_class * _base;
 		std::vector<const x::meta_variable *> _variables;
 		std::vector<const x::meta_function *> _functions;
-	};
-
-	class meta_element : public meta
-	{
-		friend class context;
-
-	public:
-		meta_element();
-
-	public:
-		x::meta_t type() const override;
-		x::uint64 hashcode() const override;
-		std::string_view name() const override;
-		std::string_view fullname() const override;
-
-	public:
-		x::int64 value() const;
-
-	private:
-		x::int64 _value = 0;
-		std::string_view _name;
-		std::string_view _fullname;
+		std::vector<const x::meta_interface *> _interfaces;
 	};
 
 	class meta_variable : public meta
@@ -143,12 +164,19 @@ namespace x
 		x::access_t _access = x::access_t::PRIVATE;
 		std::string_view _name;
 		std::string_view _fullname;
-		const x::meta_type * _valuetype;
+		const x::meta_type * _valuetype = nullptr;
 	};
 
 	class meta_function : public meta
 	{
 		friend class context;
+
+	public:
+		struct parameter
+		{
+			std::string_view _name;
+			const x::meta_type * _valuetype = nullptr;
+		};
 
 	public:
 		meta_function();
@@ -164,8 +192,8 @@ namespace x
 		bool is_async() const;
 		bool is_static() const;
 		x::access_t access() const;
+		std::span<const parameter> parameters() const;
 		std::span<const x::meta_type * const> results() const;
-		std::span<const x::meta_parameter * const> parameters() const;
 
 	public:
 		void invoke() const;
@@ -178,30 +206,8 @@ namespace x
 		x::uint64 _code = 0;
 		std::string_view _name;
 		std::string_view _fullname;
+		std::vector<parameter> _parameters;
 		std::vector<const x::meta_type *> _results;
-		std::vector<const x::meta_parameter *> _parameters;
-	};
-
-	class meta_parameter : public meta
-	{
-		friend class context;
-
-	public:
-		meta_parameter();
-
-	public:
-		x::meta_t type() const override;
-		x::uint64 hashcode() const override;
-		std::string_view name() const override;
-		std::string_view fullname() const override;
-
-	public:
-		const x::meta_type * value_type() const;
-
-	private:
-		std::string_view _name;
-		std::string_view _fullname;
-		const x::meta_type * _valuetype = nullptr;
 	};
 
 	class meta_interface : public meta_type

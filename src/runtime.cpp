@@ -10,6 +10,80 @@
 
 #include "allocator.h"
 
+#ifdef _WIN32
+#include <Windows.h>
+#else
+#include <dlfcn.h>
+#endif
+
+namespace
+{
+#ifdef _WIN32
+	void * dll_open( std::string_view name )
+	{
+		if ( name.empty() )
+			return GetModuleHandleA( nullptr );
+
+		char buf[512];
+
+		memset( buf, 0, 512 );
+		memcpy( buf, name.data(), name.size() );
+		buf[name.size()] = 0;
+
+		return LoadLibraryA( buf );
+	}
+	void * dll_sym( void * handle, std::string_view name )
+	{
+		char buf[512];
+
+		memset( buf, 0, 512 );
+		memcpy( buf, name.data(), name.size() );
+		buf[name.size()] = 0;
+
+		return GetProcAddress( reinterpret_cast<HMODULE>( handle ), buf );
+	}
+	bool dll_close( void * handle )
+	{
+		return FreeLibrary( reinterpret_cast<HMODULE>( handle ) );
+	}
+#else
+	void * dll_open( std::string_view name )
+	{
+		if ( name.empty() )
+			return nullptr;
+
+		char buf[512];
+
+		memset( buf, 0, 512 );
+		memcpy( buf, name.data(), name.size() );
+		buf[name.size()] = 0;
+
+		return dlopen( buf, RTLD_LAZY );
+	}
+	void * dll_sym( void * handle, std::string_view name )
+	{
+		char buf[512];
+
+		memset( buf, 0, 512 );
+		memcpy( buf, name.data(), name.size() );
+		buf[name.size()] = 0;
+
+		return dlsym( handle, buf );
+	}
+	bool dll_close( void * handle )
+	{
+		return dlclose( handle ) == 0;
+	}
+#endif
+
+	struct library_info
+	{
+		void * handle = nullptr;
+		std::string name;
+		std::map<std::string, void *> funcs;
+	};
+}
+
 struct x::runtime::tld
 {
 	tld( x::runtime * rt )
@@ -64,6 +138,7 @@ struct x::runtime::private_p
 
 	std::vector<x::value> _global;
 	std::map<std::thread::id, tld *> _threads;
+	std::map<std::string, library_info> _dlllibs;
 };
 
 x::runtime::runtime()
@@ -91,7 +166,7 @@ x::runtime::~runtime()
 	delete _p;
 }
 
-x::runtime * x::runtime::thread_owner_runtime()
+x::runtime * x::runtime::this_thread_owner_runtime()
 {
 	if ( tld::current() != nullptr )
 		return tld::current()->_rt;
@@ -197,11 +272,70 @@ bool x::runtime::delete_tld( tld * val )
 	return false;
 }
 
-x::object * x::runtime::alloc( x::uint64 size )
+x::object * x::runtime::obj_alloc( x::uint64 size )
 {
 	if ( _p->_gcusesize > _p->_gctriggersize && _p->_gcstage == x::gcstage_t::NONE ) gc();
 
 	return new ( allocator::malloc( ALIGN( size, 8 ) ) ) x::object();
+}
+
+x::coroutine * x::runtime::coro_alloc( x::uint64 size )
+{
+	if ( _p->_gcusesize > _p->_gctriggersize && _p->_gcstage == x::gcstage_t::NONE ) gc();
+
+	return new ( allocator::malloc( ALIGN( size, 8 ) ) ) x::coroutine();
+}
+
+void x::runtime::dll_call( std::string_view dllname, std::string_view funcname, x::callmode_t mode, x::uint32 args )
+{
+	auto dll_it = _p->_dlllibs.find( { dllname.data(), dllname.size() } );
+	if ( dll_it == _p->_dlllibs.end() )
+	{
+		auto handle = dll_open( dllname );
+		if ( handle != nullptr )
+		{
+			library_info info;
+			info.name = dllname;
+			info.handle = handle;
+
+			dll_it = _p->_dlllibs.insert( { info.name, info } ).first;
+		}
+	}
+
+	if ( dll_it != _p->_dlllibs.end() )
+	{
+		auto func_it = dll_it->second.funcs.find( { funcname.data(), funcname.size() } );
+		if ( func_it == dll_it->second.funcs.end() )
+		{
+			auto func = dll_sym( dll_it->second.handle, funcname );
+			if ( func != nullptr )
+			{
+				func_it = dll_it->second.funcs.insert( { std::string( funcname.data(), funcname.size() ), func } ).first;
+			}
+		}
+
+		if ( func_it != dll_it->second.funcs.end() )
+		{
+			/// TODO: 
+			switch ( mode )
+			{
+			case x::callmode_t::MODE_C:
+				break;
+			case x::callmode_t::MODE_STD:
+				break;
+			case x::callmode_t::MODE_FAST:
+				break;
+			case x::callmode_t::MODE_THIS:
+				break;
+			default:
+				break;
+			}
+
+			return;
+		}
+	}
+
+	XTHROW( x::runtime_exception, false, "" );
 }
 
 void x::runtime::add_gray_object( x::object * gray )

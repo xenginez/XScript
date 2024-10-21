@@ -892,12 +892,12 @@ void x::extern_stat_ast::accept( visitor * val )
 	val->visit( this );
 }
 
-x::call_t x::extern_stat_ast::get_call() const
+x::callmode_t x::extern_stat_ast::get_call() const
 {
 	return _call;
 }
 
-void x::extern_stat_ast::set_call( x::call_t val )
+void x::extern_stat_ast::set_call( x::callmode_t val )
 {
 	_call = val;
 }

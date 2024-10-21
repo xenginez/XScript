@@ -20,10 +20,6 @@ namespace x
 		const x::meta * find_meta( x::uint64 hashcode ) const;
 		const x::meta * find_meta( std::string_view fullname ) const;
 
-	public:
-		void * dlsym( std::string_view dllname, std::string_view funcname );
-		void dlclose();
-
 	private:
 		private_p * _p;
 	};

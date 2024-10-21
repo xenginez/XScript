@@ -386,15 +386,15 @@ namespace x
 		void accept( visitor * val ) override;
 
 	public:
-		x::call_t get_call() const;
-		void set_call( x::call_t val );
+		x::callmode_t get_call() const;
+		void set_call( x::callmode_t val );
 		const std::string & get_libname() const;
 		void set_libname( const std::string & val );
 		const std::string & get_funcname() const;
 		void set_funcname( const std::string & val );
 
 	private:
-		x::call_t _call = x::call_t::CALLC;
+		x::callmode_t _call = x::callmode_t::MODE_C;
 		std::string _libname;
 		std::string _funcname;
 	};

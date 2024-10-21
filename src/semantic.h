@@ -26,8 +26,6 @@ namespace x
 		void function_parameter_default_value_checker();
 
 	private:
-		void as_translate();
-		void is_translate();
 		void throw_translate();
 		void await_translate();
 		void yield_translate();
@@ -35,7 +33,6 @@ namespace x
 		void foreach_translate();
 		void closure_translate();
 		void builtin_translate();
-		void template_translate();
 		void invoke_virtual_translate();
 		void async_function_translate();
 		void array_index_to_at_translate();
@@ -50,7 +47,6 @@ namespace x
 
 	private:
 		x::template_decl_ast_ptr match_template( const x::temp_type_ast_ptr & ast ) const;
-		x::class_decl_ast_ptr instant_template( const x::template_decl_ast_ptr & temp, const x::temp_type_ast_ptr & type ) const;
 
 	private:
 		x::logger_ptr _logger;

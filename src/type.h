@@ -115,25 +115,16 @@ namespace x
         FLOAT64_CONSTANT_EXP,
         STRING_CONSTANT_EXP,
     };
-    enum class call_t
-    {
-        CALLC,
-        CALLSTD,
-        CALLFAST,
-        CALLTHIS,
-    };
     enum class meta_t : x::uint8
     {
         ENUM,
         FLAG,
         CLASS,
+        TEMPLATE,
         VARIABLE,
         FUNCTION,
         INTERFACE,
         NAMESPACE,
-        ENUM_ELEMENT,
-        FLAG_ELEMENT,
-        PARAM_ELEMENT,
     };
     enum class token_t : x::uint8
     {
@@ -417,6 +408,13 @@ namespace x
         MEMBER,				// x.y
 
     };
+    enum class callmode_t
+    {
+        MODE_C,
+        MODE_STD,
+        MODE_FAST,
+        MODE_THIS,
+    };
     enum class corostatus_t
     {
         EMPTY,
@@ -448,10 +446,9 @@ namespace x
     PTR( meta_type );
     PTR( meta_enum );
     PTR( meta_class );
-    PTR( meta_element );
+    PTR( meta_template );
     PTR( meta_variable );
     PTR( meta_function );
-    PTR( meta_parameter );
     PTR( meta_interface );
     PTR( meta_namespace );
     PTR( meta_attribute );

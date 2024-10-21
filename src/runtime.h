@@ -18,7 +18,7 @@ namespace x
 		~runtime();
 
 	public:
-		static runtime * thread_owner_runtime();
+		static runtime * this_thread_owner_runtime();
 
 	public:
 		void push( const x::value & val );
@@ -45,7 +45,11 @@ namespace x
 		bool delete_tld( tld * val );
 
 	public:
-		x::object * alloc( x::uint64 size );
+		x::object * obj_alloc( x::uint64 size );
+		x::coroutine * coro_alloc( x::uint64 size );
+
+	public:
+		void dll_call( std::string_view dllname, std::string_view funcname, x::callmode_t mode, x::uint32 args );
 
 	private:
 		void add_gray_object( x::object * gray );

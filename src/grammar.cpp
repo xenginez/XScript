@@ -704,17 +704,17 @@ x::extern_stat_ast_ptr x::grammar::extern_stat()
             auto type = validity( x::token_t::TK_CONSTEXPR_STRING ).str;
 
             if ( type == "stdcall" )
-                ast->set_call( x::call_t::CALLSTD );
+                ast->set_call( x::callmode_t::MODE_STD );
             else if ( type == "fastcall" )
-                ast->set_call( x::call_t::CALLFAST );
+                ast->set_call( x::callmode_t::MODE_FAST );
             else if ( type == "thiscall" )
-                ast->set_call( x::call_t::CALLTHIS );
+                ast->set_call( x::callmode_t::MODE_THIS );
             else
-                ast->set_call( x::call_t::CALLC );
+                ast->set_call( x::callmode_t::MODE_C );
         }
         else
         {
-            ast->set_call( x::call_t::CALLC );
+            ast->set_call( x::callmode_t::MODE_C );
         }
     } );
 
