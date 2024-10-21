@@ -1,6 +1,6 @@
 namespace std
 {
-	public template array< Type >
+	public template array<Type>
 	{
 		public using size_type = int64;
 		public using value_type = Type;

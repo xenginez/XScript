@@ -70,7 +70,7 @@ namespace x
 	public:
 		x::ast_ptr translate( const x::symbols_ptr & sym, const x::ast_ptr & ast ) const override;
 	};
-	// bool builtin_is_member_of( type, member_ident )
+	// bool builtin_is_member_of( type, member_ident_str )
 	class builtin_is_member_of : public x::builtin
 	{
 	public:

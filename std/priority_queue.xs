@@ -1,6 +1,6 @@
 namespace std
 {
-	public template priority_queue< Type >
+	public template priority_queue<Type>
 	{
 		public using size_type = int64;
 		public using value_type = Type;

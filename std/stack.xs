@@ -1,6 +1,6 @@
 namespace std
 {
-	public template stack< Type >
+	public template stack<Type>
 	{
 		public using size_type = int64;
 		public using value_type = Type;

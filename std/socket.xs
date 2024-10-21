@@ -1,22 +1,18 @@
 namespace std
 {
-	public tcp_client
+	public raw_socket
 	{
 	}
 
-	public tcp_server
+	public tcp_socket
 	{
 	}
 
-	public udp_client
+	public udp_socket
 	{
 	}
-
-	public udp_server
-	{
-	}
-
-	public icmp_client
+	
+	public icmp_socket
 	{
 	}
 }

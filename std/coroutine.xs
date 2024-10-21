@@ -43,7 +43,7 @@ namespace std
 		protected func virtual run( state: int32 ) -> int32;
 	}
 	
-	public template future< __: void > : std.coroutine
+	public template future<__: void> : std.coroutine
 	{
 		public func wait() -> void
 		{
@@ -52,7 +52,7 @@ namespace std
 		}
 	}
 
-	public template future< Type > : std.future< void >
+	public template future<Type> : std.future<void>
 	{
 		public func const result() -> Type
 		{
@@ -60,7 +60,7 @@ namespace std
 		}
 	}
 	
-	public template generator< Type > : std.coroutine
+	public template generator<Type> : std.coroutine
 	{
 		public func const result() -> Type
 		{
@@ -68,9 +68,9 @@ namespace std
 		}
 	}
 
-	public template when_all< Type > : std.future< void >
+	public template when_all<Type> : std.future<void>
 	{
-		private var _futures: std.future< Type >[] = {};
+		private var _futures: std.future<Type>[] = {};
 
 		public func const result() -> Type[]
 		{
@@ -86,7 +86,7 @@ namespace std
 		
 		protected func override run( state: int32 ) -> int32;
 		{
-			if( state < 0 )
+			if( state <0 )
 				return state;
 
 			foreach( it : _futures )
@@ -105,12 +105,12 @@ namespace std
 
 	public class scheduler
 	{
-		public func sleep_for( millisec: int64 ) -> std.future< void >;
-		public func sleep_until( time: std.time ) -> std.future< void >;
+		public func sleep_for( millisec: int64 ) -> std.future<void>;
+		public func sleep_until( time: std.time ) -> std.future<void>;
 
-		public func transfer_main() -> std.future< void >;
-		public func transfer_pool() -> std.future< void >;
-		public func transfer_alone( name: string = "" ) -> std.future< void >;
+		public func transfer_main() -> std.future<void>;
+		public func transfer_pool() -> std.future<void>;
+		public func transfer_alone( name: string = "" ) -> std.future<void>;
 
 		public func remove_alone( name: string ) -> void;
 	}

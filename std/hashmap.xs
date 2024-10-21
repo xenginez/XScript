@@ -1,6 +1,6 @@
 namespace std
 {
-	public template hashmap< KeyType, ValueType >
+	public template hashmap<KeyType, ValueType>
 	{
 		public using key_type = KeyType;
 		public using value_type = ValueType;
