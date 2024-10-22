@@ -1124,7 +1124,12 @@ x::symbol_ptr x::symbols::find_symbol( std::string_view name, x::symbol_ptr scop
 	return nullptr;
 }
 
-x::symbol_ptr x::symbols::find_symbol_from_type( std::string_view name, x::symbol_t type, x::symbol_ptr scope ) const
+x::symbol_ptr x::symbols::find_symbol( const x::type_ast_ptr & ast, x::symbol_ptr scope ) const
+{
+	return {};
+}
+
+x::symbol_ptr x::symbols::find_symbol( std::string_view name, x::symbol_t type, x::symbol_ptr scope ) const
 {
 	if ( scope == nullptr )
 		scope = current_scope();

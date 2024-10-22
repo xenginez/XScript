@@ -91,26 +91,20 @@ namespace x
         LOCAL_STAT,
         MULOCAL_STAT,
 
-        BINRARY_EXP,
         UNARY_EXP,
+        BINARY_EXP,
         BRACKET_EXP,
         CLOSURE_EXP,
         ELEMENTS_EXP,
         ARGUMENTS_EXP,
         IDENTIFIER_EXP,
         INITIALIZER_EXP,
-        CONSTANT_EXP,
         NULL_CONSTANT_EXP,
         BOOL_CONSTANT_EXP,
-        INT8_CONSTANT_EXP,
-        INT16_CONSTANT_EXP,
         INT32_CONSTANT_EXP,
         INT64_CONSTANT_EXP,
-        UINT8_CONSTANT_EXP,
-        UINT16_CONSTANT_EXP,
         UINT32_CONSTANT_EXP,
         UINT64_CONSTANT_EXP,
-        FLOAT16_CONSTANT_EXP,
         FLOAT32_CONSTANT_EXP,
         FLOAT64_CONSTANT_EXP,
         STRING_CONSTANT_EXP,
@@ -160,8 +154,8 @@ namespace x
         TK_AND_ASSIGN,          // &= 
         TK_OR_ASSIGN,           // |= 
         TK_XOR_ASSIGN,          // ^= 
-        TK_LSHIFT_EQUAL,        // <<=
-        TK_RSHIFT_EQUAL,        // >>=
+        TK_LSHIFT_ASSIGN,       // <<=
+        TK_RSHIFT_ASSIGN,       // >>=
         TK_EQUAL,               // ==
         TK_NOT_EQUAL,           // !=
         TK_LESS,                // <
@@ -359,13 +353,11 @@ namespace x
     enum class operator_t
     {
         NONE,
-        LBACKET,            // (
-        RBACKET,            // )
         XOR_ASSIGN,			// ^= 
         OR_ASSIGN,			// |= 
         AND_ASSIGN,			// &= 
-        RSHIFT_EQUAL,		// >>=
-        LSHIFT_EQUAL,		// <<=
+        RSHIFT_ASSIGN,		// >>=
+        LSHIFT_ASSIGN,		// <<=
         SUB_ASSIGN,			// -= 
         ADD_ASSIGN,			// +=
         MOD_ASSIGN,			// %= 
@@ -523,16 +515,12 @@ namespace x
     PTR( null_constant_expr_ast );
     PTR( bool_constant_expr_ast );
     PTR( int_constant_expr_ast );
-    PTR( int8_constant_expr_ast );
-    PTR( int16_constant_expr_ast );
     PTR( int32_constant_expr_ast );
     PTR( int64_constant_expr_ast );
-    PTR( uint8_constant_expr_ast );
-    PTR( uint16_constant_expr_ast );
+    PTR( uint_constant_expr_ast );
     PTR( uint32_constant_expr_ast );
     PTR( uint64_constant_expr_ast );
     PTR( float_constant_expr_ast );
-    PTR( float16_constant_expr_ast );
     PTR( float32_constant_expr_ast );
     PTR( float64_constant_expr_ast );
     PTR( string_constant_expr_ast );
@@ -619,8 +607,8 @@ namespace x
         { "&=", x::token_t::TK_AND_ASSIGN },
         { "|=", x::token_t::TK_OR_ASSIGN },
         { "^=", x::token_t::TK_XOR_ASSIGN },
-        { "<<=", x::token_t::TK_LSHIFT_EQUAL },
-        { ">>=", x::token_t::TK_RSHIFT_EQUAL },
+        { "<<=", x::token_t::TK_LSHIFT_ASSIGN },
+        { ">>=", x::token_t::TK_RSHIFT_ASSIGN },
         { "==", x::token_t::TK_EQUAL },
         { "!=", x::token_t::TK_NOT_EQUAL },
         { "<", x::token_t::TK_LESS },

@@ -778,16 +778,26 @@ void x::function_decl_ast::set_is_virtual( bool val )
 	_is_virtual = val;
 }
 
-const x::stat_ast_ptr & x::function_decl_ast::get_stat() const
+bool x::function_decl_ast::get_is_override() const
 {
-	return _stat;
+	return _is_override;
 }
 
-void x::function_decl_ast::set_stat( const x::stat_ast_ptr & val )
+void x::function_decl_ast::set_is_override( bool val )
+{
+	_is_override = val;
+}
+
+const x::stat_ast_ptr & x::function_decl_ast::get_body() const
+{
+	return _body;
+}
+
+void x::function_decl_ast::set_body( const x::stat_ast_ptr & val )
 {
 	val->set_parent( shared_from_this() );
 
-	_stat = val;
+	_body = val;
 }
 
 std::span<const x::type_ast_ptr> x::function_decl_ast::get_results() const
@@ -1051,12 +1061,12 @@ void x::while_stat_ast::accept( visitor * val )
 	val->visit( this );
 }
 
-const x::stat_ast_ptr & x::while_stat_ast::get_stat() const
+const x::stat_ast_ptr & x::while_stat_ast::get_body() const
 {
 	return _stat;
 }
 
-void x::while_stat_ast::set_stat( const x::stat_ast_ptr & val )
+void x::while_stat_ast::set_body( const x::stat_ast_ptr & val )
 {
 	val->set_parent( shared_from_this() );
 
@@ -1121,12 +1131,12 @@ void x::for_stat_ast::set_step( const x::expr_stat_ast_ptr & val )
 	_step = val;
 }
 
-const x::stat_ast_ptr & x::for_stat_ast::get_stat() const
+const x::stat_ast_ptr & x::for_stat_ast::get_body() const
 {
 	return _stat;
 }
 
-void x::for_stat_ast::set_stat( const x::stat_ast_ptr & val )
+void x::for_stat_ast::set_body( const x::stat_ast_ptr & val )
 {
 	val->set_parent( shared_from_this() );
 
@@ -1167,12 +1177,12 @@ void x::foreach_stat_ast::set_collection( const x::expr_stat_ast_ptr & val )
 	_collection = val;
 }
 
-const x::stat_ast_ptr & x::foreach_stat_ast::get_stat() const
+const x::stat_ast_ptr & x::foreach_stat_ast::get_body() const
 {
 	return _stat;
 }
 
-void x::foreach_stat_ast::set_stat( const x::stat_ast_ptr & val )
+void x::foreach_stat_ast::set_body( const x::stat_ast_ptr & val )
 {
 	val->set_parent( shared_from_this() );
 
@@ -1501,7 +1511,7 @@ void x::unary_expr_ast::set_exp( const x::expr_stat_ast_ptr & val )
 
 x::ast_t x::binary_expr_ast::type() const
 {
-	return x::ast_t::BINRARY_EXP;
+	return x::ast_t::BINARY_EXP;
 }
 
 void x::binary_expr_ast::accept( visitor * val )
@@ -1592,16 +1602,16 @@ void x::closure_expr_ast::set_name( const std::string & val )
 	_name = val;
 }
 
-const x::compound_stat_ast_ptr & x::closure_expr_ast::get_stat() const
+const x::compound_stat_ast_ptr & x::closure_expr_ast::get_body() const
 {
-	return _stat;
+	return _body;
 }
 
-void x::closure_expr_ast::set_stat( const x::compound_stat_ast_ptr & val )
+void x::closure_expr_ast::set_body( const x::compound_stat_ast_ptr & val )
 {
 	val->set_parent( shared_from_this() );
 
-	_stat = val;
+	_body = val;
 }
 
 std::span<const x::type_ast_ptr> x::closure_expr_ast::get_results() const
@@ -1747,6 +1757,46 @@ void x::initializer_expr_ast::insert_arg( const x::expr_stat_ast_ptr & val )
 	_args.push_back( val );
 }
 
+bool x::constant_expr_ast::is_null() const
+{
+	return false;
+}
+
+bool x::constant_expr_ast::is_bool() const
+{
+	return false;
+}
+
+bool x::constant_expr_ast::is_string() const
+{
+	return false;
+}
+
+bool x::constant_expr_ast::is_number() const
+{
+	return false;
+}
+
+bool x::constant_expr_ast::is_integer() const
+{
+	return false;
+}
+
+bool x::constant_expr_ast::is_signed() const
+{
+	return false;
+}
+
+bool x::constant_expr_ast::is_unsigned() const
+{
+	return false;
+}
+
+bool x::constant_expr_ast::is_floating() const
+{
+	return false;
+}
+
 x::ast_t x::null_constant_expr_ast::type() const
 {
 	return x::ast_t::NULL_CONSTANT_EXP;
@@ -1755,6 +1805,11 @@ x::ast_t x::null_constant_expr_ast::type() const
 void x::null_constant_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
+}
+
+bool x::null_constant_expr_ast::is_null() const
+{
+	return true;
 }
 
 x::ast_t x::bool_constant_expr_ast::type() const
@@ -1767,6 +1822,11 @@ void x::bool_constant_expr_ast::accept( visitor * val )
 	val->visit( this );
 }
 
+bool x::bool_constant_expr_ast::is_bool() const
+{
+	return true;
+}
+
 bool x::bool_constant_expr_ast::get_value() const
 {
 	return _value;
@@ -1777,44 +1837,19 @@ void x::bool_constant_expr_ast::set_value( bool val )
 	_value = val;
 }
 
-x::ast_t x::int8_constant_expr_ast::type() const
+bool x::int_constant_expr_ast::is_number() const
 {
-	return x::ast_t::INT8_CONSTANT_EXP;
+	return true;
 }
 
-void x::int8_constant_expr_ast::accept( visitor * val )
+bool x::int_constant_expr_ast::is_signed() const
 {
-	val->visit( this );
+	return true;
 }
 
-x::int8 x::int8_constant_expr_ast::get_value() const
+bool x::int_constant_expr_ast::is_integer() const
 {
-	return _value;
-}
-
-void x::int8_constant_expr_ast::set_value( x::int8 val )
-{
-	_value = val;
-}
-
-x::ast_t x::int16_constant_expr_ast::type() const
-{
-	return x::ast_t::INT16_CONSTANT_EXP;
-}
-
-void x::int16_constant_expr_ast::accept( visitor * val )
-{
-	val->visit( this );
-}
-
-x::int16 x::int16_constant_expr_ast::get_value() const
-{
-	return _value;
-}
-
-void x::int16_constant_expr_ast::set_value( x::int16 val )
-{
-	_value = val;
+	return true;
 }
 
 x::ast_t x::int32_constant_expr_ast::type() const
@@ -1857,44 +1892,19 @@ void x::int64_constant_expr_ast::set_value( x::int64 val )
 	_value = val;
 }
 
-x::ast_t x::uint8_constant_expr_ast::type() const
+bool x::uint_constant_expr_ast::is_number() const
 {
-	return x::ast_t::UINT8_CONSTANT_EXP;
+	return true;
 }
 
-void x::uint8_constant_expr_ast::accept( visitor * val )
+bool x::uint_constant_expr_ast::is_integer() const
 {
-	val->visit( this );
+	return true;
 }
 
-x::uint8 x::uint8_constant_expr_ast::get_value() const
+bool x::uint_constant_expr_ast::is_unsigned() const
 {
-	return _value;
-}
-
-void x::uint8_constant_expr_ast::set_value( x::uint8 val )
-{
-	_value = val;
-}
-
-x::ast_t x::uint16_constant_expr_ast::type() const
-{
-	return x::ast_t::UINT16_CONSTANT_EXP;
-}
-
-void x::uint16_constant_expr_ast::accept( visitor * val )
-{
-	val->visit( this );
-}
-
-x::uint16 x::uint16_constant_expr_ast::get_value() const
-{
-	return _value;
-}
-
-void x::uint16_constant_expr_ast::set_value( x::uint16 val )
-{
-	_value = val;
+	return true;
 }
 
 x::ast_t x::uint32_constant_expr_ast::type() const
@@ -1937,24 +1947,14 @@ void x::uint64_constant_expr_ast::set_value( x::uint64 val )
 	_value = val;
 }
 
-x::ast_t x::float16_constant_expr_ast::type() const
+bool x::float_constant_expr_ast::is_number() const
 {
-	return x::ast_t::FLOAT16_CONSTANT_EXP;
+	return true;
 }
 
-void x::float16_constant_expr_ast::accept( visitor * val )
+bool x::float_constant_expr_ast::is_floating() const
 {
-	val->visit( this );
-}
-
-x::float16 x::float16_constant_expr_ast::get_value() const
-{
-	return _value;
-}
-
-void x::float16_constant_expr_ast::set_value( x::float16 val )
-{
-	_value = val;
+	return true;
 }
 
 x::ast_t x::float32_constant_expr_ast::type() const
@@ -2005,6 +2005,11 @@ x::ast_t x::string_constant_expr_ast::type() const
 void x::string_constant_expr_ast::accept( visitor * val )
 {
 	val->visit( this );
+}
+
+bool x::string_constant_expr_ast::is_string() const
+{
+	return true;
 }
 
 const std::string & x::string_constant_expr_ast::get_value() const

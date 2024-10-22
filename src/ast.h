@@ -324,8 +324,10 @@ namespace x
 		void set_is_static( bool val );
 		bool get_is_virtual() const;
 		void set_is_virtual( bool val );
-		const x::stat_ast_ptr & get_stat() const;
-		void set_stat( const x::stat_ast_ptr & val );
+		bool get_is_override() const;
+		void set_is_override( bool val );
+		const x::stat_ast_ptr & get_body() const;
+		void set_body( const x::stat_ast_ptr & val );
 		std::span<const x::type_ast_ptr> get_results() const;
 		void insert_result( const x::type_ast_ptr & val );
 		std::span<const x::parameter_ast_ptr> get_parameters() const;
@@ -337,7 +339,8 @@ namespace x
 		bool _is_final = false;
 		bool _is_static = false;
 		bool _is_virtual = false;
-		x::stat_ast_ptr _stat;
+		bool _is_override = false;
+		x::stat_ast_ptr _body;
 		std::vector<x::type_ast_ptr> _results;
 		std::vector<x::parameter_ast_ptr> _parameters;
 	};
@@ -467,8 +470,8 @@ namespace x
 		void accept( visitor * val ) override;
 
 	public:
-		const x::stat_ast_ptr & get_stat() const;
-		void set_stat( const x::stat_ast_ptr & val );
+		const x::stat_ast_ptr & get_body() const;
+		void set_body( const x::stat_ast_ptr & val );
 		const x::expr_stat_ast_ptr & get_cond() const;
 		void set_cond( const x::expr_stat_ast_ptr & val );
 
@@ -489,8 +492,8 @@ namespace x
 		void set_cond( const x::expr_stat_ast_ptr & val );
 		const x::expr_stat_ast_ptr & get_step() const;
 		void set_step( const x::expr_stat_ast_ptr & val );
-		const x::stat_ast_ptr & get_stat() const;
-		void set_stat( const x::stat_ast_ptr & val );
+		const x::stat_ast_ptr & get_body() const;
+		void set_body( const x::stat_ast_ptr & val );
 
 	private:
 		x::stat_ast_ptr _init;
@@ -509,8 +512,8 @@ namespace x
 		void set_item( const x::stat_ast_ptr & val );
 		const x::expr_stat_ast_ptr & get_collection() const;
 		void set_collection( const x::expr_stat_ast_ptr & val );
-		const x::stat_ast_ptr & get_stat() const;
-		void set_stat( const x::stat_ast_ptr & val );
+		const x::stat_ast_ptr & get_body() const;
+		void set_body( const x::stat_ast_ptr & val );
 
 	private:
 		x::stat_ast_ptr _item;
@@ -710,8 +713,8 @@ namespace x
 	public:
 		const std::string & get_name() const;
 		void set_name( const std::string & val );
-		const x::compound_stat_ast_ptr & get_stat() const;
-		void set_stat( const x::compound_stat_ast_ptr & val );
+		const x::compound_stat_ast_ptr & get_body() const;
+		void set_body( const x::compound_stat_ast_ptr & val );
 		std::span<const x::type_ast_ptr> get_results() const;
 		void insert_result( const x::type_ast_ptr & val );
 		std::span<const x::identifier_expr_ast_ptr> get_captures() const;
@@ -721,7 +724,7 @@ namespace x
 
 	private:
 		std::string _name;
-		x::compound_stat_ast_ptr _stat;
+		x::compound_stat_ast_ptr _body;
 		std::vector<x::type_ast_ptr> _results;
 		std::vector<x::identifier_expr_ast_ptr> _captures;
 		std::vector<x::parameter_ast_ptr> _parameters;
@@ -783,18 +786,29 @@ namespace x
 	};
 	class constant_expr_ast : public expr_stat_ast
 	{
+	public:
+		virtual bool is_null() const;
+		virtual bool is_bool() const;
+		virtual bool is_string() const;
+		virtual bool is_number() const;
+		virtual bool is_integer() const;
+		virtual bool is_signed() const;
+		virtual bool is_unsigned() const;
+		virtual bool is_floating() const;
 	};
 	class null_constant_expr_ast : public constant_expr_ast
 	{
 	public:
 		x::ast_t type() const override;
 		void accept( visitor * val ) override;
+		bool is_null() const override;
 	};
 	class bool_constant_expr_ast : public constant_expr_ast
 	{
 	public:
 		x::ast_t type() const override;
 		void accept( visitor * val ) override;
+		bool is_bool() const override;
 
 	public:
 		bool get_value() const;
@@ -805,32 +819,9 @@ namespace x
 	};
 	class int_constant_expr_ast : public constant_expr_ast
 	{
-	};
-	class int8_constant_expr_ast : public int_constant_expr_ast
-	{
-	public:
-		x::ast_t type() const override;
-		void accept( visitor * val ) override;
-
-	public:
-		x::int8 get_value() const;
-		void set_value( x::int8 val );
-
-	private:
-		x::int8 _value = 0;
-	};
-	class int16_constant_expr_ast : public int_constant_expr_ast
-	{
-	public:
-		x::ast_t type() const override;
-		void accept( visitor * val ) override;
-
-	public:
-		x::int16 get_value() const;
-		void set_value( x::int16 val );
-
-	private:
-		x::int16 _value = 0;
+		bool is_number() const override;
+		bool is_signed() const override;
+		bool is_integer() const override;
 	};
 	class int32_constant_expr_ast : public int_constant_expr_ast
 	{
@@ -858,33 +849,13 @@ namespace x
 	private:
 		x::int64 _value = 0;
 	};
-	class uint8_constant_expr_ast : public int_constant_expr_ast
+	class uint_constant_expr_ast : public constant_expr_ast
 	{
-	public:
-		x::ast_t type() const override;
-		void accept( visitor * val ) override;
-
-	public:
-		x::uint8 get_value() const;
-		void set_value( x::uint8 val );
-
-	private:
-		x::uint8 _value = 0;
+		bool is_number() const override;
+		bool is_integer() const override;
+		bool is_unsigned() const override;
 	};
-	class uint16_constant_expr_ast : public int_constant_expr_ast
-	{
-	public:
-		x::ast_t type() const override;
-		void accept( visitor * val ) override;
-
-	public:
-		x::uint16 get_value() const;
-		void set_value( x::uint16 val );
-
-	private:
-		x::uint16 _value = 0;
-	};
-	class uint32_constant_expr_ast : public int_constant_expr_ast
+	class uint32_constant_expr_ast : public uint_constant_expr_ast
 	{
 	public:
 		x::ast_t type() const override;
@@ -897,7 +868,7 @@ namespace x
 	private:
 		x::uint32 _value = 0;
 	};
-	class uint64_constant_expr_ast : public int_constant_expr_ast
+	class uint64_constant_expr_ast : public uint_constant_expr_ast
 	{
 	public:
 		x::ast_t type() const override;
@@ -912,19 +883,8 @@ namespace x
 	};
 	class float_constant_expr_ast : public constant_expr_ast
 	{
-	};
-	class float16_constant_expr_ast : public float_constant_expr_ast
-	{
-	public:
-		x::ast_t type() const override;
-		void accept( visitor * val ) override;
-
-	public:
-		x::float16 get_value() const;
-		void set_value( x::float16 val );
-
-	private:
-		x::float16 _value = 0.0f;
+		bool is_number() const override;
+		bool is_floating() const override;
 	};
 	class float32_constant_expr_ast : public float_constant_expr_ast
 	{
@@ -957,6 +917,7 @@ namespace x
 	public:
 		x::ast_t type() const override;
 		void accept( visitor * val ) override;
+		bool is_string() const override;
 
 	public:
 		const std::string & get_value() const;

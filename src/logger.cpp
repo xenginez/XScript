@@ -2,6 +2,21 @@
 
 #include <iostream>
 
+void x::logger::info( std::string_view msg, const x::location & location )
+{
+	info( msg, location.file, location.line, location.col );
+}
+
+void x::logger::error( std::string_view msg, const x::location & location )
+{
+	error( msg, location.file, location.line, location.col );
+}
+
+void x::logger::warning( std::string_view msg, const x::location & location )
+{
+	warning( msg, location.file, location.line, location.col );
+}
+
 void x::logger::info( std::string_view msg, std::string_view file, int line, int col )
 {
 	if ( file.empty() )

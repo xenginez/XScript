@@ -473,8 +473,13 @@ x::function_decl_ast_ptr x::grammar::function_decl( bool interface_func )
         case x::token_t::TK_FINAL: ast->set_is_final( true ); break;
         case x::token_t::TK_STATIC: ast->set_is_static( true ); break;
         case x::token_t::TK_VIRTUAL: ast->set_is_virtual( true ); break;
-        case x::token_t::TK_OVERRIDE: ast->set_is_virtual( true ); break;
+        case x::token_t::TK_OVERRIDE: ast->set_is_override( true ); break;
         }
+    }
+    else
+    {
+        validity( x::token_t::TK_VIRTUAL );
+        ast->set_is_virtual( true );
     }
 
     if ( verify( x::token_t::TK_CONST ) )
@@ -503,9 +508,9 @@ x::function_decl_ast_ptr x::grammar::function_decl( bool interface_func )
     if ( !interface_func )
     {
         if ( verify( x::token_t::TK_ASSIGN ) )
-            ast->set_stat( extern_stat() );
+            ast->set_body( extern_stat() );
         else              
-            ast->set_stat( compound_stat() );
+            ast->set_body( compound_stat() );
     }
     else
     {
@@ -529,7 +534,7 @@ x::function_decl_ast_ptr x::grammar::finalize_decl()
     verify( x::token_t::TK_LEFT_BRACKETS );
     verify( x::token_t::TK_RIGHT_BRACKETS );
 
-    ast->set_stat( compound_stat() );
+    ast->set_body( compound_stat() );
 
     return ast;
 }
@@ -546,7 +551,7 @@ x::function_decl_ast_ptr x::grammar::construct_decl()
     verify( x::token_t::TK_LEFT_BRACKETS );
     verify( x::token_t::TK_RIGHT_BRACKETS );
 
-    ast->set_stat( compound_stat() );
+    ast->set_body( compound_stat() );
 
     return ast;
 }
@@ -801,7 +806,7 @@ x::while_stat_ast_ptr x::grammar::while_stat()
     ast->set_cond( express() );
     validity( x::token_t::TK_RIGHT_BRACKETS );
 
-    ast->set_stat( statement() );
+    ast->set_body( statement() );
 
     return ast;
 }
@@ -821,7 +826,7 @@ x::for_stat_ast_ptr x::grammar::for_stat()
     ast->set_step( express() );
     validity( x::token_t::TK_RIGHT_BRACKETS );
 
-    ast->set_stat( statement() );
+    ast->set_body( statement() );
 
     return ast;
 }
@@ -839,7 +844,7 @@ x::foreach_stat_ast_ptr x::grammar::foreach_stat()
     ast->set_collection( express() );
     validity( x::token_t::TK_RIGHT_BRACKETS );
 
-    ast->set_stat( statement() );
+    ast->set_body( statement() );
 
     return ast;
 }
@@ -1063,8 +1068,8 @@ x::expr_stat_ast_ptr x::grammar::assignment_exp()
         case x::token_t::TK_AND_ASSIGN: next(); ast = binary_ast( ast, x::operator_t::ADD_ASSIGN ); break;
         case x::token_t::TK_OR_ASSIGN: next(); ast = binary_ast( ast, x::operator_t::OR_ASSIGN ); break;
         case x::token_t::TK_XOR_ASSIGN: next(); ast = binary_ast( ast, x::operator_t::XOR_ASSIGN ); break;
-        case x::token_t::TK_LSHIFT_EQUAL: next(); ast = binary_ast( ast, x::operator_t::LSHIFT_EQUAL ); break;
-        case x::token_t::TK_RSHIFT_EQUAL: next(); ast = binary_ast( ast, x::operator_t::RSHIFT_EQUAL ); break;
+        case x::token_t::TK_LSHIFT_ASSIGN: next(); ast = binary_ast( ast, x::operator_t::LSHIFT_ASSIGN ); break;
+        case x::token_t::TK_RSHIFT_ASSIGN: next(); ast = binary_ast( ast, x::operator_t::RSHIFT_ASSIGN ); break;
         default: is_break = true; break;
         }
     }
@@ -1522,7 +1527,7 @@ x::closure_expr_ast_ptr x::grammar::closure_exp()
         }
     }
 
-    ast->set_stat( compound_stat() );
+    ast->set_body( compound_stat() );
 
     return ast;
 }
@@ -1633,7 +1638,7 @@ x::constant_expr_ast_ptr x::grammar::constant_exp()
     return ast;
 }
 
-x::null_constant_expr_ast_ptr x::grammar::null_constant_exp()
+x::constant_expr_ast_ptr x::grammar::null_constant_exp()
 {
     validity( x::token_t::TK_NULL );
 
@@ -1643,7 +1648,7 @@ x::null_constant_expr_ast_ptr x::grammar::null_constant_exp()
     return ast;
 }
 
-x::bool_constant_expr_ast_ptr x::grammar::true_constant_exp()
+x::constant_expr_ast_ptr x::grammar::true_constant_exp()
 {
     validity( x::token_t::TK_TRUE );
 
@@ -1655,7 +1660,7 @@ x::bool_constant_expr_ast_ptr x::grammar::true_constant_exp()
     return ast;
 }
 
-x::bool_constant_expr_ast_ptr x::grammar::false_constant_exp()
+x::constant_expr_ast_ptr x::grammar::false_constant_exp()
 {
     validity( x::token_t::TK_FALSE );
 
@@ -1667,9 +1672,9 @@ x::bool_constant_expr_ast_ptr x::grammar::false_constant_exp()
     return ast;
 }
 
-x::int_constant_expr_ast_ptr x::grammar::int_constant_exp()
+x::constant_expr_ast_ptr x::grammar::int_constant_exp()
 {
-    x::int_constant_expr_ast_ptr ast;
+    x::constant_expr_ast_ptr ast;
 
     auto str = validity( x::token_t::TK_CONSTEXPR_INT ).str;
 
@@ -1678,18 +1683,22 @@ x::int_constant_expr_ast_ptr x::grammar::int_constant_exp()
         x::int64 i64 = 0;
         std::from_chars( str.c_str(), str.c_str() + str.size(), i64 );
 
-        if ( std::abs( i64 ) > std::numeric_limits<x::int32>::max() )
+        if ( std::abs( i64 ) < std::numeric_limits<x::int32>::max() )
         {
-            auto i_ast = std::make_shared<x::int64_constant_expr_ast>();
+            auto i_ast = std::make_shared<x::int32_constant_expr_ast>();
             i_ast->set_location( _location );
-            i_ast->set_value( i64 );
+
+            i_ast->set_value( static_cast<x::int32>( i64 ) );
+
             ast = i_ast;
         }
         else
         {
-            auto i_ast = std::make_shared<x::int32_constant_expr_ast>();
+            auto i_ast = std::make_shared<x::int64_constant_expr_ast>();
             i_ast->set_location( _location );
-            i_ast->set_value( static_cast<x::int32>( i64 ) );
+
+            i_ast->set_value( i64 );
+
             ast = i_ast;
         }
     }
@@ -1698,18 +1707,40 @@ x::int_constant_expr_ast_ptr x::grammar::int_constant_exp()
         x::uint64 u64 = 0;
         std::from_chars( str.c_str(), str.c_str() + str.size(), u64 );
 
-        if ( u64 > std::numeric_limits<x::uint32>::max() )
+        if ( u64 < std::numeric_limits<x::int32>::max() )
         {
-            auto i_ast = std::make_shared<x::uint64_constant_expr_ast>();
+            auto i_ast = std::make_shared<x::int32_constant_expr_ast>();
             i_ast->set_location( _location );
-            i_ast->set_value( u64 );
+
+            i_ast->set_value( static_cast<x::int32>( u64 ) );
+
+            ast = i_ast;
+        }
+        else if ( u64 < (x::uint64)std::numeric_limits<x::int64>::max() )
+        {
+            auto i_ast = std::make_shared<x::int64_constant_expr_ast>();
+            i_ast->set_location( _location );
+
+            i_ast->set_value( static_cast<x::int64>( u64 ) );
+
+            ast = i_ast;
+        }
+        else if ( u64 < std::numeric_limits<x::uint32>::max() )
+        {
+            auto i_ast = std::make_shared<x::uint32_constant_expr_ast>();
+            i_ast->set_location( _location );
+
+            i_ast->set_value( static_cast<x::uint32>( u64 ) );
+
             ast = i_ast;
         }
         else
         {
-            auto i_ast = std::make_shared<x::uint32_constant_expr_ast>();
+            auto i_ast = std::make_shared<x::uint64_constant_expr_ast>();
             i_ast->set_location( _location );
-            i_ast->set_value( static_cast<x::uint32>( u64 ) );
+
+            i_ast->set_value( u64 );
+
             ast = i_ast;
         }
     }
@@ -1717,7 +1748,7 @@ x::int_constant_expr_ast_ptr x::grammar::int_constant_exp()
     return ast;
 }
 
-x::float_constant_expr_ast_ptr x::grammar::float_constant_exp()
+x::constant_expr_ast_ptr x::grammar::float_constant_exp()
 {
     x::float_constant_expr_ast_ptr ast;
 
@@ -1728,35 +1759,39 @@ x::float_constant_expr_ast_ptr x::grammar::float_constant_exp()
     auto end = str.c_str() + str.size();
 
     x::uint64 mantissa = 0, exponent = 0;
-    std::from_chars( beg, beg + std::distance( beg, dom ), mantissa );
-    std::from_chars( dom + 1, dom + std::distance( dom, end ), exponent );
+    std::from_chars( beg, dom, mantissa );
+    std::from_chars( dom + 1, end, exponent );
 
     int man_cnt = std::numeric_limits<x::uint64>::digits - std::countl_zero( mantissa );
-    if ( man_cnt >= std::numeric_limits<x::float32>::digits || exponent >= std::numeric_limits<x::float32>::max_exponent )
-    {
-        x::float64 value;
-        std::from_chars( str.c_str(), str.c_str() + str.size(), value );
-
-        auto f_ast = std::make_shared<x::float64_constant_expr_ast>();
-        f_ast->set_location( _location );
-        f_ast->set_value( value );
-        ast = f_ast;
-    }
-    else
+    if ( man_cnt < std::numeric_limits<x::float32>::digits && exponent < std::numeric_limits<x::float32>::max_exponent )
     {
         x::float32 value;
         std::from_chars( str.c_str(), str.c_str() + str.size(), value );
 
         auto f_ast = std::make_shared<x::float32_constant_expr_ast>();
         f_ast->set_location( _location );
+
         f_ast->set_value( value );
+
+        ast = f_ast;
+    }
+    else
+    {
+        x::float64 value;
+        std::from_chars( str.c_str(), str.c_str() + str.size(), value );
+
+        auto f_ast = std::make_shared<x::float64_constant_expr_ast>();
+        f_ast->set_location( _location );
+
+        f_ast->set_value( value );
+
         ast = f_ast;
     }
 
     return ast;
 }
 
-x::string_constant_expr_ast_ptr x::grammar::string_constant_exp()
+x::constant_expr_ast_ptr x::grammar::string_constant_exp()
 {
     auto ast = std::make_shared<x::string_constant_expr_ast>();
     ast->set_location( _location );

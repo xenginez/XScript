@@ -112,7 +112,7 @@ void x::visitor::visit( x::function_decl_ast * val )
 	for ( const auto & it : val->get_results() )
 		it->accept( this );
 
-	val->get_stat()->accept( this );
+	val->get_body()->accept( this );
 }
 
 void x::visitor::visit( x::interface_decl_ast * val )
@@ -162,14 +162,14 @@ void x::visitor::visit( x::if_stat_ast * val )
 void x::visitor::visit( x::while_stat_ast * val )
 {
 	val->get_cond()->accept( this );
-	val->get_stat()->accept( this );
+	val->get_body()->accept( this );
 }
 
 void x::visitor::visit( x::for_stat_ast * val )
 {
 	val->get_init()->accept( this );
 	val->get_cond()->accept( this );
-	val->get_stat()->accept( this );
+	val->get_body()->accept( this );
 	val->get_step()->accept( this );
 }
 
@@ -177,7 +177,7 @@ void x::visitor::visit( x::foreach_stat_ast * val )
 {
 	val->get_item()->accept( this );
 	val->get_collection()->accept( this );
-	val->get_stat()->accept( this );
+	val->get_body()->accept( this );
 }
 
 void x::visitor::visit( x::switch_stat_ast * val )
@@ -267,7 +267,7 @@ void x::visitor::visit( x::closure_expr_ast * val )
 	for ( const auto & it : val->get_parameters() )
 		it->accept( this );
 
-	val->get_stat()->accept( this );
+	val->get_body()->accept( this );
 }
 
 void x::visitor::visit( x::elements_expr_ast * val )
@@ -302,6 +302,11 @@ void x::visitor::visit( x::bool_constant_expr_ast * val )
 
 void x::visitor::visit( x::int_constant_expr_ast * val )
 {
+}
+
+void x::visitor::visit( x::uint_constant_expr_ast * val )
+{
+
 }
 
 void x::visitor::visit( x::float_constant_expr_ast * val )
@@ -795,14 +800,14 @@ void x::ast_tree_printer_visitor::visit( x::function_decl_ast * val )
 		}
 	}
 
-	if ( val->get_stat() )
+	if ( val->get_body() )
 	{
-		if ( val->get_stat()->type() == x::ast_t::EXTERN_STAT )
+		if ( val->get_body()->type() == x::ast_t::EXTERN_STAT )
 			out( " = " );
 		else
 			outline();
 
-		val->get_stat()->accept( this );
+		val->get_body()->accept( this );
 	}
 }
 
@@ -884,7 +889,7 @@ void x::ast_tree_printer_visitor::visit( x::while_stat_ast * val )
 {
 	out( "while ( " ); val->get_cond()->accept( this ); out( " )" );
 
-	val->get_stat()->accept( this );
+	val->get_body()->accept( this );
 }
 
 void x::ast_tree_printer_visitor::visit( x::for_stat_ast * val )
@@ -897,7 +902,7 @@ void x::ast_tree_printer_visitor::visit( x::for_stat_ast * val )
 	if ( val->get_step() ) val->get_step()->accept( this );
 	out( " )" );
 
-	val->get_stat()->accept( this );
+	val->get_body()->accept( this );
 }
 
 void x::ast_tree_printer_visitor::visit( x::foreach_stat_ast * val )
@@ -908,7 +913,7 @@ void x::ast_tree_printer_visitor::visit( x::foreach_stat_ast * val )
 	val->get_collection()->accept( this );
 	out( " )" );
 
-	val->get_stat()->accept( this );
+	val->get_body()->accept( this );
 }
 
 void x::ast_tree_printer_visitor::visit( x::switch_stat_ast * val )
@@ -1054,8 +1059,8 @@ void x::ast_tree_printer_visitor::visit( x::binary_expr_ast * val )
 	case x::operator_t::AND_ASSIGN: val->get_left()->accept( this ); out( " &= " ); val->get_right()->accept( this ); break;
 	case x::operator_t::OR_ASSIGN: val->get_left()->accept( this ); out( " |= " ); val->get_right()->accept( this ); break;
 	case x::operator_t::XOR_ASSIGN: val->get_left()->accept( this ); out( " ^= " ); val->get_right()->accept( this ); break;
-	case x::operator_t::LSHIFT_EQUAL: val->get_left()->accept( this ); out( " <<= " ); val->get_right()->accept( this ); break;
-	case x::operator_t::RSHIFT_EQUAL: val->get_left()->accept( this ); out( " >>= " ); val->get_right()->accept( this ); break;
+	case x::operator_t::LSHIFT_ASSIGN: val->get_left()->accept( this ); out( " <<= " ); val->get_right()->accept( this ); break;
+	case x::operator_t::RSHIFT_ASSIGN: val->get_left()->accept( this ); out( " >>= " ); val->get_right()->accept( this ); break;
 	case x::operator_t::EQUAL: val->get_left()->accept( this ); out( " == " ); val->get_right()->accept( this ); break;
 	case x::operator_t::NOT_EQUAL: val->get_left()->accept( this ); out( " != " ); val->get_right()->accept( this ); break;
 	case x::operator_t::LESS: val->get_left()->accept( this ); out( " < " ); val->get_right()->accept( this ); break;
@@ -1160,12 +1165,17 @@ void x::ast_tree_printer_visitor::visit( x::int_constant_expr_ast * val )
 {
 	switch ( val->type() )
 	{
-	case x::ast_t::INT8_CONSTANT_EXP: out( std::to_string( static_cast<x::int8_constant_expr_ast *>( val )->get_value() ) ); break;
-	case x::ast_t::INT16_CONSTANT_EXP: out( std::to_string( static_cast<x::int16_constant_expr_ast *>( val )->get_value() ) ); break;
 	case x::ast_t::INT32_CONSTANT_EXP: out( std::to_string( static_cast<x::int32_constant_expr_ast *>( val )->get_value() ) ); break;
 	case x::ast_t::INT64_CONSTANT_EXP: out( std::to_string( static_cast<x::int64_constant_expr_ast *>( val )->get_value() ) ); break;
-	case x::ast_t::UINT8_CONSTANT_EXP: out( std::to_string( static_cast<x::uint8_constant_expr_ast *>( val )->get_value() ) ); break;
-	case x::ast_t::UINT16_CONSTANT_EXP: out( std::to_string( static_cast<x::uint16_constant_expr_ast *>( val )->get_value() ) ); break;
+	default:
+		break;
+	}
+}
+
+void x::ast_tree_printer_visitor::visit( x::uint_constant_expr_ast * val )
+{
+	switch ( val->type() )
+	{
 	case x::ast_t::UINT32_CONSTANT_EXP: out( std::to_string( static_cast<x::uint32_constant_expr_ast *>( val )->get_value() ) ); break;
 	case x::ast_t::UINT64_CONSTANT_EXP: out( std::to_string( static_cast<x::uint64_constant_expr_ast *>( val )->get_value() ) ); break;
 	default:
@@ -1177,7 +1187,6 @@ void x::ast_tree_printer_visitor::visit( x::float_constant_expr_ast * val )
 {
 	switch ( val->type() )
 	{
-	case x::ast_t::FLOAT16_CONSTANT_EXP:  out( std::to_string( static_cast<x::float16_constant_expr_ast *>( val )->get_value().to_float() ) ); break;
 	case x::ast_t::FLOAT32_CONSTANT_EXP:  out( std::to_string( static_cast<x::float32_constant_expr_ast *>( val )->get_value() ) ); break;
 	case x::ast_t::FLOAT64_CONSTANT_EXP:  out( std::to_string( static_cast<x::float64_constant_expr_ast *>( val )->get_value() ) ); break;
 	default:

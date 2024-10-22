@@ -359,7 +359,8 @@ namespace x
 
 	public:
 		x::symbol_ptr find_symbol( std::string_view name, x::symbol_ptr scope = nullptr ) const;
-		x::symbol_ptr find_symbol_from_type( std::string_view name, x::symbol_t type, x::symbol_ptr scope = nullptr ) const;
+		x::symbol_ptr find_symbol( const x::type_ast_ptr & ast, x::symbol_ptr scope = nullptr ) const;
+		x::symbol_ptr find_symbol( std::string_view name, x::symbol_t type, x::symbol_ptr scope = nullptr ) const;
 
 	public:
 		x::namespace_symbol_ptr global_namespace() const;

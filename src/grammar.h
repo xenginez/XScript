@@ -80,12 +80,12 @@ namespace x
 		x::initializer_expr_ast_ptr initializer_exp();
 
 		x::constant_expr_ast_ptr constant_exp();
-		x::null_constant_expr_ast_ptr null_constant_exp();
-		x::bool_constant_expr_ast_ptr true_constant_exp();
-		x::bool_constant_expr_ast_ptr false_constant_exp();
-		x::int_constant_expr_ast_ptr int_constant_exp();
-		x::float_constant_expr_ast_ptr float_constant_exp();
-		x::string_constant_expr_ast_ptr string_constant_exp();
+		x::constant_expr_ast_ptr null_constant_exp();
+		x::constant_expr_ast_ptr true_constant_exp();
+		x::constant_expr_ast_ptr false_constant_exp();
+		x::constant_expr_ast_ptr int_constant_exp();
+		x::constant_expr_ast_ptr float_constant_exp();
+		x::constant_expr_ast_ptr string_constant_exp();
 
 	private:
 		x::access_t access();

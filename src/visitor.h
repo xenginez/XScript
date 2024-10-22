@@ -59,6 +59,7 @@ namespace x
 		virtual void visit( x::null_constant_expr_ast * val );
 		virtual void visit( x::bool_constant_expr_ast * val );
 		virtual void visit( x::int_constant_expr_ast * val );
+		virtual void visit( x::uint_constant_expr_ast * val );
 		virtual void visit( x::float_constant_expr_ast * val );
 		virtual void visit( x::string_constant_expr_ast * val );
 	};
@@ -177,6 +178,7 @@ namespace x
 		void visit( x::null_constant_expr_ast * val ) override;
 		void visit( x::bool_constant_expr_ast * val ) override;
 		void visit( x::int_constant_expr_ast * val ) override;
+		void visit( x::uint_constant_expr_ast * val ) override;
 		void visit( x::float_constant_expr_ast * val ) override;
 		void visit( x::string_constant_expr_ast * val ) override;
 
