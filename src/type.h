@@ -314,7 +314,8 @@ namespace x
 #define ARITHMETIC( OP ) INTEGRAL( OP ), FLOATING( OP )
 #define ALLTYPES( OP ) ARITHMETIC( OP ), OBJ_##OP
 
-        NOOP = 0,
+
+        NOP = 0,
         CONST_NULL,	            // 将null推送至栈顶
         CONST_STRING,	        // 将string型从字符串池中推送至栈顶
         SIGNED( CONST_M1 ),	    // 将整数类型-1推送至栈顶
@@ -391,6 +392,14 @@ namespace x
         INVOKE_STATIC,	        // 调用静态方法
         THROW,	                // 将栈顶的异常抛出
         TYPE_OF,	            // 检验对象是否是指定的类的实例，如果是将1压入栈顶，否则将0压入栈顶
+
+
+#undef SIGNED
+#undef UNSIGNED
+#undef INTEGRAL
+#undef FLOATING
+#undef ARITHMETIC
+#undef ALLTYPES
     };
     enum class valloc_t
     {
