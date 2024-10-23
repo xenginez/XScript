@@ -22,7 +22,6 @@ namespace x
 
 	public:
 		void push( const x::value & val );
-		x::value & top();
 		x::value pop();
 
 	public:

@@ -304,9 +304,93 @@ namespace x
         ENUM_ELEMENT,
         PARAMATER_ELEMENT,
     };
-    enum class opcode_t : x::uint8
+    
+    enum class opcode_t : x::uint16
     {
+#define SIGNED( OP ) I8_##OP, I16_##OP, I32_##OP, I64_##OP
+#define UNSIGNED( OP ) U8_##OP, U16_##OP, U32_##OP, U64_##OP
+#define INTEGRAL( OP ) SIGNED( OP ), UNSIGNED( OP )
+#define FLOATING( OP ) F32_##OP, F64_##OP
+#define ARITHMETIC( OP ) INTEGRAL( OP ), FLOATING( OP )
+#define ALLTYPES( OP ) ARITHMETIC( OP ), OBJ_##OP
+
         NOOP = 0,
+        CONST_NULL,	            // 将null推送至栈顶
+        CONST_STRING,	        // 将string型从字符串池中推送至栈顶
+        SIGNED( CONST_M1 ),	    // 将整数类型-1推送至栈顶
+        FLOATING( CONST_M1 ),	// 将浮点类型-1推送至栈顶
+        ARITHMETIC( CONST_0 ),  // 将算数类型0推送至栈顶
+        ARITHMETIC( CONST_1 ),  // 将算数类型1推送至栈顶
+        ARITHMETIC( CONST_2 ),  // 将算数类型2推送至栈顶
+        ARITHMETIC( CONST_3 ),  // 将算数类型3推送至栈顶
+        ARITHMETIC( CONST_4 ),  // 将算数类型4推送至栈顶
+        ARITHMETIC( CONST_5 ),  // 将算数类型5推送至栈顶
+        ARITHMETIC( PUSH ),     // 将算数类型的常量值推送至栈顶
+        ALLTYPES( LOAD ),       // 将指定的算数类型本地变量推送至栈顶
+        ALLTYPES( LOAD_0 ),     // 将第0个算数类型本地变量推送至栈顶
+        ALLTYPES( LOAD_1 ),     // 将第1个算数类型本地变量推送至栈顶
+        ALLTYPES( LOAD_2 ),     // 将第2个算数类型本地变量推送至栈顶
+        ALLTYPES( LOAD_3 ),     // 将第3个算数类型本地变量推送至栈顶
+        ALLTYPES( LOAD_4 ),     // 将第4个算数类型本地变量推送至栈顶
+        ALLTYPES( STORE ),      // 将栈顶算数类型数值存入指定本地变量
+        ALLTYPES( STORE_0 ),    // 将栈顶算数类型数值存入第0个本地变量
+        ALLTYPES( STORE_1 ),    // 将栈顶算数类型数值存入第1个本地变量
+        ALLTYPES( STORE_2 ),    // 将栈顶算数类型数值存入第2个本地变量
+        ALLTYPES( STORE_3 ),    // 将栈顶算数类型数值存入第3个本地变量
+        ALLTYPES( STORE_4 ),    // 将栈顶算数类型数值存入第4个本地变量
+        POP,	                // 将栈顶数值弹出
+        DUP,	                // 复制栈顶数值并将复制值压入栈顶
+        DUP_X2,	                // 复制栈顶数值并将2个复制值压入栈顶
+        DUP_X3,	                // 复制栈顶数值并将3个复制值压入栈顶
+        SWAP,	                // 将栈最顶端的两个数值互换
+        ARITHMETIC( ADD ),      // 将栈顶两算数类型数值相加并将结果压入栈顶
+        ARITHMETIC( SUB ),      // 将栈顶两算数类型数值相减并将结果压入栈顶
+        ARITHMETIC( MUL ),      // 将栈顶两算数类型数值相乘并将结果压入栈顶
+        ARITHMETIC( DIV ),      // 将栈顶两算数类型数值相除并将结果压入栈顶
+        ARITHMETIC( REM ),      // 将栈顶两算数类型数值作取模运算并将结果压入栈顶
+        ARITHMETIC( NEG ),      // 将栈顶两算数类型数值取负并将结果压入栈顶
+        INTEGRAL( SHL ),        // 将整数类型数值左移位指定位数并将结果压入栈顶
+        INTEGRAL( SHR ),        // 将整数类型数值右移位指定位数并将结果压入栈顶
+        INTEGRAL( AND ),        // 将栈顶两整数类型数值作“按位与”并将结果压入栈顶
+        INTEGRAL( OR ),         // 将栈顶两整数类型数值作“按位或”并将结果压入栈顶
+        INTEGRAL( XOR ),        // 将栈顶两整数类型数值作“按位异或”并将结果压入栈顶
+        ARITHMETIC( 2_I8 ),     // 将栈顶运算类型数值强制转换成int8型数值并将结果压入栈顶
+        ARITHMETIC( 2_I16 ),    // 将栈顶运算类型数值强制转换成int16型数值并将结果压入栈顶
+        ARITHMETIC( 2_I32 ),    // 将栈顶运算类型数值强制转换成int32型数值并将结果压入栈顶
+        ARITHMETIC( 2_I64 ),    // 将栈顶运算类型数值强制转换成int64型数值并将结果压入栈顶
+        ARITHMETIC( 2_U8 ),     // 将栈顶运算类型数值强制转换成uint8型数值并将结果压入栈顶
+        ARITHMETIC( 2_U16 ),    // 将栈顶运算类型数值强制转换成uint16型数值并将结果压入栈顶
+        ARITHMETIC( 2_U32 ),    // 将栈顶运算类型数值强制转换成uint32型数值并将结果压入栈顶
+        ARITHMETIC( 2_U64 ),    // 将栈顶运算类型数值强制转换成uint64型数值并将结果压入栈顶
+        ARITHMETIC( 2_F32 ),    // 将栈顶运算类型数值强制转换成float32型数值并将结果压入栈顶
+        ARITHMETIC( 2_F64 ),    // 将栈顶运算类型数值强制转换成float64型数值并将结果压入栈顶
+        ARITHMETIC( CMP ),      // 比较栈顶两算数类型数值大小，并将结果int32（-1，0，1）压入栈顶
+        IF_EQ,	                // 当栈顶int32型数值等于0时跳转
+        IF_NE,	                // 当栈顶int32型数值不等于0时跳转
+        IF_LT,	                // 当栈顶int32型数值小于0时跳转
+        IF_LE,	                // 当栈顶int32型数值小于等于0时跳转
+        IF_GT,	                // 当栈顶int32型数值大于0时跳转
+        IF_GE,	                // 当栈顶int32型数值大于等于0时跳转
+        IF_NULL,	            // 为null时跳转
+        IF_NONNULL,	            // 不为null时跳转
+        GOTO,	                // 无条件跳转
+        JSR,	                // 跳转至指定int32型数值的位置，并将jsr下一条指令地址压入栈顶
+        RET,	                // 返回至本地变量指定的index的指令位置（一般与jsr联合使用）
+        TABLE_SWITCH,	        // 用于switch条件跳转，case值连续（可变长度指令）
+        LOOKUP_SWITCH,	        // 用于switch条件跳转，case值不连续（可变长度指令）
+        RETURN,	                // 从当前方法返回void
+        ALLTYPES( RETURN ),     // 从当前方法返回任意类型
+        NEW,	                // 创建一个对象，并将其引用值压入栈顶
+        GET_STATIC,	            // 获取指定类的静态域，并将其值压入栈顶
+        PUT_STATIC,	            // 为指定的类的静态域赋值
+        GET_PROPERTY,	        // 获取指定类的属性，并将其值压入栈顶
+        PUT_PROPERTY,	        // 为指定的类的属性赋值
+        INVOKE_VIRTUAL,	        // 调用实例虚函数
+        INVOKE_CONSTRUCT,	    // 调用类构造函数
+        INVOKE_DECONSTRUCT,	    // 调用类析构函数
+        INVOKE_STATIC,	        // 调用静态方法
+        THROW,	                // 将栈顶的异常抛出
+        TYPE_OF,	            // 检验对象是否是指定的类的实例，如果是将1压入栈顶，否则将0压入栈顶
     };
     enum class valloc_t
     {

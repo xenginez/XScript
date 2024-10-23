@@ -86,6 +86,27 @@ namespace
 
 struct x::runtime::tld
 {
+	struct value
+	{
+		bool b;
+		x::int8 i8;
+		x::int16 i16;
+		x::int32 i32;
+		x::int64 i64;
+		x::uint8 u8;
+		x::uint16 u16;
+		x::uint32 u32;
+		x::uint64 u64;
+		x::float16 f16;
+		x::float32 f32;
+		x::float64 f64;
+		x::object * obj;
+	};
+	struct frame
+	{
+		x::uint64 pc = 0;
+	};
+
 	tld( x::runtime * rt )
 		: _rt( rt )
 	{
@@ -108,7 +129,9 @@ struct x::runtime::tld
 
 	x::runtime * _rt = nullptr;
 	std::vector<x::value> _thread;
-	std::deque<x::value> _valstack;
+
+	std::deque<value> _valstack;
+	std::deque<frame> _framestack;
 	std::array<x::byte, 1 * MB> _memstack = {};
 };
 
@@ -175,19 +198,15 @@ x::runtime * x::runtime::this_thread_owner_runtime()
 
 void x::runtime::push( const x::value & val )
 {
-	tld::current()->_valstack.push_back( val );
-}
-
-x::value & x::runtime::top()
-{
-	return tld::current()->_valstack.back();
+	/// TODO: tld::current()->_valstack.push_back( val );
 }
 
 x::value x::runtime::pop()
 {
 	auto val = tld::current()->_valstack.back();
 	tld::current()->_valstack.pop_back();
-	return val;
+	/// TODO: return val;
+	return {};
 }
 
 x::uint64 x::runtime::pushed()
@@ -375,8 +394,9 @@ void x::runtime::gc()
 			{
 				for ( auto & it2 : it.second->_valstack )
 				{
-					if ( it2.is_object() )
-						_p->_gcgrays.push_back( it2.to_object() );
+					/// TODO: 
+					// if ( it2.is_object() )
+					// 	_p->_gcgrays.push_back( it2.to_object() );
 				}
 				for ( auto & it2 : it.second->_thread )
 				{
