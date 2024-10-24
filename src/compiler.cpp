@@ -217,7 +217,7 @@ void x::compiler::import_module()
 
 void x::compiler::create_module()
 {
-	x::module_generater generater;
+	x::code_generater generater;
 
 	for ( auto & it : _objects )
 	{
@@ -252,7 +252,7 @@ void x::compiler::linking_module()
 
 void x::compiler::compile_module()
 {
-	logger()->info( std::format( "compile module: {}", _name ) );
+	logger()->info( std::format( "compile module: {} success!", _name ) );
 }
 
 x::symbols_ptr x::compiler::make_symbols() const
@@ -371,7 +371,7 @@ x::symbols_ptr x::compiler::make_symbols() const
 	return symbols;
 }
 
-std::filesystem::path x::compiler::make_std_path() const
+std::filesystem::path x::compiler::make_stdpath() const
 {
 	return std::filesystem::path( x_path_app_path() ) / "std";
 }
@@ -407,7 +407,7 @@ void x::compiler::load_module( const std::string & modulename )
 
 x::module_ptr x::compiler::load_std_module( const std::string & modulename )
 {
-	auto stdpath = make_std_path();
+	auto stdpath = make_stdpath();
 	std::string modulepath = modulename;
 #ifdef _WIN32
 	for ( auto i = modulepath.find( '.' ); i != std::string::npos; i = modulepath.find( '.' ) )
@@ -494,10 +494,6 @@ void x::llvm_compiler::compile_module()
 {
 	_module = std::make_shared<llvm::module>();
 
-	x::llvm_module_generater generater;
-
-	generater.generate( _module, logger(), symbols(), module() );
-
 	logger()->info( std::format( "compile llvm module: {}", module()->name ) );
 }
 
@@ -508,7 +504,7 @@ x::symbols_ptr x::llvm_compiler::make_symbols() const
 	return sym;
 }
 
-std::filesystem::path x::llvm_compiler::make_std_path() const
+std::filesystem::path x::llvm_compiler::make_stdpath() const
 {
 	return std::filesystem::path( x_path_app_path() ) / "llvm";
 }
@@ -531,10 +527,6 @@ void x::spirv_compiler::compile_module()
 {
 	_module = std::make_shared<spirv::module>();
 
-	x::spirv_module_generater generater;
-
-	generater.generate( _module, logger(), symbols(), module() );
-
 	logger()->info( std::format( "compile spirv module: {}", module()->name ) );
 }
 
@@ -545,7 +537,7 @@ x::symbols_ptr x::spirv_compiler::make_symbols() const
 	return sym;
 }
 
-std::filesystem::path x::spirv_compiler::make_std_path() const
+std::filesystem::path x::spirv_compiler::make_stdpath() const
 {
 	return std::filesystem::path( x_path_app_path() ).parent_path() / "spirv";
 }

@@ -4,13 +4,18 @@
 
 namespace x
 {
-	class virtual_machine : public std::enable_shared_from_this<virtual_machine>
+	class machine : public std::enable_shared_from_this<machine>
 	{
+		struct private_p;
+
 	public:
-		virtual_machine();
-		~virtual_machine();
+		machine();
+		~machine();
 
 	public:
 		int exec( const x::runtime_ptr & rt, const x::context_ptr & ctx );
+
+	private:
+		private_p * _p;
 	};
 }

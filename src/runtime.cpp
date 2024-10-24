@@ -305,7 +305,7 @@ x::coroutine * x::runtime::coro_alloc( x::uint64 size )
 	return new ( allocator::malloc( ALIGN( size, 8 ) ) ) x::coroutine();
 }
 
-void x::runtime::dll_call( std::string_view dllname, std::string_view funcname, x::callmode_t mode, x::uint32 args )
+void x::runtime::call_extern_c( std::string_view dllname, std::string_view funcname, x::callmode_t mode, x::uint32 args )
 {
 	auto dll_it = _p->_dlllibs.find( { dllname.data(), dllname.size() } );
 	if ( dll_it == _p->_dlllibs.end() )

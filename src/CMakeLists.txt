@@ -42,14 +42,12 @@ set(SRC_FILES
 "runtime.cpp"
 "context.h"
 "context.cpp"
+"machine.h"
+"machine.cpp"
 "allocator.h"
 "allocator.cpp"
 "scheduler.h"
-"scheduler.cpp"
-"interpreter.h"
-"interpreter.cpp"
-"virtual_machine.h"
-"virtual_machine.cpp")
+"scheduler.cpp")
 
 set(3RDPARTY ${CMAKE_SOURCE_DIR}/3rdparty)
 add_library(xs STATIC ${SRC_FILES})

@@ -386,10 +386,11 @@ namespace x
         PUT_STATIC,	            // 为指定的类的静态域赋值
         GET_PROPERTY,	        // 获取指定类的属性，并将其值压入栈顶
         PUT_PROPERTY,	        // 为指定的类的属性赋值
-        INVOKE_VIRTUAL,	        // 调用实例虚函数
-        INVOKE_CONSTRUCT,	    // 调用类构造函数
         INVOKE_DECONSTRUCT,	    // 调用类析构函数
-        INVOKE_STATIC,	        // 调用静态方法
+        INVOKE_CONSTRUCT,	    // 调用类构造函数
+        INVOKE_VIRTUAL,	        // 调用实例虚函数
+        INVOKE_STATIC,	        // 调用类静态函数
+        INVOKE_C,               // 调用外部C函数
         THROW,	                // 将栈顶的异常抛出
         TYPE_OF,	            // 检验对象是否是指定的类的实例，如果是将1压入栈顶，否则将0压入栈顶
 
@@ -523,9 +524,8 @@ namespace x
     PTR( symbols );
     PTR( context );
     PTR( runtime );
+    PTR( machine );
     PTR( compiler );
-    PTR( interpreter );
-    PTR( virtual_machine );
 
     PTR( meta );
     PTR( meta_type );

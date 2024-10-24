@@ -56,7 +56,7 @@ namespace x
 	private:
 		virtual void compile_module();
 		virtual x::symbols_ptr make_symbols() const;
-		virtual std::filesystem::path make_std_path() const;
+		virtual std::filesystem::path make_stdpath() const;
 
 	private:
 		void load_module( const std::string & modulename );
@@ -90,7 +90,7 @@ namespace x
 	protected:
 		void compile_module() override;
 		x::symbols_ptr make_symbols() const override;
-		std::filesystem::path make_std_path() const override;
+		std::filesystem::path make_stdpath() const override;
 
 	private:
 		llvm::module_ptr _module;
@@ -108,7 +108,7 @@ namespace x
 	protected:
 		void compile_module() override;
 		x::symbols_ptr make_symbols() const override;
-		std::filesystem::path make_std_path() const override;
+		std::filesystem::path make_stdpath() const override;
 
 	private:
 		spirv::module_ptr _module;

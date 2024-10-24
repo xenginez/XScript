@@ -48,8 +48,8 @@ namespace x
 		x::coroutine * coro_alloc( x::uint64 size );
 
 	public:
-		void dll_call( std::string_view dllname, std::string_view funcname, x::callmode_t mode, x::uint32 args );
-
+		void call_extern_c( std::string_view dllname, std::string_view funcname, x::callmode_t mode, x::uint32 args );
+		
 	private:
 		void add_gray_object( x::object * gray );
 		void add_write_barrier( x::object * owner, x::object * val );
