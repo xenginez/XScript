@@ -7,6 +7,9 @@ namespace x
 	class value
 	{
 	public:
+		static const x::value empty_value;
+
+	public:
 		value();
 		value( const value & val );
 		value & operator=( const value & val );

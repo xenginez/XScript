@@ -12,26 +12,12 @@ void x::object::finalize()
 {
 }
 
-x::uint64 x::object::size() const
-{
-	return x::uint64();
-}
-
 x::uint64 x::object::hashcode() const
 {
 	return x::uint64();
 }
 
-x::string x::object::to_string() const
-{
-	return {};
-}
-
-void x::object::copy( x::object * obj )
-{
-}
-
-void x::object::from_string( x::string str )
+void x::object::copyto( x::object * obj )
 {
 }
 
@@ -43,6 +29,21 @@ const x::meta_type * x::object::type() const
 int x::object::compare( x::object * other ) const
 {
 	return 0;
+}
+
+const x::value & x::object::get( x::string name ) const
+{
+	return x::value::empty_value;
+}
+
+void x::object::set( x::string name, const x::value & val )
+{
+
+}
+
+void x::object::invoke( const std::vector<x::value> & args, x::value & result )
+{
+
 }
 
 void x::object::mark( x::runtime * rt )
@@ -61,18 +62,8 @@ void x::object::mark( x::runtime * rt )
 			}
 		}
 
-		set_gcstatus( x::gcstatus_t::BLACK );
+		_gcstatus = x::gcstatus_t::BLACK;
 	}
-}
-
-x::gcstatus_t x::object::get_gcstatus() const
-{
-	return (x::gcstatus_t)( *( reinterpret_cast<const x::uint8 *>( this ) - 1 ) & 0x03 );
-}
-
-void x::object::set_gcstatus( x::gcstatus_t status )
-{
-	*( reinterpret_cast<x::uint8 *>( this ) - 1 ) &= static_cast<x::uint8>( status );
 }
 
 bool x::coroutine::done() const

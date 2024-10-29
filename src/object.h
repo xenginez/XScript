@@ -13,20 +13,23 @@ namespace x
 		virtual void finalize();
 
 	public:
-		virtual x::uint64 size() const;
 		virtual x::uint64 hashcode() const;
-		virtual x::string to_string() const;
-		virtual void copy( x::object * obj );
-		virtual void from_string( x::string str );
 		virtual const x::meta_type * type() const;
+
+	public:
+		virtual void copyto( x::object * obj );
 		virtual int compare( x::object * other ) const;
+
+	public:
+		virtual const x::value & get( x::string name ) const;
+		virtual void set( x::string name, const x::value & val );
+		virtual void invoke( const std::vector<x::value> & args, x::value & result );
 
 	protected:
 		virtual void mark( x::runtime * rt );
 
 	private:
-		x::gcstatus_t get_gcstatus() const;
-		void set_gcstatus( x::gcstatus_t status );
+		x::gcstatus_t _gcstatus = x::gcstatus_t::WHITE;
 	};
 
 	class coroutine : public object

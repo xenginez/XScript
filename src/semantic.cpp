@@ -11,9 +11,12 @@
 
 #define XERROR(COND, MSG, ...)  if ( COND ) logger()->error( std::format( MSG, __VA_ARGS__ ), ast->get_location() );
 #define XWARNING(COND, MSG, ...)  if ( COND ) logger()->warning( std::format( MSG, __VA_ARGS__ ), ast->get_location() );
+#define REG_ANALYZER( TYPE ) static x::semantics_analyzer_visitor::analyzer::register_analyzer<x::##TYPE> __reg_##TYPE = {}
 
 namespace
 {
+	REG_ANALYZER( assert_analyzer );
+
 	template<typename T1, typename T2> x::int32 x_lor( T1 left, T2 right )
 	{
 		return left || right;
@@ -36,7 +39,13 @@ namespace
 	}
 }
 
-void x::semantics_analyzer_visitor::analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast )
+std::vector<x::semantics_analyzer_visitor::analyzer *> & x::semantics_analyzer_visitor::analyzer::analyzers()
+{
+	static std::vector<x::semantics_analyzer_visitor::analyzer *> _analyzers = {};
+	return _analyzers;
+}
+
+void x::semantics_analyzer_visitor::analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast, x::uint32 level )
 {
 	scope_scanner_visitor::scanner( logger, symbols, ast );
 }

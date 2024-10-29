@@ -30,7 +30,6 @@ namespace x
 
 	public:
 		virtual x::uint64 size() const = 0;
-		virtual void construct( void * ptr ) const = 0;
 	};
 
 	class meta_enum : public meta_type
@@ -48,14 +47,13 @@ namespace x
 		meta_enum();
 
 	public:
+		x::uint64 size() const override;
+
+	public:
 		x::meta_t type() const override;
 		x::uint64 hashcode() const override;
 		std::string_view name() const override;
 		std::string_view fullname() const override;
-
-	public:
-		x::uint64 size() const override;
-		void construct( void * ptr ) const override;
 
 	public:
 		std::span<const element> elements() const;
@@ -74,17 +72,16 @@ namespace x
 		meta_class();
 
 	public:
+		x::uint64 size() const override;
+	public:
 		x::meta_t type() const override;
 		x::uint64 hashcode() const override;
 		std::string_view name() const override;
 		std::string_view fullname() const override;
 
 	public:
-		x::uint64 size() const override;
-		void construct( void * ptr ) const override;
-
-	public:
 		const x::meta_class * base() const;
+		void construct( void * ptr ) const;
 		std::span<const x::meta_variable * const> variables() const;
 		std::span<const x::meta_function * const> functions() const;
 		std::span<const x::meta_interface * const> interfaces() const;
@@ -108,17 +105,17 @@ namespace x
 		meta_template();
 
 	public:
+		x::uint64 size() const override;
+
+	public:
 		x::meta_t type() const override;
 		x::uint64 hashcode() const override;
 		std::string_view name() const override;
 		std::string_view fullname() const override;
 
 	public:
-		x::uint64 size() const override;
-		void construct( void * ptr ) const override;
-
-	public:
 		const x::meta_class * base() const;
+		void construct( void * ptr ) const;
 		std::span<const x::meta_variable * const> variables() const;
 		std::span<const x::meta_function * const> functions() const;
 		std::span<const x::meta_interface * const> interfaces() const;
@@ -225,7 +222,6 @@ namespace x
 
 	public:
 		x::uint64 size() const override;
-		void construct( void * ptr ) const override;
 
 	public:
 		std::span<const x::meta_function * const> functions() const;

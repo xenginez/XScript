@@ -38,11 +38,6 @@ x::uint64 x::meta_enum::size() const
 	return sizeof( x::int64 );
 }
 
-void x::meta_enum::construct( void * ptr ) const
-{
-	memset( ptr, 0, sizeof( x::int64 ) );
-}
-
 std::span<const x::meta_enum::element> x::meta_enum::elements() const
 {
 	return _elements;
@@ -77,13 +72,13 @@ x::uint64 x::meta_class::size() const
 	return _size;
 }
 
-void x::meta_class::construct( void * ptr ) const
-{
-}
-
 const x::meta_class * x::meta_class::base() const
 {
 	return _base;
+}
+
+void x::meta_class::construct( void * ptr ) const
+{
 }
 
 std::span<const x::meta_variable * const> x::meta_class::variables() const
@@ -240,11 +235,6 @@ std::string_view x::meta_interface::fullname() const
 x::uint64 x::meta_interface::size() const
 {
 	return 0;
-}
-
-void x::meta_interface::construct( void * ptr ) const
-{
-	XTHROW( x::runtime_exception, false, "" );
 }
 
 std::span<const x::meta_function * const> x::meta_interface::functions() const

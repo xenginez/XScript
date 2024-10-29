@@ -367,7 +367,7 @@ void x::runtime::add_write_barrier( x::object * owner, x::object * val )
 {
 	if ( _p->_gcstage == x::gcstage_t::MARKING )
 	{
-		owner->set_gcstatus( x::gcstatus_t::GRAY );
+		owner->_gcstatus = x::gcstatus_t::GRAY;
 		_p->_gcbarriers.push_back( owner );
 	}
 }
@@ -420,7 +420,7 @@ void x::runtime::gc_marking()
 		obj = _p->_gcgrays.back();
 		_p->_gcgrays.pop_back();
 		obj->mark( this );
-		obj->set_gcstatus( x::gcstatus_t::BLACK );
+		obj->_gcstatus = x::gcstatus_t::BLACK;
 	}
 
 	_p->_gcstage = x::gcstage_t::TRACKING;
@@ -437,7 +437,7 @@ void x::runtime::gc_tracking()
 		obj = _p->_gcbarriers.back();
 		_p->_gcbarriers.pop_back();
 		obj->mark( this );
-		obj->set_gcstatus( x::gcstatus_t::BLACK );
+		obj->_gcstatus = x::gcstatus_t::BLACK;
 	}
 
 	_p->_gcstage = x::gcstage_t::CLEARING;

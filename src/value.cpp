@@ -4,8 +4,11 @@
 #include "runtime.h"
 #include "exception.h"
 
+const x::value x::value::empty_value = {};
+
 x::value::value()
 {
+	_flags = x::value_t::INVALID;
 	obj = nullptr;
 }
 
