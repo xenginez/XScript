@@ -229,6 +229,8 @@ namespace x
 		void insert_variable( const x::variable_decl_ast_ptr & val );
 		std::span<const x::function_decl_ast_ptr> get_functions() const;
 		void insert_function( const x::function_decl_ast_ptr & val );
+		std::span<const x::function_decl_ast_ptr> get_operators() const;
+		void insert_operator( const x::function_decl_ast_ptr & val );
 
 	private:
 		x::type_ast_ptr _base;
@@ -239,6 +241,7 @@ namespace x
 		std::vector<x::using_decl_ast_ptr> _usings;
 		std::vector<x::variable_decl_ast_ptr> _variables;
 		std::vector<x::function_decl_ast_ptr> _functions;
+		std::vector<x::function_decl_ast_ptr> _operators;
 	};
 	class template_decl_ast : public decl_ast
 	{
@@ -268,6 +271,8 @@ namespace x
 		void insert_variable( const x::variable_decl_ast_ptr & val );
 		std::span<const x::function_decl_ast_ptr> get_functions() const;
 		void insert_function( const x::function_decl_ast_ptr & val );
+		std::span<const x::function_decl_ast_ptr> get_operators() const;
+		void insert_operator( const x::function_decl_ast_ptr & val );
 
 	private:
 		x::type_ast_ptr _base;
@@ -280,6 +285,7 @@ namespace x
 		std::vector<x::parameter_ast_ptr> _elements;
 		std::vector<x::variable_decl_ast_ptr> _variables;
 		std::vector<x::function_decl_ast_ptr> _functions;
+		std::vector<x::function_decl_ast_ptr> _operators;
 	};
 	class variable_decl_ast : public decl_ast
 	{
@@ -562,6 +568,22 @@ namespace x
 
 	private:
 		std::vector<x::expr_stat_ast_ptr> _exps;
+	};
+	class new_stat_ast : public stat_ast
+	{
+	public:
+		x::ast_t type() const override;
+		void accept( visitor * val ) override;
+		
+	public:
+		const x::type_ast_ptr & get_type() const;
+		void set_type( const x::type_ast_ptr & val );
+		const x::initializer_expr_ast_ptr & get_init_stat() const;
+		void set_init_stat( const x::initializer_expr_ast_ptr & val );
+
+	private:
+		x::type_ast_ptr _type;
+		x::initializer_expr_ast_ptr _init_stat;
 	};
 	class try_stat_ast : public stat_ast
 	{

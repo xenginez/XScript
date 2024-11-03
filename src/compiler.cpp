@@ -14,6 +14,7 @@
 #include "symbols.h"
 #include "codegen.h"
 #include "semantic.h"
+#include "optimize.h"
 #include "exception.h"
 
 namespace
@@ -102,15 +103,17 @@ bool x::compiler::compile( const std::filesystem::path & path )
 			reload( path );
 		}
 
-		scanner();
+		scanning();
 
-		analyzer();
+		analysis();
 
-		import_module();
+		optimize();
 
-		create_module();
+		import();
 
-		linking_module();
+		generate();
+
+		linking();
 
 		compile_module();
 
@@ -188,23 +191,31 @@ void x::compiler::add_link_path( const std::filesystem::path & path )
 	_linkpaths.push_back( path );
 }
 
-void x::compiler::scanner()
+void x::compiler::scanning()
 {
-	x::symbol_scanner_visitor scanner;
+	x::symbol_scanner_visitor scanning;
 
 	for ( const auto & it : _objects )
-		scanner.scanner( _logger, _symbols, it->ast );
+		scanning.scanning( _logger, _symbols, it->ast );
 }
 
-void x::compiler::analyzer()
+void x::compiler::analysis()
 {
-	x::semantics_analyzer_visitor analyzer;
+	x::semantics_analysis_visitor analysis;
 
 	for ( const auto & it : _objects )
-		analyzer.analysis( _logger, _symbols, it->ast );
+		analysis.analysis( _logger, _symbols, it->ast );
 }
 
-void x::compiler::import_module()
+void x::compiler::optimize()
+{
+	x::code_optimize_visitor optimize;
+
+	for ( const auto & it : _objects )
+		optimize.optimize( _logger, _symbols, it->ast );
+}
+
+void x::compiler::import()
 {
 	for ( const auto & obj : _objects )
 	{
@@ -215,7 +226,7 @@ void x::compiler::import_module()
 	}
 }
 
-void x::compiler::create_module()
+void x::compiler::generate()
 {
 	x::code_generater generater;
 
@@ -233,7 +244,7 @@ void x::compiler::create_module()
 	}
 }
 
-void x::compiler::linking_module()
+void x::compiler::linking()
 {
 	_module = std::make_shared<x::module>();
 

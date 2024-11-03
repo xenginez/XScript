@@ -29,6 +29,7 @@ namespace x
 		x::template_decl_ast_ptr template_decl();
 		x::variable_decl_ast_ptr variable_decl();
 		x::function_decl_ast_ptr function_decl( bool interface_func = false );
+		x::function_decl_ast_ptr operator_decl();
 		x::function_decl_ast_ptr finalize_decl();
 		x::function_decl_ast_ptr construct_decl();
 		x::interface_decl_ast_ptr interface_decl();
@@ -46,6 +47,7 @@ namespace x
 		x::switch_stat_ast_ptr switch_stat();
 		x::break_stat_ast_ptr break_stat();
 		x::return_stat_ast_ptr return_stat();
+		x::new_stat_ast_ptr new_stat();
 		x::try_stat_ast_ptr try_stat();
 		x::throw_stat_ast_ptr throw_stat();
 		x::continue_stat_ast_ptr continue_stat();

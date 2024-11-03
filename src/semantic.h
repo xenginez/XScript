@@ -6,7 +6,7 @@
 
 namespace x
 {
-	class semantics_analyzer_visitor : public x::scope_scanner_visitor
+	class semantics_analysis_visitor : public x::scope_scanner_visitor
 	{
 	public:
 		using scope_scanner_visitor::visit;
@@ -14,7 +14,7 @@ namespace x
 	public:
 		class analyzer
 		{
-			friend class semantics_analyzer_visitor;
+			friend class semantics_analysis_visitor;
 
 		public:
 			enum
@@ -30,17 +30,17 @@ namespace x
 				register_analyzer()
 				{
 					static T _analyzer = {};
-					x::semantics_analyzer_visitor::analyzer::analyzers().push_back( &_analyzer );
+					x::semantics_analysis_visitor::analyzer::analyzers().push_back( &_analyzer );
 				}
 			};
 
 		public:
 			virtual x::uint32 level() const = 0;
 			virtual std::vector<x::ast_t> support_ast_types() const = 0;
-			virtual bool analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast );
+			virtual bool analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) = 0;
 
 		private:
-			static std::vector<x::semantics_analyzer_visitor::analyzer *> & analyzers();
+			static std::vector<x::semantics_analysis_visitor::analyzer *> & analyzers();
 		};
 
 	public:
@@ -89,7 +89,7 @@ namespace x
 		std::map<std::string, int> _used;
 	};
 
-	class assert_analyzer : public x::semantics_analyzer_visitor::analyzer
+	class assert_analyzer : public x::semantics_analysis_visitor::analyzer
 	{
 	public:
 		x::uint32 level() const override;
@@ -97,7 +97,7 @@ namespace x
 		bool analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) override;
 	};
 
-	class access_analyzer : public x::semantics_analyzer_visitor::analyzer
+	class access_analyzer : public x::semantics_analysis_visitor::analyzer
 	{
 	public:
 		x::uint32 level() const override;
@@ -105,7 +105,7 @@ namespace x
 		bool analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) override;
 	};
 
-	class express_analyzer : public x::semantics_analyzer_visitor::analyzer
+	class express_analyzer : public x::semantics_analysis_visitor::analyzer
 	{
 	public:
 		x::uint32 level() const override;
@@ -113,7 +113,7 @@ namespace x
 		bool analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) override;
 	};
 
-	class type_analyzer : public x::semantics_analyzer_visitor::analyzer
+	class type_analyzer : public x::semantics_analysis_visitor::analyzer
 	{
 	public:
 		x::uint32 level() const override;
@@ -121,7 +121,7 @@ namespace x
 		bool analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) override;
 	};
 
-	class class_analyzer : public x::semantics_analyzer_visitor::analyzer
+	class class_analyzer : public x::semantics_analysis_visitor::analyzer
 	{
 	public:
 		x::uint32 level() const override;
@@ -129,7 +129,7 @@ namespace x
 		bool analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) override;
 	};
 
-	class template_analyzer : public x::semantics_analyzer_visitor::analyzer
+	class template_analyzer : public x::semantics_analysis_visitor::analyzer
 	{
 	public:
 		x::uint32 level() const override;
@@ -137,7 +137,7 @@ namespace x
 		bool analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) override;
 	};
 
-	class function_analyzer : public x::semantics_analyzer_visitor::analyzer
+	class function_analyzer : public x::semantics_analysis_visitor::analyzer
 	{
 	public:
 		x::uint32 level() const override;
@@ -145,7 +145,7 @@ namespace x
 		bool analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) override;
 	};
 
-	class is_analyzer : public x::semantics_analyzer_visitor::analyzer
+	class is_analyzer : public x::semantics_analysis_visitor::analyzer
 	{
 	public:
 		x::uint32 level() const override;
@@ -153,7 +153,7 @@ namespace x
 		bool analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) override;
 	};
 
-	class as_analyzer : public x::semantics_analyzer_visitor::analyzer
+	class as_analyzer : public x::semantics_analysis_visitor::analyzer
 	{
 	public:
 		x::uint32 level() const override;
@@ -161,7 +161,7 @@ namespace x
 		bool analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) override;
 	};
 
-	class bool_analyzer : public x::semantics_analyzer_visitor::analyzer
+	class bool_analyzer : public x::semantics_analysis_visitor::analyzer
 	{
 	public:
 		x::uint32 level() const override;
@@ -169,7 +169,7 @@ namespace x
 		bool analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) override;
 	};
 
-	class sizeof_analyzer : public x::semantics_analyzer_visitor::analyzer
+	class sizeof_analyzer : public x::semantics_analysis_visitor::analyzer
 	{
 	public:
 		x::uint32 level() const override;
@@ -177,7 +177,7 @@ namespace x
 		bool analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) override;
 	};
 
-	class typeof_analyzer : public x::semantics_analyzer_visitor::analyzer
+	class typeof_analyzer : public x::semantics_analysis_visitor::analyzer
 	{
 	public:
 		x::uint32 level() const override;
@@ -185,7 +185,7 @@ namespace x
 		bool analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) override;
 	};
 
-	class condition_analyzer : public x::semantics_analyzer_visitor::analyzer
+	class condition_analyzer : public x::semantics_analysis_visitor::analyzer
 	{
 	public:
 		x::uint32 level() const override;
@@ -193,7 +193,7 @@ namespace x
 		bool analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) override;
 	};
 
-	class exception_analyzer : public x::semantics_analyzer_visitor::analyzer
+	class exception_analyzer : public x::semantics_analysis_visitor::analyzer
 	{
 	public:
 		x::uint32 level() const override;
@@ -201,7 +201,7 @@ namespace x
 		bool analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) override;
 	};
 
-	class any_variable_analyzer : public x::semantics_analyzer_visitor::analyzer
+	class any_variable_analyzer : public x::semantics_analysis_visitor::analyzer
 	{
 	public:
 		x::uint32 level() const override;
@@ -209,7 +209,7 @@ namespace x
 		bool analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) override;
 	};
 
-	class array_out_range_analyzer : public x::semantics_analyzer_visitor::analyzer
+	class array_out_range_analyzer : public x::semantics_analysis_visitor::analyzer
 	{
 	public:
 		x::uint32 level() const override;
@@ -217,7 +217,7 @@ namespace x
 		bool analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) override;
 	};
 
-	class uninit_variable_analyzer : public x::semantics_analyzer_visitor::analyzer
+	class uninit_variable_analyzer : public x::semantics_analysis_visitor::analyzer
 	{
 	public:
 		x::uint32 level() const override;
@@ -225,7 +225,7 @@ namespace x
 		bool analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) override;
 	};
 
-	class unused_variable_analyzer : public x::semantics_analyzer_visitor::analyzer
+	class unused_variable_analyzer : public x::semantics_analysis_visitor::analyzer
 	{
 	public:
 		x::uint32 level() const override;
@@ -233,7 +233,7 @@ namespace x
 		bool analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) override;
 	};
 
-	class unused_function_analyzer : public x::semantics_analyzer_visitor::analyzer
+	class unused_function_analyzer : public x::semantics_analysis_visitor::analyzer
 	{
 	public:
 		x::uint32 level() const override;
@@ -241,7 +241,7 @@ namespace x
 		bool analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) override;
 	};
 
-	class initializer_list_analyzer : public x::semantics_analyzer_visitor::analyzer
+	class initializer_list_analyzer : public x::semantics_analysis_visitor::analyzer
 	{
 	public:
 		x::uint32 level() const override;

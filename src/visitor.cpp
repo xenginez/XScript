@@ -202,6 +202,13 @@ void x::visitor::visit( x::return_stat_ast * val )
 		it->accept( this );
 }
 
+void x::visitor::visit( x::new_stat_ast * val )
+{
+	val->get_type()->accept( this );
+
+	val->get_init_stat()->accept( this );
+}
+
 void x::visitor::visit( x::try_stat_ast * val )
 {
 	val->get_try_stat()->accept( this );
@@ -317,7 +324,7 @@ void x::visitor::visit( x::string_constant_expr_ast * val )
 {
 }
 
-void x::scope_scanner_visitor::scanner( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast )
+void x::scope_scanner_visitor::scanning( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast )
 {
 	_logger = logger;
 	_symbols = symbols;
@@ -428,9 +435,9 @@ const x::symbols_ptr & x::scope_scanner_visitor::symbols() const
 	return _symbols;
 }
 
-void x::symbol_scanner_visitor::scanner( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast )
+void x::symbol_scanner_visitor::scanning( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast )
 {
-	scope_scanner_visitor::scanner( logger, symbols, ast );
+	scope_scanner_visitor::scanning( logger, symbols, ast );
 }
 
 void x::symbol_scanner_visitor::visit( x::unit_ast * val )
@@ -957,6 +964,13 @@ void x::ast_tree_printer_visitor::visit( x::return_stat_ast * val )
 				out( ", " );
 		}
 	}
+}
+
+void x::ast_tree_printer_visitor::visit( x::new_stat_ast * val )
+{
+	out( "new " );
+	val->get_type()->accept( this );
+	val->get_init_stat()->accept( this );
 }
 
 void x::ast_tree_printer_visitor::visit( x::try_stat_ast * val )

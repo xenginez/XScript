@@ -85,6 +85,7 @@ namespace x
         SWITCH_STAT,
         BREAK_STAT,
         RETURN_STAT,
+        NEW_STAT,
         TRY_STAT,
         THROW_STAT,
         CONTINUE_STAT,
@@ -207,6 +208,7 @@ namespace x
         TK_WHERE,               // where
         TK_CONSTRUCT,           // construct
         TK_FINALIZE,            // finalize
+        TK_OPERATOR,            // operator
         TK_PRIVATE,             // private
         TK_PUBLIC,              // public
         TK_PROTECTED,           // protected
@@ -231,6 +233,7 @@ namespace x
         TK_YIELD,               // yield
         TK_BREAK,               // break
         TK_RETURN,              // return
+        TK_NEW,                 // new
         TK_TRY,                 // try
         TK_CATCH,               // catch
         TK_THROW,               // throw
@@ -590,6 +593,7 @@ namespace x
     PTR( switch_stat_ast );
     PTR( break_stat_ast );
     PTR( return_stat_ast );
+    PTR( new_stat_ast );
     PTR( try_stat_ast );
     PTR( throw_stat_ast );
     PTR( continue_stat_ast );
@@ -754,6 +758,7 @@ namespace x
         { "where", x::token_t::TK_WHERE },
         { "construct", x::token_t::TK_CONSTRUCT },
         { "finalize", x::token_t::TK_FINALIZE },
+        { "operator", x::token_t::TK_OPERATOR },
         { "private", x::token_t::TK_PRIVATE },
         { "public", x::token_t::TK_PUBLIC },
         { "protected", x::token_t::TK_PROTECTED },
@@ -778,6 +783,7 @@ namespace x
         { "yield", x::token_t::TK_YIELD },
         { "break", x::token_t::TK_BREAK },
         { "return", x::token_t::TK_RETURN },
+        { "new", x::token_t::TK_NEW },
         { "try", x::token_t::TK_TRY },
         { "catch", x::token_t::TK_CATCH },
         { "throw", x::token_t::TK_THROW },

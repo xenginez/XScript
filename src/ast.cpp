@@ -483,6 +483,18 @@ void x::class_decl_ast::insert_function( const x::function_decl_ast_ptr & val )
 	_functions.push_back( val );
 }
 
+std::span<const x::function_decl_ast_ptr> x::class_decl_ast::get_operators() const
+{
+	return _operators;
+}
+
+void x::class_decl_ast::insert_operator( const x::function_decl_ast_ptr & val )
+{
+	val->set_parent( shared_from_this() );
+
+	_operators.push_back( val );
+}
+
 x::ast_t x::using_decl_ast::type() const
 {
 	return x::ast_t::USING_DECL;
@@ -644,6 +656,18 @@ void x::template_decl_ast::insert_function( const x::function_decl_ast_ptr & val
 	val->set_parent( shared_from_this() );
 
 	_functions.push_back( val );
+}
+
+std::span<const x::function_decl_ast_ptr> x::template_decl_ast::get_operators() const
+{
+	return _operators;
+}
+
+void x::template_decl_ast::insert_operator( const x::function_decl_ast_ptr & val )
+{
+	val->set_parent( shared_from_this() );
+
+	_operators.push_back( val );
 }
 
 x::ast_t x::variable_decl_ast::type() const
@@ -1281,6 +1305,40 @@ void x::return_stat_ast::insert_exp( const x::expr_stat_ast_ptr & val )
 	val->set_parent( shared_from_this() );
 
 	_exps.push_back( val );
+}
+
+x::ast_t x::new_stat_ast::type() const
+{
+	return x::ast_t::RETURN_STAT;
+}
+
+void x::new_stat_ast::accept( visitor * val )
+{
+	val->visit( this );
+}
+
+const x::type_ast_ptr & x::new_stat_ast::get_type() const
+{
+	return _type;
+}
+
+void x::new_stat_ast::set_type( const x::type_ast_ptr & val )
+{
+	val->set_parent( shared_from_this() );
+
+	_type = val;
+}
+
+const x::initializer_expr_ast_ptr & x::new_stat_ast::get_init_stat() const
+{
+	return _init_stat;
+}
+
+void x::new_stat_ast::set_init_stat( const x::initializer_expr_ast_ptr & val )
+{
+	val->set_parent( shared_from_this() );
+
+	_init_stat = val;
 }
 
 x::ast_t x::try_stat_ast::type() const

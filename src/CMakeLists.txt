@@ -30,6 +30,8 @@ set(SRC_FILES
 "codegen.cpp"
 "semantic.h"
 "semantic.cpp"
+"optimize.h"
+"optimize.cpp"
 "compiler.h"
 "compiler.cpp"
 "exception.h"

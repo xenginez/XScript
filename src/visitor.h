@@ -42,6 +42,7 @@ namespace x
 		virtual void visit( x::switch_stat_ast * val );
 		virtual void visit( x::break_stat_ast * val );
 		virtual void visit( x::return_stat_ast * val );
+		virtual void visit( x::new_stat_ast * val );
 		virtual void visit( x::try_stat_ast * val );
 		virtual void visit( x::throw_stat_ast * val );
 		virtual void visit( x::continue_stat_ast * val );
@@ -70,7 +71,7 @@ namespace x
 		using visitor::visit;
 
 	public:
-		void scanner( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast );
+		void scanning( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast );
 
 	public:
 		void visit( x::unit_ast * val ) override;
@@ -100,7 +101,7 @@ namespace x
 		using scope_scanner_visitor::visit;
 
 	public:
-		void scanner( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast );
+		void scanning( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast );
 
 	public:
 		void visit( x::unit_ast * val ) override;
@@ -161,6 +162,7 @@ namespace x
 		void visit( x::switch_stat_ast * val ) override;
 		void visit( x::break_stat_ast * val ) override;
 		void visit( x::return_stat_ast * val ) override;
+		void visit( x::new_stat_ast * val ) override;
 		void visit( x::try_stat_ast * val ) override;
 		void visit( x::throw_stat_ast * val ) override;
 		void visit( x::continue_stat_ast * val ) override;

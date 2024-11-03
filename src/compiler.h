@@ -47,11 +47,12 @@ namespace x
 		void add_link_path( const std::filesystem::path & path );
 
 	private:
-		void scanner();
-		void analyzer();
-		void import_module();
-		void create_module();
-		void linking_module();
+		void scanning();
+		void analysis();
+		void optimize();
+		void import();
+		void generate();
+		void linking();
 
 	private:
 		virtual void compile_module();

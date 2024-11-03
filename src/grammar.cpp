@@ -282,6 +282,14 @@ x::class_decl_ast_ptr x::grammar::class_decl()
             ast->insert_function( decl );
         }
         break;
+        case x::token_t::TK_OPERATOR:
+        {
+            auto decl = operator_decl();
+            decl->set_attribute( attr );
+            decl->set_access( acce );
+            ast->insert_operator( decl );
+        }
+        break;
         case x::token_t::TK_CONSTRUCT:
         {
             auto decl = construct_decl();
@@ -387,6 +395,14 @@ x::template_decl_ast_ptr x::grammar::template_decl()
             decl->set_attribute( attr );
             decl->set_access( acce );
             ast->insert_function( decl );
+        }
+        break;
+        case x::token_t::TK_OPERATOR:
+        {
+            auto decl = operator_decl();
+            decl->set_attribute( attr );
+            decl->set_access( acce );
+            ast->insert_operator( decl );
         }
         break;
         case x::token_t::TK_CONSTRUCT:
@@ -516,6 +532,66 @@ x::function_decl_ast_ptr x::grammar::function_decl( bool interface_func )
     {
         verify( x::token_t::TK_SEMICOLON );
     }
+
+    return ast;
+}
+
+x::function_decl_ast_ptr x::grammar::operator_decl()
+{
+    validity( x::token_t::TK_OPERATOR );
+
+    auto ast = std::make_shared<x::function_decl_ast>();
+    ast->set_location( _location );
+
+    ast->set_is_static( true );
+
+    switch ( lookup().type )
+    {
+    case x::token_t::TK_ADD:
+    case x::token_t::TK_SUB:
+    case x::token_t::TK_MUL:
+    case x::token_t::TK_DIV:
+    case x::token_t::TK_MOD:
+    case x::token_t::TK_AND:
+    case x::token_t::TK_OR:
+    case x::token_t::TK_XOR:
+    case x::token_t::TK_LEFT_SHIFT:
+    case x::token_t::TK_RIGHT_SHIFT:
+    case x::token_t::TK_LAND:
+    case x::token_t::TK_LOR:
+    case x::token_t::TK_NOT:
+    case x::token_t::TK_REV:
+    case x::token_t::TK_EQUAL:
+    case x::token_t::TK_COMPARE:
+        ast->set_name( next().str );
+        break;
+    case x::token_t::TK_LEFT_INDEX:
+        next(); validity( x::token_t::TK_RIGHT_INDEX ); ast->set_name( "[]" );
+        break;
+    case x::token_t::TK_LEFT_BRACKETS:
+        next(); validity( x::token_t::TK_RIGHT_BRACKETS ); ast->set_name( "()" );
+        break;
+    default:
+        break;
+    }
+
+    verify_list( x::token_t::TK_LEFT_BRACKETS, x::token_t::TK_RIGHT_BRACKETS, x::token_t::TK_COMMA, [&]() -> bool
+    {
+        auto param = parameter();
+        ast->insert_parameter( param );
+
+        return ( param->get_valuetype()->type() == x::ast_t::LIST_TYPE );
+    } );
+
+    if ( verify( x::token_t::TK_FUNCTION_RESULT ) )
+    {
+        do
+        {
+            ast->insert_result( type() );
+        } while ( verify( x::token_t::TK_COMMA ) );
+    }
+
+    ast->set_body( compound_stat() );
 
     return ast;
 }
@@ -679,6 +755,8 @@ x::stat_ast_ptr x::grammar::statement()
         return break_stat();
     case x::token_t::TK_RETURN:
         return return_stat();
+    case x::token_t::TK_NEW:
+        return new_stat();
     case x::token_t::TK_TRY:
         return try_stat();
     case x::token_t::TK_THROW:
@@ -911,6 +989,19 @@ x::return_stat_ast_ptr x::grammar::return_stat()
             ast->insert_exp( express() );
         } while ( verify( x::token_t::TK_COMMA ) );
     }
+
+    return ast;
+}
+
+x::new_stat_ast_ptr x::grammar::new_stat()
+{
+    validity( x::token_t::TK_NEW );
+
+    auto ast = std::make_shared<x::new_stat_ast>();
+    ast->set_location( _location );
+
+    ast->set_type( type() );
+    ast->set_init_stat( initializer_exp() );
 
     return ast;
 }

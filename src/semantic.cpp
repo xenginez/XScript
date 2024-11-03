@@ -11,7 +11,7 @@
 
 #define XERROR(COND, MSG, ...)  if ( COND ) logger()->error( std::format( MSG, __VA_ARGS__ ), ast->get_location() );
 #define XWARNING(COND, MSG, ...)  if ( COND ) logger()->warning( std::format( MSG, __VA_ARGS__ ), ast->get_location() );
-#define REG_ANALYZER( TYPE ) static x::semantics_analyzer_visitor::analyzer::register_analyzer<x::##TYPE> __reg_##TYPE = {}
+#define REG_ANALYZER( TYPE ) static x::semantics_analysis_visitor::analyzer::register_analyzer<x::##TYPE> __reg_##TYPE = {}
 
 namespace
 {
@@ -39,28 +39,28 @@ namespace
 	}
 }
 
-std::vector<x::semantics_analyzer_visitor::analyzer *> & x::semantics_analyzer_visitor::analyzer::analyzers()
+std::vector<x::semantics_analysis_visitor::analyzer *> & x::semantics_analysis_visitor::analyzer::analyzers()
 {
-	static std::vector<x::semantics_analyzer_visitor::analyzer *> _analyzers = {};
+	static std::vector<x::semantics_analysis_visitor::analyzer *> _analyzers = {};
 	return _analyzers;
 }
 
-void x::semantics_analyzer_visitor::analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast, x::uint32 level )
+void x::semantics_analysis_visitor::analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast, x::uint32 level )
 {
-	scope_scanner_visitor::scanner( logger, symbols, ast );
+	scope_scanner_visitor::scanning( logger, symbols, ast );
 }
 
-void x::semantics_analyzer_visitor::local_uninit_checker( const x::local_stat_ast * ast )
-{
-	XWARNING( ast->get_init() == nullptr, "\'{}\' variable not initialized!", ast->get_name() );
-}
-
-void x::semantics_analyzer_visitor::variable_uninit_checker( const x::variable_decl_ast * ast )
+void x::semantics_analysis_visitor::local_uninit_checker( const x::local_stat_ast * ast )
 {
 	XWARNING( ast->get_init() == nullptr, "\'{}\' variable not initialized!", ast->get_name() );
 }
 
-void x::semantics_analyzer_visitor::array_dimension_checker( const x::binary_expr_ast * ast )
+void x::semantics_analysis_visitor::variable_uninit_checker( const x::variable_decl_ast * ast )
+{
+	XWARNING( ast->get_init() == nullptr, "\'{}\' variable not initialized!", ast->get_name() );
+}
+
+void x::semantics_analysis_visitor::array_dimension_checker( const x::binary_expr_ast * ast )
 {
 	if ( ast->get_op() == x::operator_t::INDEX )
 	{
@@ -68,13 +68,13 @@ void x::semantics_analyzer_visitor::array_dimension_checker( const x::binary_exp
 	}
 }
 
-void x::semantics_analyzer_visitor::identifier_access_checker( const x::identifier_expr_ast * ast )
+void x::semantics_analysis_visitor::identifier_access_checker( const x::identifier_expr_ast * ast )
 {
 	auto symbol = symbols()->find_symbol( ast->get_ident() );
 
 }
 
-void x::semantics_analyzer_visitor::expression_div_zero_checker( const x::binary_expr_ast * ast )
+void x::semantics_analysis_visitor::expression_div_zero_checker( const x::binary_expr_ast * ast )
 {
 	if ( ast->get_op() == x::operator_t::DIV || ast->get_op() == x::operator_t::DIV_ASSIGN )
 	{
@@ -102,12 +102,12 @@ void x::semantics_analyzer_visitor::expression_div_zero_checker( const x::binary
 	}
 }
 
-void x::semantics_analyzer_visitor::novirtual_function_empty_body_checker( const x::function_decl_ast * ast )
+void x::semantics_analysis_visitor::novirtual_function_empty_body_checker( const x::function_decl_ast * ast )
 {
 	XERROR( ast->get_body() == nullptr && !ast->get_is_virtual(), "\'{}\' non virtual function body must not be empty!", ast->get_name() );
 }
 
-void x::semantics_analyzer_visitor::virtual_function_override_final_checker( const x::function_decl_ast * ast )
+void x::semantics_analysis_visitor::virtual_function_override_final_checker( const x::function_decl_ast * ast )
 {
 	if ( ast->get_is_final() || ast->get_is_override() )
 	{
@@ -115,7 +115,7 @@ void x::semantics_analyzer_visitor::virtual_function_override_final_checker( con
 	}
 }
 
-void x::semantics_analyzer_visitor::function_parameter_default_value_checker( const x::function_decl_ast * ast )
+void x::semantics_analysis_visitor::function_parameter_default_value_checker( const x::function_decl_ast * ast )
 {
 	size_t start = std::numeric_limits<size_t>::max();
 	for ( size_t i = 0; i < ast->get_parameters().size(); i++ )
@@ -134,7 +134,7 @@ void x::semantics_analyzer_visitor::function_parameter_default_value_checker( co
 	}
 }
 
-bool x::semantics_analyzer_visitor::is_constant( const x::expr_stat_ast * expr ) const
+bool x::semantics_analysis_visitor::is_constant( const x::expr_stat_ast * expr ) const
 {
 	switch ( expr->type() )
 	{
@@ -158,7 +158,7 @@ bool x::semantics_analyzer_visitor::is_constant( const x::expr_stat_ast * expr )
 	return false;
 }
 
-x::constant_expr_ast_ptr x::semantics_analyzer_visitor::calc_constant( const x::expr_stat_ast * ast ) const
+x::constant_expr_ast_ptr x::semantics_analysis_visitor::calc_constant( const x::expr_stat_ast * ast ) const
 {
 	x::constant_expr_ast_ptr result;
 
@@ -187,7 +187,7 @@ x::constant_expr_ast_ptr x::semantics_analyzer_visitor::calc_constant( const x::
 	return result;
 }
 
-x::constant_expr_ast_ptr x::semantics_analyzer_visitor::calc_unary_constant( const x::unary_expr_ast * ast ) const
+x::constant_expr_ast_ptr x::semantics_analysis_visitor::calc_unary_constant( const x::unary_expr_ast * ast ) const
 {
 #define UNARY_OP( TYPE, OP1, ... ) std::static_pointer_cast<x::##TYPE>( value )->set_value( OP1 ( std::static_pointer_cast<x::##TYPE>( value )->get_value() ) __VA_ARGS__ )
 
@@ -277,7 +277,7 @@ x::constant_expr_ast_ptr x::semantics_analyzer_visitor::calc_unary_constant( con
 #undef UNARY_OP
 }
 
-x::constant_expr_ast_ptr x::semantics_analyzer_visitor::calc_binary_constant( const x::binary_expr_ast * ast ) const
+x::constant_expr_ast_ptr x::semantics_analysis_visitor::calc_binary_constant( const x::binary_expr_ast * ast ) const
 {
 	x::constant_expr_ast_ptr value;
 
@@ -8659,7 +8659,7 @@ x::constant_expr_ast_ptr x::semantics_analyzer_visitor::calc_binary_constant( co
 	return value;
 }
 
-bool x::semantics_analyzer_visitor::is_virtual_function( const x::decl_ast * owner, const x::function_decl_ast * ast ) const
+bool x::semantics_analysis_visitor::is_virtual_function( const x::decl_ast * owner, const x::function_decl_ast * ast ) const
 {
 	static constexpr auto find_func = []( const auto & cls, std::string_view funcname ) -> x::function_decl_ast_ptr
 	{
