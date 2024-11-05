@@ -41,7 +41,6 @@ namespace x
             REFTYPE,
             TEMPTYPE,
             FUNCTYPE,
-            ARRAYTYPE,
         };
 
         struct item
@@ -71,12 +70,6 @@ namespace x
                     x::uint64 result; // desc section index
                     //std::vector<x::uint64> params; // desc section index
                 } functype;
-
-                struct
-                {
-                    x::uint64 type; // desc section index
-                    int array_layer;
-                } arraytype;
             };
         };
 

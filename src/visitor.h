@@ -19,14 +19,15 @@ namespace x
 		virtual void visit( x::func_type_ast * val );
 		virtual void visit( x::temp_type_ast * val );
 		virtual void visit( x::list_type_ast * val );
-		virtual void visit( x::array_type_ast * val );
 
 		virtual void visit( x::enum_decl_ast * val );
 		virtual void visit( x::class_decl_ast * val );
 		virtual void visit( x::using_decl_ast * val );
+		virtual void visit( x::assert_decl_ast * val );
 		virtual void visit( x::template_decl_ast * val );
 		virtual void visit( x::variable_decl_ast * val );
 		virtual void visit( x::function_decl_ast * val );
+		virtual void visit( x::operator_decl_ast * val );
 		virtual void visit( x::interface_decl_ast * val );
 		virtual void visit( x::namespace_decl_ast * val );
 
@@ -42,15 +43,15 @@ namespace x
 		virtual void visit( x::switch_stat_ast * val );
 		virtual void visit( x::break_stat_ast * val );
 		virtual void visit( x::return_stat_ast * val );
-		virtual void visit( x::new_stat_ast * val );
 		virtual void visit( x::try_stat_ast * val );
 		virtual void visit( x::throw_stat_ast * val );
 		virtual void visit( x::continue_stat_ast * val );
 		virtual void visit( x::local_stat_ast * val );
 		virtual void visit( x::mulocal_stat_ast * val );
 
-		virtual void visit( x::binary_expr_ast * val );
+		virtual void visit( x::new_expr_ast * val );
 		virtual void visit( x::unary_expr_ast * val );
+		virtual void visit( x::binary_expr_ast * val );
 		virtual void visit( x::bracket_expr_ast * val );
 		virtual void visit( x::closure_expr_ast * val );
 		virtual void visit( x::elements_expr_ast * val );
@@ -65,19 +66,20 @@ namespace x
 		virtual void visit( x::string_constant_expr_ast * val );
 	};
 
-	class scope_scanner_visitor : public x::visitor
+	class scope_scan_visitor : public x::visitor
 	{
 	public:
 		using visitor::visit;
 
 	public:
-		void scanning( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast );
+		void scan( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast );
 
 	public:
 		void visit( x::unit_ast * val ) override;
 		void visit( x::enum_decl_ast * val ) override;
 		void visit( x::class_decl_ast * val ) override;
 		void visit( x::function_decl_ast * val ) override;
+		void visit( x::operator_decl_ast * val ) override;
 		void visit( x::interface_decl_ast * val ) override;
 		void visit( x::namespace_decl_ast * val ) override;
 
@@ -95,13 +97,13 @@ namespace x
 		x::symbols_ptr _symbols;
 	};
 
-	class symbol_scanner_visitor : public x::scope_scanner_visitor
+	class symbol_scan_visitor : public x::scope_scan_visitor
 	{
 	public:
-		using scope_scanner_visitor::visit;
+		using scope_scan_visitor::visit;
 
 	public:
-		void scanning( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast );
+		void scan( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast );
 
 	public:
 		void visit( x::unit_ast * val ) override;
@@ -113,6 +115,7 @@ namespace x
 		void visit( x::class_decl_ast * val ) override;
 		void visit( x::variable_decl_ast * val ) override;
 		void visit( x::function_decl_ast * val ) override;
+		void visit( x::operator_decl_ast * val ) override;
 		void visit( x::template_decl_ast * val ) override;
 		void visit( x::interface_decl_ast * val ) override;
 		void visit( x::namespace_decl_ast * val ) override;
@@ -124,7 +127,7 @@ namespace x
 		void visit( x::local_stat_ast * val ) override;
 	};
 
-	class ast_tree_printer_visitor : public x::visitor
+	class astree_print_visitor : public x::visitor
 	{
 	public:
 		void print( std::ostream & out, const x::ast_ptr & ast );
@@ -139,14 +142,15 @@ namespace x
 		void visit( x::func_type_ast * val ) override;
 		void visit( x::temp_type_ast * val ) override;
 		void visit( x::list_type_ast * val ) override;
-		void visit( x::array_type_ast * val ) override;
 
 		void visit( x::enum_decl_ast * val ) override;
 		void visit( x::class_decl_ast * val ) override;
 		void visit( x::using_decl_ast * val ) override;
+		void visit( x::assert_decl_ast * val ) override;
 		void visit( x::template_decl_ast * val ) override;
 		void visit( x::variable_decl_ast * val ) override;
 		void visit( x::function_decl_ast * val ) override;
+		void visit( x::operator_decl_ast * val ) override;
 		void visit( x::interface_decl_ast * val ) override;
 		void visit( x::namespace_decl_ast * val ) override;
 
@@ -162,7 +166,7 @@ namespace x
 		void visit( x::switch_stat_ast * val ) override;
 		void visit( x::break_stat_ast * val ) override;
 		void visit( x::return_stat_ast * val ) override;
-		void visit( x::new_stat_ast * val ) override;
+		void visit( x::new_expr_ast * val ) override;
 		void visit( x::try_stat_ast * val ) override;
 		void visit( x::throw_stat_ast * val ) override;
 		void visit( x::continue_stat_ast * val ) override;

@@ -29,7 +29,7 @@ namespace x
 		x::template_decl_ast_ptr template_decl();
 		x::variable_decl_ast_ptr variable_decl();
 		x::function_decl_ast_ptr function_decl( bool interface_func = false );
-		x::function_decl_ast_ptr operator_decl();
+		x::operator_decl_ast_ptr operator_decl();
 		x::function_decl_ast_ptr finalize_decl();
 		x::function_decl_ast_ptr construct_decl();
 		x::interface_decl_ast_ptr interface_decl();
@@ -47,7 +47,6 @@ namespace x
 		x::switch_stat_ast_ptr switch_stat();
 		x::break_stat_ast_ptr break_stat();
 		x::return_stat_ast_ptr return_stat();
-		x::new_stat_ast_ptr new_stat();
 		x::try_stat_ast_ptr try_stat();
 		x::throw_stat_ast_ptr throw_stat();
 		x::continue_stat_ast_ptr continue_stat();
@@ -74,6 +73,7 @@ namespace x
 		x::expr_stat_ast_ptr postfix_exp();
 		x::expr_stat_ast_ptr primary_exp();
 
+		x::new_expr_ast_ptr new_exp();
 		x::bracket_expr_ast_ptr bracket_exp();
 		x::closure_expr_ast_ptr closure_exp();
 		x::elements_expr_ast_ptr elements_exp();
@@ -99,9 +99,10 @@ namespace x
 	private:
 		x::token next();
 		x::token lookup();
-		bool lookup( x::token_t k );
 		bool verify( x::token_t k );
 		x::token validity( x::token_t k );
+
+	private:
 		x::token verify( std::initializer_list<x::token_t> list );
 		template<typename F> void verify_list( x::token_t beg, x::token_t end, x::token_t step, F && callback )
 		{
@@ -115,7 +116,7 @@ namespace x
 						if ( callback() )
 							break;
 					}
-					else if( !lookup( end ) )
+					else if( lookup().type != end )
 					{
 						callback();
 					}
@@ -132,6 +133,7 @@ namespace x
 		void push( std::string & str, char32_t c ) const;
 
 	private:
+		bool rsl_2_2larg = false;
 		x::location _location;
 		std::istream * _stream = nullptr;
 		const std::map<std::string, x::token_t> * _tokenmap = nullptr;

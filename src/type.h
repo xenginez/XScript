@@ -60,16 +60,17 @@ namespace x
         FUNC_TYPE,
         TEMP_TYPE,
         LIST_TYPE,
-        ARRAY_TYPE,
 
         PARAMETER,
 
         ENUM_DECL,
-        CLASS_DECL,
         USING_DECL,
+        CLASS_DECL,
+        ASSERT_DECL,
         TEMPLATE_DECL,
         VARIABLE_DECL,
         FUNCTION_DECL,
+        OPERATOR_DECL,
         INTERFACE_DECL,
         NAMESPACE_DECL,
 
@@ -85,13 +86,13 @@ namespace x
         SWITCH_STAT,
         BREAK_STAT,
         RETURN_STAT,
-        NEW_STAT,
         TRY_STAT,
         THROW_STAT,
         CONTINUE_STAT,
         LOCAL_STAT,
         MULOCAL_STAT,
 
+        NEW_EXP,
         UNARY_EXP,
         BINARY_EXP,
         BRACKET_EXP,
@@ -118,6 +119,7 @@ namespace x
         TEMPLATE,
         VARIABLE,
         FUNCTION,
+        OPERATOR,
         INTERFACE,
         NAMESPACE,
     };
@@ -161,8 +163,8 @@ namespace x
         TK_NOT_EQUAL,           // !=
         TK_LESS,                // <
         TK_LARG,                // >
-        TK_LESS_OR_EQUAL,       // <=
-        TK_LARG_OR_EQUAL,       // >=
+        TK_LESS_EQUAL,          // <=
+        TK_LARG_EQUAL,          // >=
         TK_COMPARE,             // <=>
         TK_TYPECAST,            // :
         TK_POINT,               // .
@@ -297,6 +299,7 @@ namespace x
         CYCLE,
         LOCAL,
         FUNCTION,
+        OPERATOR,
         VARIABLE,
         TEMPLATE,
         INTERFACE,
@@ -306,6 +309,71 @@ namespace x
         BUILTINFUNC,
         ENUM_ELEMENT,
         PARAMATER_ELEMENT,
+    };
+    enum class section_t : x::uint8
+    {
+        TYPE,
+        TEMP,
+        DESC,
+        DEPEND,
+        GLOBAL,
+        FUNCTION,
+        VARIABLE,
+        ATTRIBUTE,
+        OPCODEDATA,
+        STRINGDATA,
+        CUSTOMDATA,
+        THIRDPARTY,
+    };
+    enum class operator_t
+    {
+        NONE,
+        XOR_ASSIGN,			// ^= 
+        OR_ASSIGN,			// |= 
+        AND_ASSIGN,			// &= 
+        RSHIFT_ASSIGN,		// >>=
+        LSHIFT_ASSIGN,		// <<=
+        SUB_ASSIGN,			// -= 
+        ADD_ASSIGN,			// +=
+        MOD_ASSIGN,			// %= 
+        DIV_ASSIGN,			// /= 
+        MUL_ASSIGN,			// *=
+        ASSIGN,				// =
+        LOR,				// ||
+        LAND,				// &&
+        OR,					// |
+        XOR,				// ^
+        AND,				// &
+        NOT_EQUAL,			// !=
+        EQUAL,				// ==
+        COMPARE,			// <=>
+        LARG_EQUAL,			// >=
+        LESS_EQUAL,			// <=
+        LARG,				// >
+        LESS,				// <
+        RIGHT_SHIFT,		// >> 
+        LEFT_SHIFT,			// <<
+        SUB,				// - 
+        ADD,				// +
+        MOD,				// %
+        DIV,				// / 
+        MUL,				// * 
+        MINUS,			    // -i
+        PLUS,			    // +i
+        NOT,			    // !
+        REV,			    // ~
+        POSTDEC,		    // i--
+        POSTINC,		    // i++
+        SIZEOF,			    // sizeof
+        TYPEOF,			    // typeof
+        AS,					// as
+        IS,					// is
+        DEC,			    // --i
+        INC,			    // ++i
+        INVOKE,				// x(y)
+        INDEX,              // x[y]
+        MEMBER,				// x.y
+
     };
     
     enum class opcode_t : x::uint16
@@ -411,21 +479,6 @@ namespace x
         WRITE               = 1 << 1,
         EXECUTE             = 1 << 2,
     };
-    enum class section_t : x::uint8
-    {
-        TYPE,
-        TEMP,
-        DESC,
-        DEPEND,
-        GLOBAL,
-        FUNCTION,
-        VARIABLE,
-        ATTRIBUTE,
-        OPCODEDATA,
-        STRINGDATA,
-        CUSTOMDATA,
-        THIRDPARTY,
-    };
     enum class gcstage_t
     {
         NONE,
@@ -446,56 +499,6 @@ namespace x
         MEDIUM,
         LARGE,
         HUGE,
-    };
-    enum class operator_t
-    {
-        NONE,
-        XOR_ASSIGN,			// ^= 
-        OR_ASSIGN,			// |= 
-        AND_ASSIGN,			// &= 
-        RSHIFT_ASSIGN,		// >>=
-        LSHIFT_ASSIGN,		// <<=
-        SUB_ASSIGN,			// -= 
-        ADD_ASSIGN,			// +=
-        MOD_ASSIGN,			// %= 
-        DIV_ASSIGN,			// /= 
-        MUL_ASSIGN,			// *=
-        ASSIGN,				// =
-        LOR,				// ||
-        LAND,				// &&
-        OR,					// |
-        XOR,				// ^
-        AND,				// &
-        NOT_EQUAL,			// !=
-        EQUAL,				// ==
-        COMPARE,			// <=>
-        LARG_EQUAL,			// >=
-        LESS_EQUAL,			// <=
-        LARG,				// >
-        LESS,				// <
-        RIGHT_SHIFT,		// >> 
-        LEFT_SHIFT,			// <<
-        SUB,				// - 
-        ADD,				// +
-        MOD,				// %
-        DIV,				// / 
-        MUL,				// * 
-        MINUS,			    // -i
-        PLUS,			    // +i
-        NOT,			    // !
-        REV,			    // ~
-        POSTDEC,		    // i--
-        POSTINC,		    // i++
-        SIZEOF,			    // sizeof
-        TYPEOF,			    // typeof
-        AS,					// as
-        IS,					// is
-        DEC,			    // --i
-        INC,			    // ++i
-        INVOKE,				// x(y)
-        INDEX,              // x[y]
-        MEMBER,				// x.y
-
     };
     enum class callmode_t
     {
@@ -537,6 +540,7 @@ namespace x
     PTR( meta_template );
     PTR( meta_variable );
     PTR( meta_function );
+    PTR( meta_operator );
     PTR( meta_interface );
     PTR( meta_namespace );
     PTR( meta_attribute );
@@ -550,6 +554,7 @@ namespace x
     PTR( cycle_symbol );
     PTR( local_symbol );
     PTR( function_symbol );
+    PTR( operator_symbol );
     PTR( variable_symbol );
     PTR( template_symbol );
     PTR( paramater_symbol );
@@ -569,14 +574,15 @@ namespace x
     PTR( func_type_ast );
     PTR( temp_type_ast );
     PTR( list_type_ast );
-    PTR( array_type_ast );
     PTR( decl_ast );
     PTR( enum_decl_ast );
     PTR( class_decl_ast );
     PTR( using_decl_ast );
+    PTR( assert_decl_ast );
     PTR( template_decl_ast );
     PTR( variable_decl_ast );
     PTR( function_decl_ast );
+    PTR( operator_decl_ast );
     PTR( interface_decl_ast );
     PTR( namespace_decl_ast );
     PTR( stat_ast );
@@ -593,13 +599,13 @@ namespace x
     PTR( switch_stat_ast );
     PTR( break_stat_ast );
     PTR( return_stat_ast );
-    PTR( new_stat_ast );
     PTR( try_stat_ast );
     PTR( throw_stat_ast );
     PTR( continue_stat_ast );
     PTR( local_stat_ast );
     PTR( mulocal_stat_ast );
     PTR( expr_stat_ast );
+    PTR( new_expr_ast );
     PTR( binary_expr_ast );
     PTR( unary_expr_ast );
     PTR( bracket_expr_ast );
@@ -673,8 +679,8 @@ namespace x
     template<template<typename...> typename Target, typename...Args> struct is_template_of< Target, Target<Args...> > : public std::true_type {};
     template<template<typename...> typename Target, typename T> static constexpr const bool is_template_of_v = is_template_of<Target, T>::value;
 
-    static constexpr const uint32 magic_num = 'xsl\0';
-    static constexpr const uint32 version_num = '0001';
+    static constexpr const x::uint32 magic_num = 'xsl\0';
+    static constexpr const x::uint32 version_num = '0001';
     static std::map<std::string, x::token_t> token_map =
     {
         { ";", x::token_t::TK_SEMICOLON },
@@ -710,8 +716,8 @@ namespace x
         { "!=", x::token_t::TK_NOT_EQUAL },
         { "<", x::token_t::TK_LESS },
         { ">", x::token_t::TK_LARG },
-        { "<=", x::token_t::TK_LESS_OR_EQUAL },
-        { ">=", x::token_t::TK_LARG_OR_EQUAL },
+        { "<=", x::token_t::TK_LESS_EQUAL },
+        { ">=", x::token_t::TK_LARG_EQUAL },
         { "<=>", x::token_t::TK_COMPARE },
         { ":", x::token_t::TK_TYPECAST },
         { ".", x::token_t::TK_POINT },

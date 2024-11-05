@@ -42,11 +42,6 @@ bool x::symbol::is_value() const
 	return false;
 }
 
-x::ast_ptr x::symbol::ast() const
-{
-	return nullptr;
-}
-
 x::uint64 x::symbol::size() const
 {
 	return 0;
@@ -73,11 +68,6 @@ x::unit_symbol::~unit_symbol()
 bool x::unit_symbol::is_scope() const
 {
 	return true;
-}
-
-x::ast_ptr x::unit_symbol::ast() const
-{
-	return unit_ast;
 }
 
 void x::unit_symbol::add_child( const x::symbol_ptr & val )
@@ -111,11 +101,6 @@ bool x::enum_symbol::is_type() const
 bool x::enum_symbol::is_scope() const
 {
 	return true;
-}
-
-x::ast_ptr x::enum_symbol::ast() const
-{
-	return enum_ast;
 }
 
 x::uint64 x::enum_symbol::size() const
@@ -153,11 +138,6 @@ bool x::using_symbol::is_type() const
 	return true;
 }
 
-x::ast_ptr x::using_symbol::ast() const
-{
-	return using_ast;
-}
-
 x::uint64 x::using_symbol::size() const
 {
 	return retype.lock()->size();
@@ -180,11 +160,6 @@ bool x::class_symbol::is_type() const
 bool x::class_symbol::is_scope() const
 {
 	return true;
-}
-
-x::ast_ptr x::class_symbol::ast() const
-{
-	return class_ast;
 }
 
 x::uint64 x::class_symbol::size() const
@@ -274,11 +249,6 @@ bool x::block_symbol::is_scope() const
 	return true;
 }
 
-x::ast_ptr x::block_symbol::ast() const
-{
-	return compound_ast;
-}
-
 void x::block_symbol::add_child( const x::symbol_ptr & val )
 {
 	switch ( val->type )
@@ -324,11 +294,6 @@ x::cycle_symbol::~cycle_symbol()
 bool x::cycle_symbol::is_scope() const
 {
 	return true;
-}
-
-x::ast_ptr x::cycle_symbol::ast() const
-{
-	return cycle_ast;
 }
 
 void x::cycle_symbol::add_child( const x::symbol_ptr & val )
@@ -378,11 +343,6 @@ bool x::local_symbol::is_value() const
 	return true;
 }
 
-x::ast_ptr x::local_symbol::ast() const
-{
-	return local_ast;
-}
-
 x::function_symbol::function_symbol()
 {
 	type = x::symbol_t::FUNCTION;
@@ -397,25 +357,65 @@ bool x::function_symbol::is_scope() const
 	return true;
 }
 
-x::ast_ptr x::function_symbol::ast() const
-{
-	return function_ast;
-}
-
 void x::function_symbol::add_child( const x::symbol_ptr & val )
 {
-	XTHROW( x::semantic_exception, val->type != x::symbol_t::PARAMATER_ELEMENT, "" );
-
-	parameters.push_back( std::static_pointer_cast<x::paramater_symbol>( val ) );
+	if ( val->type == x::symbol_t::PARAMATER_ELEMENT )
+		parameters.push_back( std::static_pointer_cast<x::paramater_symbol>( val ) );
+	else if ( val->type == x::symbol_t::BLOCK )
+		block = std::static_pointer_cast<x::block_symbol>( val );
+	else
+		results.push_back( val );
 }
 
 x::symbol_ptr x::function_symbol::find_child( std::string_view name ) const
+{
+	auto it = std::find_if( parameters.begin(), parameters.end(), [name]( auto val ) { return val->name == name; } );
+	if ( it != parameters.end() )
+		return *it;
+	
+	if ( block->name == name )
+		return block;
+
+	return nullptr;
+}
+
+x::operator_symbol::operator_symbol()
+{
+	type = x::symbol_t::OPERATOR;
+}
+
+x::operator_symbol::~operator_symbol()
+{
+}
+
+bool x::operator_symbol::is_scope() const
+{
+	return true;
+}
+
+void x::operator_symbol::add_child( const x::symbol_ptr & val )
+{
+	if ( val->type == x::symbol_t::PARAMATER_ELEMENT )
+		parameters.push_back( std::static_pointer_cast<x::paramater_symbol>( val ) );
+	else if ( val->type == x::symbol_t::BLOCK )
+		block = std::static_pointer_cast<x::block_symbol>( val );
+	else
+		results.push_back( val );
+}
+
+x::symbol_ptr x::operator_symbol::find_child( std::string_view name ) const
 {
 	auto it = std::find_if( parameters.begin(), parameters.end(), [name]( auto val )
 	{
 		return val->name == name;
 	} );
-	return ( it != parameters.end() ) ? *it : nullptr;
+	if ( it != parameters.end() )
+		return *it;
+
+	if ( block->name == name )
+		return block;
+
+	return nullptr;
 }
 
 x::variable_symbol::variable_symbol()
@@ -430,11 +430,6 @@ x::variable_symbol::~variable_symbol()
 bool x::variable_symbol::is_value() const
 {
 	return true;
-}
-
-x::ast_ptr x::variable_symbol::ast() const
-{
-	return variable_ast;
 }
 
 x::template_symbol::template_symbol()
@@ -454,11 +449,6 @@ bool x::template_symbol::is_type() const
 bool x::template_symbol::is_scope() const
 {
 	return true;
-}
-
-x::ast_ptr x::template_symbol::ast() const
-{
-	return template_ast;
 }
 
 x::uint64 x::template_symbol::size() const
@@ -531,11 +521,6 @@ bool x::interface_symbol::is_scope() const
 	return false;
 }
 
-x::ast_ptr x::interface_symbol::ast() const
-{
-	return interface_ast;
-}
-
 void x::interface_symbol::add_child( const x::symbol_ptr & val )
 {
 	functions.push_back( std::static_pointer_cast<x::function_symbol>( val ) );
@@ -567,15 +552,8 @@ bool x::namespace_symbol::is_scope() const
 	return true;
 }
 
-x::ast_ptr x::namespace_symbol::ast() const
-{
-	return namespace_ast;
-}
-
 void x::namespace_symbol::add_child( const x::symbol_ptr & val )
 {
-	XTHROW( x::semantic_exception, !val->is_type(), "" );
-
 	children.push_back( val );
 }
 
@@ -610,11 +588,6 @@ bool x::foundation_symbol::is_type() const
 bool x::foundation_symbol::is_scope() const
 {
 	return true;
-}
-
-x::ast_ptr x::foundation_symbol::ast() const
-{
-	return nullptr;
 }
 
 void x::foundation_symbol::add_child( const x::symbol_ptr & val )
@@ -666,11 +639,6 @@ bool x::nativefunc_symbol::is_scope() const
 	return true;
 }
 
-x::ast_ptr x::nativefunc_symbol::ast() const
-{
-	return nullptr;
-}
-
 void x::nativefunc_symbol::add_child( const x::symbol_ptr & val )
 {
 	XTHROW( x::semantic_exception, val->type != x::symbol_t::PARAMATER_ELEMENT, "" );
@@ -699,11 +667,6 @@ x::builtinfunc_symbol::~builtinfunc_symbol()
 bool x::builtinfunc_symbol::is_scope() const
 {
 	return true;
-}
-
-x::ast_ptr x::builtinfunc_symbol::ast() const
-{
-	return nullptr;
 }
 
 void x::builtinfunc_symbol::add_child( const x::symbol_ptr & val )
@@ -736,11 +699,6 @@ bool x::enum_element_symbol::is_value() const
 	return true;
 }
 
-x::ast_ptr x::enum_element_symbol::ast() const
-{
-	return element_ast;
-}
-
 x::paramater_symbol::paramater_symbol()
 {
 	type = x::symbol_t::PARAMATER_ELEMENT;
@@ -753,11 +711,6 @@ x::paramater_symbol::~paramater_symbol()
 bool x::paramater_symbol::is_value() const
 {
 	return true;
-}
-
-x::ast_ptr x::paramater_symbol::ast() const
-{
-	return parameter_ast;
 }
 
 x::symbols::symbols()
@@ -776,7 +729,7 @@ void x::symbols::add_module( x::module * val )
 
 }
 
-x::unit_symbol_ptr x::symbols::add_unit( x::unit_ast * ast )
+x::unit_symbol_ptr x::symbols::add_unit( const x::unit_ast_ptr & ast )
 {
 	std::string fullname = { ast->get_location().file.data(), ast->get_location().file.size() };
 
@@ -787,14 +740,15 @@ x::unit_symbol_ptr x::symbols::add_unit( x::unit_ast * ast )
 	sym->name = fullname;
 	sym->fullname = fullname;
 	sym->access = x::access_t::PUBLIC;
-	sym->unit_ast = std::static_pointer_cast<x::unit_ast>( ast->shared_from_this() );
 
 	add_symbol( sym );
+	_astsymmap[ast] = sym;
+	_symastmap[sym] = ast;
 
 	return sym;
 }
 
-x::enum_symbol_ptr x::symbols::add_enum( x::enum_decl_ast * ast )
+x::enum_symbol_ptr x::symbols::add_enum( const x::enum_decl_ast_ptr & ast )
 {
 	std::string fullname = calc_fullname( ast->get_name() );
 
@@ -805,14 +759,15 @@ x::enum_symbol_ptr x::symbols::add_enum( x::enum_decl_ast * ast )
 	sym->name = ast->get_name();
 	sym->fullname = fullname;
 	sym->access = ast->get_access();
-	sym->enum_ast = std::static_pointer_cast<x::enum_decl_ast>( ast->shared_from_this() );
 
 	add_symbol( sym );
+	_astsymmap[ast] = sym;
+	_symastmap[sym] = ast;
 
 	return sym;
 }
 
-x::using_symbol_ptr x::symbols::add_using( x::using_decl_ast * ast )
+x::using_symbol_ptr x::symbols::add_using( const x::using_decl_ast_ptr & ast )
 {
 	std::string fullname = calc_fullname( ast->get_name() );
 
@@ -823,14 +778,15 @@ x::using_symbol_ptr x::symbols::add_using( x::using_decl_ast * ast )
 	sym->name = ast->get_name();
 	sym->fullname = fullname;
 	sym->access = ast->get_access();
-	sym->using_ast = std::static_pointer_cast<x::using_decl_ast>( ast->shared_from_this() );
 
 	add_symbol( sym );
+	_astsymmap[ast] = sym;
+	_symastmap[sym] = ast;
 
 	return sym;
 }
 
-x::class_symbol_ptr x::symbols::add_class( x::class_decl_ast * ast )
+x::class_symbol_ptr x::symbols::add_class( const x::class_decl_ast_ptr & ast )
 {
 	std::string fullname = calc_fullname( ast->get_name() );
 
@@ -841,50 +797,55 @@ x::class_symbol_ptr x::symbols::add_class( x::class_decl_ast * ast )
 	sym->name = ast->get_name();
 	sym->fullname = fullname;
 	sym->access = ast->get_access();
-	sym->class_ast = std::static_pointer_cast<x::class_decl_ast>( ast->shared_from_this() );
 
 	add_symbol( sym );
+	_astsymmap[ast] = sym;
+	_symastmap[sym] = ast;
 
 	return sym;
 }
 
-x::block_symbol_ptr x::symbols::add_block( x::compound_stat_ast * ast )
+x::block_symbol_ptr x::symbols::add_block( const x::compound_stat_ast_ptr & ast )
 {
-	std::string fullname = std::format( "block_{}_{}_{}", x::hash( ast->get_location().file ), ast->get_location().line, ast->get_location().col );
+	std::string name = std::format( "block_{}_{}_{}", x::hash( ast->get_location().file ), ast->get_location().line, ast->get_location().col );
+	std::string fullname = calc_fullname( name );
 
 	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = std::make_shared<block_symbol>();
 
-	sym->name = fullname;
+	sym->name = name;
 	sym->fullname = fullname;
 	sym->access = x::access_t::PRIVATE;
-	sym->compound_ast = std::static_pointer_cast<x::compound_stat_ast>( ast->shared_from_this() );
 
 	add_symbol( sym );
+	_astsymmap[ast] = sym;
+	_symastmap[sym] = ast;
 
 	return sym;
 }
 
-x::cycle_symbol_ptr x::symbols::add_cycle( x::cycle_stat_ast * ast )
+x::cycle_symbol_ptr x::symbols::add_cycle( const x::cycle_stat_ast_ptr & ast )
 {
-	std::string fullname = std::format( "cycle_{}_{}_{}", x::hash( ast->get_location().file ), ast->get_location().line, ast->get_location().col );
+	std::string name = std::format( "cycle_{}_{}_{}", x::hash( ast->get_location().file ), ast->get_location().line, ast->get_location().col );
+	std::string fullname = calc_fullname( name );
 
 	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
 
 	auto sym = std::make_shared<cycle_symbol>();
 
-	sym->name = fullname;
+	sym->name = name;
 	sym->fullname = fullname;
 	sym->access = x::access_t::PRIVATE;
-	sym->cycle_ast = std::static_pointer_cast<x::cycle_stat_ast>( ast->shared_from_this() );
 
 	add_symbol( sym );
+	_astsymmap[ast] = sym;
+	_symastmap[sym] = ast;
 
 	return sym;
 }
 
-x::local_symbol_ptr x::symbols::add_local( x::local_stat_ast * ast )
+x::local_symbol_ptr x::symbols::add_local( const x::local_stat_ast_ptr & ast )
 {
 	std::string fullname = calc_fullname( ast->get_name() );
 
@@ -895,14 +856,15 @@ x::local_symbol_ptr x::symbols::add_local( x::local_stat_ast * ast )
 	sym->name = ast->get_name();
 	sym->fullname = fullname;
 	sym->access = x::access_t::PRIVATE;
-	sym->local_ast = std::static_pointer_cast<x::local_stat_ast>( ast->shared_from_this() );
 
 	add_symbol( sym );
+	_astsymmap[ast] = sym;
+	_symastmap[sym] = ast;
 
 	return sym;
 }
 
-x::function_symbol_ptr x::symbols::add_function( x::function_decl_ast * ast )
+x::function_symbol_ptr x::symbols::add_function( const x::function_decl_ast_ptr & ast )
 {
 	std::string fullname = calc_fullname( ast->get_name() );
 
@@ -913,14 +875,34 @@ x::function_symbol_ptr x::symbols::add_function( x::function_decl_ast * ast )
 	sym->name = ast->get_name();
 	sym->fullname = fullname;
 	sym->access = ast->get_access();
-	sym->function_ast = std::static_pointer_cast<x::function_decl_ast>( ast->shared_from_this() );
 
 	add_symbol( sym );
+	_astsymmap[ast] = sym;
+	_symastmap[sym] = ast;
 
 	return sym;
 }
 
-x::variable_symbol_ptr x::symbols::add_variable( x::variable_decl_ast * ast )
+x::function_symbol_ptr x::symbols::add_operator( const x::operator_decl_ast_ptr & ast )
+{
+	std::string fullname = calc_fullname( ast->get_name() );
+
+	XTHROW( x::semantic_exception, _symbolmap.find( fullname ) != _symbolmap.end(), "" );
+
+	auto sym = std::make_shared<function_symbol>();
+
+	sym->name = ast->get_name();
+	sym->fullname = fullname;
+	sym->access = ast->get_access();
+
+	add_symbol( sym );
+	_astsymmap[ast] = sym;
+	_symastmap[sym] = ast;
+
+	return sym;
+}
+
+x::variable_symbol_ptr x::symbols::add_variable( const x::variable_decl_ast_ptr & ast )
 {
 	std::string fullname = calc_fullname( ast->get_name() );
 
@@ -931,14 +913,15 @@ x::variable_symbol_ptr x::symbols::add_variable( x::variable_decl_ast * ast )
 	sym->name = ast->get_name();
 	sym->fullname = fullname;
 	sym->access = ast->get_access();
-	sym->variable_ast = std::static_pointer_cast<x::variable_decl_ast>( ast->shared_from_this() );
 
 	add_symbol( sym );
+	_astsymmap[ast] = sym;
+	_symastmap[sym] = ast;
 
 	return sym;
 }
 
-x::template_symbol_ptr x::symbols::add_template( x::template_decl_ast * ast )
+x::template_symbol_ptr x::symbols::add_template( const x::template_decl_ast_ptr & ast )
 {
 	std::string fullname = calc_fullname( ast->get_name() );
 
@@ -949,14 +932,15 @@ x::template_symbol_ptr x::symbols::add_template( x::template_decl_ast * ast )
 	sym->name = ast->get_name();
 	sym->fullname = fullname;
 	sym->access = ast->get_access();
-	sym->template_ast = std::static_pointer_cast<x::template_decl_ast>( ast->shared_from_this() );
 
 	add_symbol( sym );
+	_astsymmap[ast] = sym;
+	_symastmap[sym] = ast;
 
 	return sym;
 }
 
-x::paramater_symbol_ptr x::symbols::add_paramater( x::parameter_ast * ast )
+x::paramater_symbol_ptr x::symbols::add_paramater( const x::parameter_ast_ptr & ast )
 {
 	std::string fullname = calc_fullname( ast->get_name() );
 
@@ -967,14 +951,15 @@ x::paramater_symbol_ptr x::symbols::add_paramater( x::parameter_ast * ast )
 	sym->name = ast->get_name();
 	sym->fullname = fullname;
 	sym->access = x::access_t::PRIVATE;
-	sym->parameter_ast = std::static_pointer_cast<x::parameter_ast>( ast->shared_from_this() );
 
 	add_symbol( sym );
+	_astsymmap[ast] = sym;
+	_symastmap[sym] = ast;
 
 	return sym;
 }
 
-x::interface_symbol_ptr x::symbols::add_interface( x::interface_decl_ast * ast )
+x::interface_symbol_ptr x::symbols::add_interface( const x::interface_decl_ast_ptr & ast )
 {
 	std::string fullname = calc_fullname( ast->get_name() );
 
@@ -985,14 +970,15 @@ x::interface_symbol_ptr x::symbols::add_interface( x::interface_decl_ast * ast )
 	sym->name = ast->get_name();
 	sym->fullname = fullname;
 	sym->access = ast->get_access();
-	sym->interface_ast = std::static_pointer_cast<x::interface_decl_ast>( ast->shared_from_this() );
 
 	add_symbol( sym );
+	_astsymmap[ast] = sym;
+	_symastmap[sym] = ast;
 
 	return sym;
 }
 
-x::namespace_symbol_ptr x::symbols::add_namespace( x::namespace_decl_ast * ast )
+x::namespace_symbol_ptr x::symbols::add_namespace( const x::namespace_decl_ast_ptr & ast )
 {
 	std::string fullname = calc_fullname( ast->get_name() );
 
@@ -1003,9 +989,10 @@ x::namespace_symbol_ptr x::symbols::add_namespace( x::namespace_decl_ast * ast )
 	sym->name = ast->get_name();
 	sym->fullname = fullname;
 	sym->access = ast->get_access();
-	sym->namespace_ast = std::static_pointer_cast<x::namespace_decl_ast>( ast->shared_from_this() );
 
 	add_symbol( sym );
+	_astsymmap[ast] = sym;
+	_symastmap[sym] = ast;
 
 	return sym;
 }
@@ -1064,7 +1051,7 @@ x::builtinfunc_symbol_ptr x::symbols::add_builtinfunc( std::string_view name, x:
 	return sym;
 }
 
-x::enum_element_symbol_ptr x::symbols::add_enum_element( std::string_view name, x::expr_stat_ast * ast )
+x::enum_element_symbol_ptr x::symbols::add_enum_element( std::string_view name, const x::expr_stat_ast_ptr & ast )
 {
 	std::string fullname = calc_fullname( name );
 
@@ -1075,9 +1062,10 @@ x::enum_element_symbol_ptr x::symbols::add_enum_element( std::string_view name, 
 	sym->name = name;
 	sym->fullname = fullname;
 	sym->access = x::access_t::PUBLIC;
-	sym->element_ast = std::static_pointer_cast<x::expr_stat_ast>( ast->shared_from_this() );
 
 	add_symbol( sym );
+	_astsymmap[ast] = sym;
+	_symastmap[sym] = ast;
 
 	return sym;
 }
@@ -1099,9 +1087,57 @@ x::symbol_ptr x::symbols::current_scope() const
 	return _scope.back();
 }
 
-void x::symbols::pop_scope()
+x::symbol_ptr x::symbols::pop_scope()
 {
-	_scope.pop_back();
+	x::symbol_ptr back;
+	if ( !_scope.empty() )
+	{
+		back = _scope.back();
+
+		_scope.pop_back();
+	}
+	return back;
+}
+
+x::ast_ptr x::symbols::find_ast( const x::symbol_ptr & val ) const
+{
+	auto it = _symastmap.find( val );
+	
+	return it != _symastmap.end() ? it->second : nullptr;
+}
+
+x::ast_ptr x::symbols::find_ast( x::symbol_t type, x::symbol_ptr scope ) const
+{
+	return find_ast( find_symbol( type, scope ) );
+}
+
+x::ast_ptr x::symbols::find_ast( std::string_view name, x::symbol_ptr scope ) const
+{
+	return find_ast( find_symbol( name, scope ) );
+}
+
+x::ast_ptr x::symbols::find_ast( const x::type_ast_ptr & ast, x::symbol_ptr scope ) const
+{
+	return find_ast( find_symbol( ast, scope ) );
+}
+
+x::ast_ptr x::symbols::find_ast( std::string_view name, x::symbol_t type, x::symbol_ptr scope ) const
+{
+	return find_ast( find_symbol( name, type, scope ) );
+}
+
+x::symbol_ptr x::symbols::find_symbol( x::symbol_t type, x::symbol_ptr scope ) const
+{
+	if ( scope == nullptr )
+		scope = current_scope();
+
+	if ( scope->type == type )
+		return scope;
+
+	if ( auto sym = up_find_symbol( type, scope ) )
+		return sym;
+
+	return nullptr;
 }
 
 x::symbol_ptr x::symbols::find_symbol( std::string_view name, x::symbol_ptr scope ) const
@@ -1150,6 +1186,26 @@ x::symbol_ptr x::symbols::find_symbol( std::string_view name, x::symbol_t type, 
 	{
 		if( sym->type == type )
 		return sym;
+	}
+
+	return nullptr;
+}
+
+x::symbol_ptr x::symbols::up_find_symbol( x::symbol_t type, const x::symbol_ptr & scope ) const
+{
+	if ( auto parent = scope->parent.lock() )
+	{
+		if ( parent == nullptr )
+			return nullptr;
+
+		if ( parent->type == type )
+		{
+			return parent;
+		}
+		else
+		{
+			return up_find_symbol( type, parent );
+		}
 	}
 
 	return nullptr;
@@ -1218,8 +1274,8 @@ std::string x::symbols::calc_fullname( std::string_view name ) const
 
 x::symbol_ptr x::symbols::find_symbol_from_ast( const x::ast_ptr & ast ) const
 {
-	auto it = _astmap.find( ast );
-	return it != _astmap.end() ? it->second : nullptr;
+	auto it = _astsymmap.find( ast );
+	return it != _astsymmap.end() ? it->second : nullptr;
 }
 
 x::symbol_ptr x::symbols::find_symbol_from_fullname( std::string_view fullname ) const
@@ -1242,12 +1298,12 @@ std::vector<x::template_symbol_ptr> x::symbols::find_template_symbols( std::stri
 	return result;
 }
 
-void x::symbols::add_reference( x::ast * ast, std::string_view name, const x::symbol_ptr & val )
+void x::symbols::add_reference( const x::ast_ptr & ast, std::string_view name, const x::symbol_ptr & val )
 {
 	_referencemap[ast].emplace( name, val );
 }
 
-x::symbol_ptr x::symbols::find_reference( x::ast * ast, std::string_view name ) const
+x::symbol_ptr x::symbols::find_reference( const x::ast_ptr & ast, std::string_view name ) const
 {
 	auto it = _referencemap.find( ast );
 	if ( it != _referencemap.end() )
@@ -1265,9 +1321,6 @@ void x::symbols::add_symbol( const x::symbol_ptr & val )
 	val->symbols = shared_from_this();
 
 	_symbolmap[val->fullname] = val;
-
-	if ( val->ast() )
-		_astmap[val->ast()] = val;
 
 	if ( val->type == x::symbol_t::TEMPLATE )
 		_templatemap.emplace( val->fullname, std::static_pointer_cast<x::template_symbol>( val ) );

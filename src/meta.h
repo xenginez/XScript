@@ -84,6 +84,7 @@ namespace x
 		void construct( void * ptr ) const;
 		std::span<const x::meta_variable * const> variables() const;
 		std::span<const x::meta_function * const> functions() const;
+		std::span<const x::meta_operator * const> operators() const;
 		std::span<const x::meta_interface * const> interfaces() const;
 
 	private:
@@ -94,6 +95,7 @@ namespace x
 		const x::meta_class * _base = nullptr;
 		std::vector<const x::meta_variable *> _variables;
 		std::vector<const x::meta_function *> _functions;
+		std::vector<const x::meta_operator *> _operators;
 		std::vector<const x::meta_interface *> _interfaces;
 	};
 
@@ -199,6 +201,43 @@ namespace x
 		bool _is_const = false;
 		bool _is_async = false;
 		bool _is_static = false;
+		x::access_t _access = x::access_t::PRIVATE;
+		x::uint64 _code = 0;
+		std::string_view _name;
+		std::string_view _fullname;
+		std::vector<parameter> _parameters;
+		std::vector<const x::meta_type *> _results;
+	};
+
+	class meta_operator : public meta
+	{
+		friend class context;
+
+	public:
+		struct parameter
+		{
+			std::string_view _name;
+			const x::meta_type * _valuetype = nullptr;
+		};
+
+	public:
+		meta_operator();
+
+	public:
+		x::meta_t type() const override;
+		x::uint64 hashcode() const override;
+		std::string_view name() const override;
+		std::string_view fullname() const override;
+
+	public:
+		x::access_t access() const;
+		std::span<const parameter> parameters() const;
+		std::span<const x::meta_type * const> results() const;
+
+	public:
+		void invoke() const;
+
+	private:
 		x::access_t _access = x::access_t::PRIVATE;
 		x::uint64 _code = 0;
 		std::string_view _name;

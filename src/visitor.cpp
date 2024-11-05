@@ -3,6 +3,8 @@
 #include "symbols.h"
 #include "exception.h"
 
+#define SP_CAST( TYPE, PTR ) std::static_pointer_cast<TYPE>( PTR->shared_from_this() )
+
 void x::visitor::visit( x::unit_ast * val )
 {
 	for ( const auto & it : val->get_imports() )
@@ -34,6 +36,8 @@ void x::visitor::visit( x::func_type_ast * val )
 {
 	for ( const auto & it : val->get_parameters() )
 		it->accept( this );
+	for ( const auto & it : val->get_results() )
+		it->accept( this );
 }
 
 void x::visitor::visit( x::temp_type_ast * val )
@@ -45,10 +49,6 @@ void x::visitor::visit( x::temp_type_ast * val )
 void x::visitor::visit( x::list_type_ast * val )
 {
 
-}
-
-void x::visitor::visit( x::array_type_ast * val )
-{
 }
 
 void x::visitor::visit( x::enum_decl_ast * val )
@@ -69,11 +69,18 @@ void x::visitor::visit( x::class_decl_ast * val )
 		it->accept( this );
 	for ( const auto & it : val->get_functions() )
 		it->accept( this );
+	for ( const auto & it : val->get_operators() )
+		it->accept( this );
 }
 
 void x::visitor::visit( x::using_decl_ast * val )
 {
 	val->get_retype()->accept( this );
+}
+
+void x::visitor::visit( x::assert_decl_ast * val )
+{
+	val->get_expr()->accept( this );
 }
 
 void x::visitor::visit( x::template_decl_ast * val )
@@ -113,6 +120,18 @@ void x::visitor::visit( x::function_decl_ast * val )
 		it->accept( this );
 
 	val->get_body()->accept( this );
+}
+
+void x::visitor::visit( x::operator_decl_ast * val )
+{
+	for ( const auto & it : val->get_parameters() )
+		it->accept( this );
+
+	for ( const auto & it : val->get_results() )
+		it->accept( this );
+
+	if ( val->get_body() )
+		val->get_body()->accept( this );
 }
 
 void x::visitor::visit( x::interface_decl_ast * val )
@@ -202,7 +221,7 @@ void x::visitor::visit( x::return_stat_ast * val )
 		it->accept( this );
 }
 
-void x::visitor::visit( x::new_stat_ast * val )
+void x::visitor::visit( x::new_expr_ast * val )
 {
 	val->get_type()->accept( this );
 
@@ -324,7 +343,7 @@ void x::visitor::visit( x::string_constant_expr_ast * val )
 {
 }
 
-void x::scope_scanner_visitor::scanning( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast )
+void x::scope_scan_visitor::scan( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast )
 {
 	_logger = logger;
 	_symbols = symbols;
@@ -335,7 +354,7 @@ void x::scope_scanner_visitor::scanning( const x::logger_ptr & logger, const x::
 	_logger = nullptr;
 }
 
-void x::scope_scanner_visitor::visit( x::unit_ast * val )
+void x::scope_scan_visitor::visit( x::unit_ast * val )
 {
 	symbols()->push_scope( val->get_location().file );
 	{
@@ -344,7 +363,7 @@ void x::scope_scanner_visitor::visit( x::unit_ast * val )
 	symbols()->pop_scope();
 }
 
-void x::scope_scanner_visitor::visit( x::enum_decl_ast * val )
+void x::scope_scan_visitor::visit( x::enum_decl_ast * val )
 {
 	symbols()->push_scope( val->get_name() );
 	{
@@ -353,7 +372,7 @@ void x::scope_scanner_visitor::visit( x::enum_decl_ast * val )
 	symbols()->pop_scope();
 }
 
-void x::scope_scanner_visitor::visit( x::class_decl_ast * val )
+void x::scope_scan_visitor::visit( x::class_decl_ast * val )
 {
 	symbols()->push_scope( val->get_name() );
 	{
@@ -362,7 +381,7 @@ void x::scope_scanner_visitor::visit( x::class_decl_ast * val )
 	symbols()->pop_scope();
 }
 
-void x::scope_scanner_visitor::visit( x::function_decl_ast * val )
+void x::scope_scan_visitor::visit( x::function_decl_ast * val )
 {
 	symbols()->push_scope( val->get_name() );
 	{
@@ -371,7 +390,7 @@ void x::scope_scanner_visitor::visit( x::function_decl_ast * val )
 	symbols()->pop_scope();
 }
 
-void x::scope_scanner_visitor::visit( x::interface_decl_ast * val )
+void x::scope_scan_visitor::visit( x::operator_decl_ast * val )
 {
 	symbols()->push_scope( val->get_name() );
 	{
@@ -380,7 +399,7 @@ void x::scope_scanner_visitor::visit( x::interface_decl_ast * val )
 	symbols()->pop_scope();
 }
 
-void x::scope_scanner_visitor::visit( x::namespace_decl_ast * val )
+void x::scope_scan_visitor::visit( x::interface_decl_ast * val )
 {
 	symbols()->push_scope( val->get_name() );
 	{
@@ -389,7 +408,16 @@ void x::scope_scanner_visitor::visit( x::namespace_decl_ast * val )
 	symbols()->pop_scope();
 }
 
-void x::scope_scanner_visitor::visit( x::compound_stat_ast * val )
+void x::scope_scan_visitor::visit( x::namespace_decl_ast * val )
+{
+	symbols()->push_scope( val->get_name() );
+	{
+		visitor::visit( val );
+	}
+	symbols()->pop_scope();
+}
+
+void x::scope_scan_visitor::visit( x::compound_stat_ast * val )
 {
 	symbols()->push_scope( std::format( "block_{}_{}_{}", x::hash( val->get_location().file ), val->get_location().line, val->get_location().col ) );
 	{
@@ -398,7 +426,7 @@ void x::scope_scanner_visitor::visit( x::compound_stat_ast * val )
 	symbols()->pop_scope();
 }
 
-void x::scope_scanner_visitor::visit( x::while_stat_ast * val )
+void x::scope_scan_visitor::visit( x::while_stat_ast * val )
 {
 	symbols()->push_scope( std::format( "cycle_{}_{}_{}", x::hash( val->get_location().file ), val->get_location().line, val->get_location().col ) );
 	{
@@ -407,7 +435,7 @@ void x::scope_scanner_visitor::visit( x::while_stat_ast * val )
 	symbols()->pop_scope();
 }
 
-void x::scope_scanner_visitor::visit( x::for_stat_ast * val )
+void x::scope_scan_visitor::visit( x::for_stat_ast * val )
 {
 	symbols()->push_scope( std::format( "cycle_{}_{}_{}", x::hash( val->get_location().file ), val->get_location().line, val->get_location().col ) );
 	{
@@ -416,7 +444,7 @@ void x::scope_scanner_visitor::visit( x::for_stat_ast * val )
 	symbols()->pop_scope();
 }
 
-void x::scope_scanner_visitor::visit( x::foreach_stat_ast * val )
+void x::scope_scan_visitor::visit( x::foreach_stat_ast * val )
 {
 	symbols()->push_scope( std::format( "cycle_{}_{}_{}", x::hash( val->get_location().file ), val->get_location().line, val->get_location().col ) );
 	{
@@ -425,150 +453,165 @@ void x::scope_scanner_visitor::visit( x::foreach_stat_ast * val )
 	symbols()->pop_scope();
 }
 
-const x::logger_ptr & x::scope_scanner_visitor::logger() const
+const x::logger_ptr & x::scope_scan_visitor::logger() const
 {
 	return _logger;
 }
 
-const x::symbols_ptr & x::scope_scanner_visitor::symbols() const
+const x::symbols_ptr & x::scope_scan_visitor::symbols() const
 {
 	return _symbols;
 }
 
-void x::symbol_scanner_visitor::scanning( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast )
+void x::symbol_scan_visitor::scan( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast )
 {
-	scope_scanner_visitor::scanning( logger, symbols, ast );
+	scope_scan_visitor::scan( logger, symbols, ast );
 }
 
-void x::symbol_scanner_visitor::visit( x::unit_ast * val )
+void x::symbol_scan_visitor::visit( x::unit_ast * val )
 {
-	symbols()->add_unit( val );
+	symbols()->add_unit( SP_CAST( x::unit_ast, val ) );
 
-	scope_scanner_visitor::visit( val );
+	scope_scan_visitor::visit( val );
 }
 
-void x::symbol_scanner_visitor::visit( x::parameter_ast * val )
+void x::symbol_scan_visitor::visit( x::parameter_ast * val )
 {
-	symbols()->add_paramater( val );
+	symbols()->add_paramater( SP_CAST( x::parameter_ast, val ) );
 
-	scope_scanner_visitor::visit( val );
+	scope_scan_visitor::visit( val );
 }
 
-void x::symbol_scanner_visitor::visit( x::enum_decl_ast * val )
+void x::symbol_scan_visitor::visit( x::enum_decl_ast * val )
 {
-	symbols()->add_enum( val );
+	symbols()->add_enum( SP_CAST( x::enum_decl_ast, val ) );
 	symbols()->push_scope( val->get_name() );
 	for ( const auto & it : val->get_elements() )
 	{
-		symbols()->add_enum_element( it.first, it.second.get() );
+		symbols()->add_enum_element( it.first, it.second );
 	}
 	symbols()->pop_scope();
 }
 
-void x::symbol_scanner_visitor::visit( x::using_decl_ast * val )
+void x::symbol_scan_visitor::visit( x::using_decl_ast * val )
 {
-	symbols()->add_using( val );
+	symbols()->add_using( SP_CAST( x::using_decl_ast, val ) );
 
-	scope_scanner_visitor::visit( val );
+	scope_scan_visitor::visit( val );
 }
 
-void x::symbol_scanner_visitor::visit( x::class_decl_ast * val )
+void x::symbol_scan_visitor::visit( x::class_decl_ast * val )
 {
-	symbols()->add_class( val );
+	symbols()->add_class( SP_CAST( x::class_decl_ast, val ) );
 
-	scope_scanner_visitor::visit( val );
+	scope_scan_visitor::visit( val );
 }
 
-void x::symbol_scanner_visitor::visit( x::variable_decl_ast * val )
+void x::symbol_scan_visitor::visit( x::variable_decl_ast * val )
 {
-	symbols()->add_variable( val );
+	symbols()->add_variable( SP_CAST( x::variable_decl_ast, val ) );
 
-	scope_scanner_visitor::visit( val );
+	scope_scan_visitor::visit( val );
 }
 
-void x::symbol_scanner_visitor::visit( x::function_decl_ast * val )
+void x::symbol_scan_visitor::visit( x::function_decl_ast * val )
 {
-	symbols()->add_function( val );
+	symbols()->add_function( SP_CAST( x::function_decl_ast, val ) );
 
-	scope_scanner_visitor::visit( val );
+	scope_scan_visitor::visit( val );
 }
 
-void x::symbol_scanner_visitor::visit( x::template_decl_ast * val )
+void x::symbol_scan_visitor::visit( x::operator_decl_ast * val )
 {
-	symbols()->add_template( val );
+	symbols()->add_operator( SP_CAST( x::operator_decl_ast, val ) );
 
-	scope_scanner_visitor::visit( val );
+	scope_scan_visitor::visit( val );
 }
 
-void x::symbol_scanner_visitor::visit( x::interface_decl_ast * val )
+void x::symbol_scan_visitor::visit( x::template_decl_ast * val )
 {
-	symbols()->add_interface( val );
+	symbols()->add_template( SP_CAST( x::template_decl_ast, val ) );
 
-	scope_scanner_visitor::visit( val );
+	scope_scan_visitor::visit( val );
 }
 
-void x::symbol_scanner_visitor::visit( x::namespace_decl_ast * val )
+void x::symbol_scan_visitor::visit( x::interface_decl_ast * val )
 {
-	symbols()->add_namespace( val );
+	symbols()->add_interface( SP_CAST( x::interface_decl_ast, val ) );
 
-	scope_scanner_visitor::visit( val );
+	scope_scan_visitor::visit( val );
 }
 
-void x::symbol_scanner_visitor::visit( x::compound_stat_ast * val )
+void x::symbol_scan_visitor::visit( x::namespace_decl_ast * val )
 {
-	symbols()->add_block( val );
+	symbols()->add_namespace( SP_CAST( x::namespace_decl_ast, val ) );
 
-	scope_scanner_visitor::visit( val );
+	scope_scan_visitor::visit( val );
 }
 
-void x::symbol_scanner_visitor::visit( x::while_stat_ast * val )
+void x::symbol_scan_visitor::visit( x::compound_stat_ast * val )
 {
-	symbols()->add_cycle( val );
+	symbols()->add_block( SP_CAST( x::compound_stat_ast, val ) );
 
-	scope_scanner_visitor::visit( val );
+	scope_scan_visitor::visit( val );
 }
 
-void x::symbol_scanner_visitor::visit( x::for_stat_ast * val )
+void x::symbol_scan_visitor::visit( x::while_stat_ast * val )
 {
-	symbols()->add_cycle( val );
+	symbols()->add_cycle( SP_CAST( x::cycle_stat_ast, val ) );
 
-	scope_scanner_visitor::visit( val );
+	scope_scan_visitor::visit( val );
 }
 
-void x::symbol_scanner_visitor::visit( x::foreach_stat_ast * val )
+void x::symbol_scan_visitor::visit( x::for_stat_ast * val )
 {
-	symbols()->add_cycle( val );
+	symbols()->add_cycle( SP_CAST( x::cycle_stat_ast, val ) );
 
-	scope_scanner_visitor::visit( val );
+	scope_scan_visitor::visit( val );
 }
 
-void x::symbol_scanner_visitor::visit( x::local_stat_ast * val )
+void x::symbol_scan_visitor::visit( x::foreach_stat_ast * val )
 {
-	symbols()->add_local( val );
+	symbols()->add_cycle( SP_CAST( x::cycle_stat_ast, val ) );
 
-	scope_scanner_visitor::visit( val );
+	scope_scan_visitor::visit( val );
 }
 
-void x::ast_tree_printer_visitor::print( std::ostream & out, const x::ast_ptr & ast )
+void x::symbol_scan_visitor::visit( x::local_stat_ast * val )
+{
+	symbols()->add_local( SP_CAST( x::local_stat_ast, val ) );
+
+	scope_scan_visitor::visit( val );
+}
+
+void x::astree_print_visitor::print( std::ostream & out, const x::ast_ptr & ast )
 {
 	_cout = &out;
 	ast->accept( this );
 	_cout = nullptr;
 }
 
-void x::ast_tree_printer_visitor::visit( x::unit_ast * val )
+void x::astree_print_visitor::visit( x::unit_ast * val )
 {
-	out( std::format( "//{}", val->get_location().file ) );
+	out( std::format( "// {}", val->get_location().file ) );
 
-	visitor::visit( val );
+	outline();
+
+	for ( const auto & it : val->get_imports() )
+		it->accept( this );
+
+	outline();
+
+	for ( const auto & it : val->get_namespaces() )
+		it->accept( this );
 }
 
-void x::ast_tree_printer_visitor::visit( x::import_ast * val )
+void x::astree_print_visitor::visit( x::import_ast * val )
 {
 	outline( std::format( R"(import( "{}" ))", val->get_modulename() ) );
 }
 
-void x::ast_tree_printer_visitor::visit( x::attribute_ast * val )
+void x::astree_print_visitor::visit( x::attribute_ast * val )
 {
 	outline( "attribute( " );
 	for ( size_t i = 0; i < val->get_attributes().size(); i++ )
@@ -580,7 +623,7 @@ void x::ast_tree_printer_visitor::visit( x::attribute_ast * val )
 	out( " )" );
 }
 
-void x::ast_tree_printer_visitor::visit( x::parameter_ast * val )
+void x::astree_print_visitor::visit( x::parameter_ast * val )
 {
 	out( val->get_name() );
 	out( ": " ); val->get_valuetype()->accept( this );
@@ -591,12 +634,12 @@ void x::ast_tree_printer_visitor::visit( x::parameter_ast * val )
 	}
 }
 
-void x::ast_tree_printer_visitor::visit( x::type_ast * val )
+void x::astree_print_visitor::visit( x::type_ast * val )
 {
 	out( std::format( R"({}{}{})", val->get_is_const() ? "const " : "", val->get_is_ref() ? "ref " : "", val->get_name() ) );
 }
 
-void x::ast_tree_printer_visitor::visit( x::func_type_ast * val )
+void x::astree_print_visitor::visit( x::func_type_ast * val )
 {
 	visit( static_cast<x::type_ast *>( val ) );
 	out( val->get_parameters().empty() ? "(" : "( " );
@@ -607,9 +650,20 @@ void x::ast_tree_printer_visitor::visit( x::func_type_ast * val )
 			out( ", " );
 	}
 	out( val->get_parameters().empty() ? ")" : " )" );
+
+	if ( !val->get_results().empty() )
+	{
+		out( " -> " );
+		for ( size_t i = 0; i < val->get_results().size(); i++ )
+		{
+			val->get_results()[i]->accept( this );
+			if ( i < val->get_results().size() - 1 )
+				out( ", " );
+		}
+	}
 }
 
-void x::ast_tree_printer_visitor::visit( x::temp_type_ast * val )
+void x::astree_print_visitor::visit( x::temp_type_ast * val )
 {
 	visit( static_cast<x::type_ast *>( val ) );
 	out( val->get_elements().empty() ? "<" : "< " );
@@ -622,22 +676,13 @@ void x::ast_tree_printer_visitor::visit( x::temp_type_ast * val )
 	out( val->get_elements().empty() ? ">" : " >" );
 }
 
-void x::ast_tree_printer_visitor::visit( x::list_type_ast * val )
+void x::astree_print_visitor::visit( x::list_type_ast * val )
 {
 	visit( static_cast<x::type_ast *>( val ) );
 	out( "..." );
 }
 
-void x::ast_tree_printer_visitor::visit( x::array_type_ast * val )
-{
-	std::string layer;
-	for ( size_t i = 1; i < val->get_layer(); i++ )
-		layer.push_back( ',' );
-
-	out( std::format( R"({}{}{}[{}])", val->get_is_const() ? "const " : "", val->get_is_ref() ? "ref " : "", val->get_name(), layer ) );
-}
-
-void x::ast_tree_printer_visitor::visit( x::enum_decl_ast * val )
+void x::astree_print_visitor::visit( x::enum_decl_ast * val )
 {
 	if ( val->get_attribute() ) val->get_attribute()->accept( this );
 
@@ -661,7 +706,7 @@ void x::ast_tree_printer_visitor::visit( x::enum_decl_ast * val )
 	pop(); outline( "};" );
 }
 
-void x::ast_tree_printer_visitor::visit( x::class_decl_ast * val )
+void x::astree_print_visitor::visit( x::class_decl_ast * val )
 {
 	if ( val->get_attribute() ) val->get_attribute()->accept( this );
 
@@ -673,19 +718,35 @@ void x::ast_tree_printer_visitor::visit( x::class_decl_ast * val )
 	}
 	outline( "{" ); push();
 	{
-		for ( const auto & it : val->get_friends() )
-		{
-			out( "friend " ); it->accept( this );
-		}
 		for ( const auto & it : val->get_usings() )
 		{
 			it->accept( this );
 		}
+		if ( !val->get_usings().empty() )
+			outline();
+
+		for ( const auto & it : val->get_friends() )
+		{
+			out( "friend " ); it->accept( this );
+		}
+		if ( !val->get_friends().empty() )
+			outline();
+
 		for ( const auto & it : val->get_variables() )
 		{
 			it->accept( this );
 		}
+		if ( !val->get_variables().empty() )
+			outline();
+
 		for ( const auto & it : val->get_functions() )
+		{
+			it->accept( this );
+		}
+		if ( !val->get_functions().empty() )
+			outline();
+
+		for ( const auto & it : val->get_operators() )
 		{
 			it->accept( this );
 		}
@@ -693,14 +754,22 @@ void x::ast_tree_printer_visitor::visit( x::class_decl_ast * val )
 	pop(); outline( "};" );
 }
 
-void x::ast_tree_printer_visitor::visit( x::using_decl_ast * val )
+void x::astree_print_visitor::visit( x::using_decl_ast * val )
 {
 	outline( std::format( "{} using {} = ", access( val->get_access() ), val->get_name() ) );
 	visitor::visit( val );
 	out( ";" );
 }
 
-void x::ast_tree_printer_visitor::visit( x::template_decl_ast * val )
+void x::astree_print_visitor::visit( x::assert_decl_ast * val )
+{
+	outline( "assert(" );
+	visitor::visit( val );
+	out( std::format( ", {})", val->get_message() ) );
+	out( ";" );
+}
+
+void x::astree_print_visitor::visit( x::template_decl_ast * val )
 {
 	if ( val->get_attribute() ) val->get_attribute()->accept( this );
 
@@ -726,19 +795,35 @@ void x::ast_tree_printer_visitor::visit( x::template_decl_ast * val )
 
 	outline( "{" ); push();
 	{
-		for ( const auto & it : val->get_friends() )
-		{
-			out( "friend " ); it->accept( this );
-		}
 		for ( const auto & it : val->get_usings() )
 		{
 			it->accept( this );
 		}
+		if ( !val->get_usings().empty() )
+			outline();
+
+		for ( const auto & it : val->get_friends() )
+		{
+			out( "friend " ); it->accept( this );
+		}
+		if ( !val->get_friends().empty() )
+			outline();
+
 		for ( const auto & it : val->get_variables() )
 		{
 			it->accept( this );
 		}
+		if ( !val->get_variables().empty() )
+			outline();
+
 		for ( const auto & it : val->get_functions() )
+		{
+			it->accept( this );
+		}
+		if ( !val->get_functions().empty() )
+			outline();
+
+		for ( const auto & it : val->get_operators() )
 		{
 			it->accept( this );
 		}
@@ -746,7 +831,7 @@ void x::ast_tree_printer_visitor::visit( x::template_decl_ast * val )
 	pop(); outline( "};" );
 }
 
-void x::ast_tree_printer_visitor::visit( x::variable_decl_ast * val )
+void x::astree_print_visitor::visit( x::variable_decl_ast * val )
 {
 	if ( val->get_attribute() ) val->get_attribute()->accept( this );
 
@@ -772,7 +857,7 @@ void x::ast_tree_printer_visitor::visit( x::variable_decl_ast * val )
 	out( ";" );
 }
 
-void x::ast_tree_printer_visitor::visit( x::function_decl_ast * val )
+void x::astree_print_visitor::visit( x::function_decl_ast * val )
 {
 	if ( val->get_attribute() ) val->get_attribute()->accept( this );
 
@@ -811,14 +896,45 @@ void x::ast_tree_printer_visitor::visit( x::function_decl_ast * val )
 	{
 		if ( val->get_body()->type() == x::ast_t::EXTERN_STAT )
 			out( " = " );
-		else
-			outline();
 
 		val->get_body()->accept( this );
 	}
+
+	out( ";" );
 }
 
-void x::ast_tree_printer_visitor::visit( x::interface_decl_ast * val )
+void x::astree_print_visitor::visit( x::operator_decl_ast * val )
+{
+	if ( val->get_attribute() ) val->get_attribute()->accept( this );
+
+	outline( std::format( "{} operator {}" , access( val->get_access() ) , val->get_name() ) );
+
+	out( val->get_parameters().empty() ? "(" : "( " );
+	for ( size_t i = 0; i < val->get_parameters().size(); i++ )
+	{
+		val->get_parameters()[i]->accept( this );
+
+		if ( i < val->get_parameters().size() - 1 )
+			out( ", " );
+	}
+	out( val->get_parameters().empty() ? ")" : " )" );
+
+	out( val->get_results().empty() ? "" : " -> " );
+	for ( size_t i = 0; i < val->get_results().size(); i++ )
+	{
+		val->get_results()[i]->accept( this );
+
+		if ( i < val->get_results().size() - 1 )
+			out( ", " );
+	}
+	
+	if ( val->get_body() )
+		val->get_body()->accept( this );
+
+	out( ";" );
+}
+
+void x::astree_print_visitor::visit( x::interface_decl_ast * val )
 {
 	if ( val->get_attribute() ) val->get_attribute()->accept( this );
 
@@ -833,29 +949,33 @@ void x::ast_tree_printer_visitor::visit( x::interface_decl_ast * val )
 	pop(); outline( "};" );
 }
 
-void x::ast_tree_printer_visitor::visit( x::namespace_decl_ast * val )
+void x::astree_print_visitor::visit( x::namespace_decl_ast * val )
 {
 	if ( val->get_attribute() ) val->get_attribute()->accept( this );
 
 	outline( std::format( "{} namespace {}", access( val->get_access() ), val->get_name() ) );
 	outline( "{" ); push();
 	{
-		visitor::visit( val );
+		for ( const auto & it : val->get_members() )
+		{
+			it->accept( this );
+			outline();
+		}
 	}
 	pop(); outline( "};" );
 }
 
-void x::ast_tree_printer_visitor::visit( x::empty_stat_ast * val )
+void x::astree_print_visitor::visit( x::empty_stat_ast * val )
 {
 	out( "// " );
 }
 
-void x::ast_tree_printer_visitor::visit( x::extern_stat_ast * val )
+void x::astree_print_visitor::visit( x::extern_stat_ast * val )
 {
 	out( std::format( R"(extern( "{}", "{}" );)", val->get_libname(), val->get_funcname() ) );
 }
 
-void x::ast_tree_printer_visitor::visit( x::compound_stat_ast * val )
+void x::astree_print_visitor::visit( x::compound_stat_ast * val )
 {
 	outline( "{" ); push();
 	for ( auto it : val->get_stats() )
@@ -867,19 +987,19 @@ void x::ast_tree_printer_visitor::visit( x::compound_stat_ast * val )
 	pop(); outline( "}" );
 }
 
-void x::ast_tree_printer_visitor::visit( x::await_stat_ast * val )
+void x::astree_print_visitor::visit( x::await_stat_ast * val )
 {
 	out( "await " );
 	visitor::visit( val );
 }
 
-void x::ast_tree_printer_visitor::visit( x::yield_stat_ast * val )
+void x::astree_print_visitor::visit( x::yield_stat_ast * val )
 {
 	out( "yield " );
 	visitor::visit( val );
 }
 
-void x::ast_tree_printer_visitor::visit( x::if_stat_ast * val )
+void x::astree_print_visitor::visit( x::if_stat_ast * val )
 {
 	out( "if ( " ); val->get_cond()->accept( this ); out( " )" );
 
@@ -892,14 +1012,14 @@ void x::ast_tree_printer_visitor::visit( x::if_stat_ast * val )
 	}
 }
 
-void x::ast_tree_printer_visitor::visit( x::while_stat_ast * val )
+void x::astree_print_visitor::visit( x::while_stat_ast * val )
 {
 	out( "while ( " ); val->get_cond()->accept( this ); out( " )" );
 
 	val->get_body()->accept( this );
 }
 
-void x::ast_tree_printer_visitor::visit( x::for_stat_ast * val )
+void x::astree_print_visitor::visit( x::for_stat_ast * val )
 {
 	out( "for ( " );
 	if ( val->get_init() ) val->get_init()->accept( this );
@@ -912,7 +1032,7 @@ void x::ast_tree_printer_visitor::visit( x::for_stat_ast * val )
 	val->get_body()->accept( this );
 }
 
-void x::ast_tree_printer_visitor::visit( x::foreach_stat_ast * val )
+void x::astree_print_visitor::visit( x::foreach_stat_ast * val )
 {
 	out( "foreach ( " );
 	val->get_item()->accept( this );
@@ -923,7 +1043,7 @@ void x::ast_tree_printer_visitor::visit( x::foreach_stat_ast * val )
 	val->get_body()->accept( this );
 }
 
-void x::ast_tree_printer_visitor::visit( x::switch_stat_ast * val )
+void x::astree_print_visitor::visit( x::switch_stat_ast * val )
 {
 	out( "switch ( " );
 	val->get_exp()->accept( this );
@@ -945,12 +1065,12 @@ void x::ast_tree_printer_visitor::visit( x::switch_stat_ast * val )
 	pop(); outline( "}" );
 }
 
-void x::ast_tree_printer_visitor::visit( x::break_stat_ast * val )
+void x::astree_print_visitor::visit( x::break_stat_ast * val )
 {
 	out( "break" );
 }
 
-void x::ast_tree_printer_visitor::visit( x::return_stat_ast * val )
+void x::astree_print_visitor::visit( x::return_stat_ast * val )
 {
 	if ( val->get_exps().empty() )
 		out( "return" );
@@ -966,14 +1086,14 @@ void x::ast_tree_printer_visitor::visit( x::return_stat_ast * val )
 	}
 }
 
-void x::ast_tree_printer_visitor::visit( x::new_stat_ast * val )
+void x::astree_print_visitor::visit( x::new_expr_ast * val )
 {
 	out( "new " );
 	val->get_type()->accept( this );
 	val->get_init_stat()->accept( this );
 }
 
-void x::ast_tree_printer_visitor::visit( x::try_stat_ast * val )
+void x::astree_print_visitor::visit( x::try_stat_ast * val )
 {
 	out( "try" );
 	val->get_try_stat()->accept( this );
@@ -994,18 +1114,18 @@ void x::ast_tree_printer_visitor::visit( x::try_stat_ast * val )
 	}
 }
 
-void x::ast_tree_printer_visitor::visit( x::throw_stat_ast * val )
+void x::astree_print_visitor::visit( x::throw_stat_ast * val )
 {
 	out( "throw " );
 	val->get_exception()->accept( this );
 }
 
-void x::ast_tree_printer_visitor::visit( x::continue_stat_ast * val )
+void x::astree_print_visitor::visit( x::continue_stat_ast * val )
 {
 	out( "continue" );
 }
 
-void x::ast_tree_printer_visitor::visit( x::local_stat_ast * val )
+void x::astree_print_visitor::visit( x::local_stat_ast * val )
 {
 	out( std::format( "var {}{}{}{}"
 		 , val->get_is_local() ? "local " : ""
@@ -1026,7 +1146,7 @@ void x::ast_tree_printer_visitor::visit( x::local_stat_ast * val )
 	}
 }
 
-void x::ast_tree_printer_visitor::visit( x::mulocal_stat_ast * val )
+void x::astree_print_visitor::visit( x::mulocal_stat_ast * val )
 {
 	out( "var [" );
 	for ( size_t i = 0; i < val->get_locals().size(); i++ )
@@ -1046,7 +1166,7 @@ void x::ast_tree_printer_visitor::visit( x::mulocal_stat_ast * val )
 	out( "]" );
 }
 
-void x::ast_tree_printer_visitor::visit( x::binary_expr_ast * val )
+void x::astree_print_visitor::visit( x::binary_expr_ast * val )
 {
 	switch ( val->get_op() )
 	{
@@ -1091,7 +1211,7 @@ void x::ast_tree_printer_visitor::visit( x::binary_expr_ast * val )
 	}
 }
 
-void x::ast_tree_printer_visitor::visit( x::unary_expr_ast * val )
+void x::astree_print_visitor::visit( x::unary_expr_ast * val )
 {
 	switch ( val->get_op() )
 	{
@@ -1112,24 +1232,72 @@ void x::ast_tree_printer_visitor::visit( x::unary_expr_ast * val )
 	}
 }
 
-void x::ast_tree_printer_visitor::visit( x::identifier_expr_ast * val )
+void x::astree_print_visitor::visit( x::identifier_expr_ast * val )
 {
 	out( val->get_ident() );
 }
 
-void x::ast_tree_printer_visitor::visit( x::closure_expr_ast * val )
+void x::astree_print_visitor::visit( x::closure_expr_ast * val )
 {
-	visitor::visit( val );
+	out( "func " );
+
+	if ( !val->get_captures().empty() )
+	{
+		out( "[ " );
+		for ( size_t i = 0; i < val->get_captures().size(); i++ )
+		{
+			val->get_captures()[i]->accept( this );
+
+			if ( i < val->get_captures().size() - 1 )
+				out( ", " );
+		}
+		out( " ]" );
+	}
+	else
+	{
+		out( "[]" );
+	}
+
+	if ( !val->get_parameters().size() )
+	{
+		out( "( " );
+		for ( size_t i = 0; i < val->get_parameters().size(); i++ )
+		{
+			val->get_parameters()[i]->accept( this );
+
+			if ( i < val->get_parameters().size() - 1 )
+				out( ", " );
+		}
+		out( " )" );
+	}
+	else
+	{
+		out( "()" );
+	}
+
+	if ( !val->get_results().empty() )
+	{
+		out( " -> " );
+		for ( size_t i = 0; i < val->get_results().size(); i++ )
+		{
+			val->get_results()[i]->accept( this );
+
+			if ( i < val->get_results().size() - 1 )
+				out( ", " );
+		}
+	}
+
+	val->get_body()->accept( this );
 }
 
-void x::ast_tree_printer_visitor::visit( x::bracket_expr_ast * val )
+void x::astree_print_visitor::visit( x::bracket_expr_ast * val )
 {
 	out( "( " );
 	val->get_exp()->accept( this );
 	out( " )" );
 }
 
-void x::ast_tree_printer_visitor::visit( x::elements_expr_ast * val )
+void x::astree_print_visitor::visit( x::elements_expr_ast * val )
 {
 	out( "[" );
 	for ( size_t i = 0; i < val->get_elements().size(); i++ )
@@ -1141,7 +1309,7 @@ void x::ast_tree_printer_visitor::visit( x::elements_expr_ast * val )
 	out( "]" );
 }
 
-void x::ast_tree_printer_visitor::visit( x::arguments_expr_ast * val )
+void x::astree_print_visitor::visit( x::arguments_expr_ast * val )
 {
 	out( "( " );
 	for ( size_t i = 0; i < val->get_args().size(); i++ )
@@ -1153,7 +1321,7 @@ void x::ast_tree_printer_visitor::visit( x::arguments_expr_ast * val )
 	out( " )" );
 }
 
-void x::ast_tree_printer_visitor::visit( x::initializer_expr_ast * val )
+void x::astree_print_visitor::visit( x::initializer_expr_ast * val )
 {
 	out( val->get_args().empty() ? "{" : "{ " );
 	for ( size_t i = 0; i < val->get_args().size(); i++ )
@@ -1165,17 +1333,17 @@ void x::ast_tree_printer_visitor::visit( x::initializer_expr_ast * val )
 	out( val->get_args().empty() ? "}" : " }" );
 }
 
-void x::ast_tree_printer_visitor::visit( x::null_constant_expr_ast * val )
+void x::astree_print_visitor::visit( x::null_constant_expr_ast * val )
 {
 	out( "null" );
 }
 
-void x::ast_tree_printer_visitor::visit( x::bool_constant_expr_ast * val )
+void x::astree_print_visitor::visit( x::bool_constant_expr_ast * val )
 {
 	out( val->get_value() ? "true" : "false" );
 }
 
-void x::ast_tree_printer_visitor::visit( x::int_constant_expr_ast * val )
+void x::astree_print_visitor::visit( x::int_constant_expr_ast * val )
 {
 	switch ( val->type() )
 	{
@@ -1186,7 +1354,7 @@ void x::ast_tree_printer_visitor::visit( x::int_constant_expr_ast * val )
 	}
 }
 
-void x::ast_tree_printer_visitor::visit( x::uint_constant_expr_ast * val )
+void x::astree_print_visitor::visit( x::uint_constant_expr_ast * val )
 {
 	switch ( val->type() )
 	{
@@ -1197,7 +1365,7 @@ void x::ast_tree_printer_visitor::visit( x::uint_constant_expr_ast * val )
 	}
 }
 
-void x::ast_tree_printer_visitor::visit( x::float_constant_expr_ast * val )
+void x::astree_print_visitor::visit( x::float_constant_expr_ast * val )
 {
 	switch ( val->type() )
 	{
@@ -1208,7 +1376,7 @@ void x::ast_tree_printer_visitor::visit( x::float_constant_expr_ast * val )
 	}
 }
 
-void x::ast_tree_printer_visitor::visit( x::string_constant_expr_ast * val )
+void x::astree_print_visitor::visit( x::string_constant_expr_ast * val )
 {
 	std::string str;
 
@@ -1243,7 +1411,7 @@ void x::ast_tree_printer_visitor::visit( x::string_constant_expr_ast * val )
 	out( std::format( R"("{}")", str ) );
 }
 
-const char * x::ast_tree_printer_visitor::access( x::access_t val )
+const char * x::astree_print_visitor::access( x::access_t val )
 {
 	switch ( val )
 	{
@@ -1258,17 +1426,17 @@ const char * x::ast_tree_printer_visitor::access( x::access_t val )
 	return "unknown";
 }
 
-void x::ast_tree_printer_visitor::out( std::string_view str )
+void x::astree_print_visitor::out( std::string_view str )
 {
 	*_cout << str;
 }
 
-void x::ast_tree_printer_visitor::outline( std::string_view str )
+void x::astree_print_visitor::outline( std::string_view str )
 {
 	*_cout << std::endl; outtab(); out( str );
 }
 
-void x::ast_tree_printer_visitor::outtab()
+void x::astree_print_visitor::outtab()
 {
 	for ( size_t i = 0; i < _tab; i++ )
 	{
@@ -1276,12 +1444,12 @@ void x::ast_tree_printer_visitor::outtab()
 	}
 }
 
-void x::ast_tree_printer_visitor::push()
+void x::astree_print_visitor::push()
 {
 	_tab++;
 }
 
-void x::ast_tree_printer_visitor::pop()
+void x::astree_print_visitor::pop()
 {
 	_tab--;
 }

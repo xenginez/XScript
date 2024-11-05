@@ -91,6 +91,11 @@ std::span<const x::meta_function * const> x::meta_class::functions() const
 	return _functions;
 }
 
+std::span<const x::meta_operator * const> x::meta_class::operators() const
+{
+	return _operators;
+}
+
 std::span<const x::meta_interface * const> x::meta_class::interfaces() const
 {
 	return _interfaces;
@@ -207,6 +212,52 @@ std::span<const x::meta_function::parameter> x::meta_function::parameters() cons
 void x::meta_function::invoke() const
 {
 }
+
+
+x::meta_operator::meta_operator()
+{
+}
+
+x::meta_t x::meta_operator::type() const
+{
+	return x::meta_t::FUNCTION;
+}
+
+x::uint64 x::meta_operator::hashcode() const
+{
+	return x::hash( fullname() );
+}
+
+std::string_view x::meta_operator::name() const
+{
+	return _name;
+}
+
+std::string_view x::meta_operator::fullname() const
+{
+	return _fullname;
+}
+
+x::access_t x::meta_operator::access() const
+{
+	return _access;
+}
+
+std::span<const x::meta_operator::parameter> x::meta_operator::parameters() const
+{
+	return _parameters;
+}
+
+std::span<const x::meta_type * const> x::meta_operator::results() const
+{
+	return _results;
+}
+
+void x::meta_operator::invoke() const
+{
+}
+
+
 
 x::meta_interface::meta_interface()
 {

@@ -1,13 +1,15 @@
 #pragma once
 
+#include <functional>
+
 #include "visitor.h"
 
 namespace x
 {
-	class code_optimize_visitor : public x::scope_scanner_visitor
+	class code_optimize_visitor : public x::scope_scan_visitor
 	{
 	public:
-		using scope_scanner_visitor::visit;
+		using scope_scan_visitor::visit;
 
 	public:
 		class optimizer
@@ -34,7 +36,7 @@ namespace x
 
 		public:
 			virtual x::uint32 level() const = 0;
-			virtual std::vector<x::ast_t> support_ast_types() const = 0;
+			virtual std::vector<x::ast_t> ast_types() const = 0;
 			virtual bool optimize( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) = 0;
 
 		private:
@@ -43,13 +45,19 @@ namespace x
 
 	public:
 		void optimize( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast, x::uint32 level = 2 );
+
+	private:
+		void visit( x::closure_expr_ast * val ) override;
+
+	private:
+		x::uint32 _level = optimizer::MIN_LEVEL;
 	};
 
-	class translate_lambda_optimizer : public x::code_optimize_visitor::optimizer
+	class translate_closure_optimizer : public x::code_optimize_visitor::optimizer
 	{
 	public:
 		x::uint32 level() const override;
-		std::vector<x::ast_t> support_ast_types() const override;
+		std::vector<x::ast_t> ast_types() const override;
 		bool optimize( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) override;
 	};
 
@@ -57,7 +65,7 @@ namespace x
 	{
 	public:
 		x::uint32 level() const override;
-		std::vector<x::ast_t> support_ast_types() const override;
+		std::vector<x::ast_t> ast_types() const override;
 		bool optimize( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) override;
 	};
 
@@ -65,7 +73,7 @@ namespace x
 	{
 	public:
 		x::uint32 level() const override;
-		std::vector<x::ast_t> support_ast_types() const override;
+		std::vector<x::ast_t> ast_types() const override;
 		bool optimize( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) override;
 	};
 
@@ -73,7 +81,7 @@ namespace x
 	{
 	public:
 		x::uint32 level() const override;
-		std::vector<x::ast_t> support_ast_types() const override;
+		std::vector<x::ast_t> ast_types() const override;
 		bool optimize( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) override;
 	};
 
@@ -81,7 +89,7 @@ namespace x
 	{
 	public:
 		x::uint32 level() const override;
-		std::vector<x::ast_t> support_ast_types() const override;
+		std::vector<x::ast_t> ast_types() const override;
 		bool optimize( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) override;
 	};
 
@@ -89,7 +97,7 @@ namespace x
 	{
 	public:
 		x::uint32 level() const override;
-		std::vector<x::ast_t> support_ast_types() const override;
+		std::vector<x::ast_t> ast_types() const override;
 		bool optimize( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast ) override;
 	};
 }

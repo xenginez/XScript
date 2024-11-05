@@ -183,10 +183,6 @@ void x::module::load( std::istream & in )
                 case x::desc_section::flag_t::FUNCTYPE:
                     read( in, it.functype.result );
                     break;
-                case x::desc_section::flag_t::ARRAYTYPE:
-                    read( in, it.arraytype.type );
-                    read( in, it.arraytype.array_layer );
-                    break;
                 default:
                     break;
                 }
@@ -313,10 +309,6 @@ void x::module::save( std::ostream & out ) const
             break;
         case x::desc_section::flag_t::FUNCTYPE:
             write( out, it.functype.result );
-            break;
-        case x::desc_section::flag_t::ARRAYTYPE:
-            write( out, it.arraytype.type );
-            write( out, it.arraytype.array_layer );
             break;
         default:
             break;

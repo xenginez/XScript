@@ -15,7 +15,7 @@
 
 namespace
 {
-	REG_ANALYZER( assert_analyzer );
+	//REG_ANALYZER( assert_analyzer );
 
 	template<typename T1, typename T2> x::int32 x_lor( T1 left, T2 right )
 	{
@@ -47,91 +47,7 @@ std::vector<x::semantics_analysis_visitor::analyzer *> & x::semantics_analysis_v
 
 void x::semantics_analysis_visitor::analysis( const x::logger_ptr & logger, const x::symbols_ptr & symbols, const x::ast_ptr & ast, x::uint32 level )
 {
-	scope_scanner_visitor::scanning( logger, symbols, ast );
-}
-
-void x::semantics_analysis_visitor::local_uninit_checker( const x::local_stat_ast * ast )
-{
-	XWARNING( ast->get_init() == nullptr, "\'{}\' variable not initialized!", ast->get_name() );
-}
-
-void x::semantics_analysis_visitor::variable_uninit_checker( const x::variable_decl_ast * ast )
-{
-	XWARNING( ast->get_init() == nullptr, "\'{}\' variable not initialized!", ast->get_name() );
-}
-
-void x::semantics_analysis_visitor::array_dimension_checker( const x::binary_expr_ast * ast )
-{
-	if ( ast->get_op() == x::operator_t::INDEX )
-	{
-
-	}
-}
-
-void x::semantics_analysis_visitor::identifier_access_checker( const x::identifier_expr_ast * ast )
-{
-	auto symbol = symbols()->find_symbol( ast->get_ident() );
-
-}
-
-void x::semantics_analysis_visitor::expression_div_zero_checker( const x::binary_expr_ast * ast )
-{
-	if ( ast->get_op() == x::operator_t::DIV || ast->get_op() == x::operator_t::DIV_ASSIGN )
-	{
-		if ( is_constant( ast->get_right().get() ) )
-		{
-			auto result = calc_constant( ast->get_right().get() );
-			switch ( result->type() )
-			{
-			case x::ast_t::INT32_CONSTANT_EXP:
-				XERROR( std::static_pointer_cast<x::int32_constant_expr_ast>( result )->get_value() == 0, "the divisor cannot be 0!" );
-				break;
-			case x::ast_t::INT64_CONSTANT_EXP:
-				XERROR( std::static_pointer_cast<x::int64_constant_expr_ast>( result )->get_value() == 0, "the divisor cannot be 0!" );
-				break;
-			case x::ast_t::UINT32_CONSTANT_EXP:
-				XERROR( std::static_pointer_cast<x::uint32_constant_expr_ast>( result )->get_value() == 0, "the divisor cannot be 0!" );
-				break;
-			case x::ast_t::UINT64_CONSTANT_EXP:
-				XERROR( std::static_pointer_cast<x::uint64_constant_expr_ast>( result )->get_value() == 0, "the divisor cannot be 0!" );
-				break;
-			default:
-				break;
-			}
-		}
-	}
-}
-
-void x::semantics_analysis_visitor::novirtual_function_empty_body_checker( const x::function_decl_ast * ast )
-{
-	XERROR( ast->get_body() == nullptr && !ast->get_is_virtual(), "\'{}\' non virtual function body must not be empty!", ast->get_name() );
-}
-
-void x::semantics_analysis_visitor::virtual_function_override_final_checker( const x::function_decl_ast * ast )
-{
-	if ( ast->get_is_final() || ast->get_is_override() )
-	{
-		XERROR( !is_virtual_function( static_cast<x::decl_ast *>( ast->get_parent().get() ), ast ), "\'{}\' is not a virtual function!", ast->get_name() );
-	}
-}
-
-void x::semantics_analysis_visitor::function_parameter_default_value_checker( const x::function_decl_ast * ast )
-{
-	size_t start = std::numeric_limits<size_t>::max();
-	for ( size_t i = 0; i < ast->get_parameters().size(); i++ )
-	{
-		auto param = ast->get_parameters()[i];
-
-		if ( param->get_default() )
-		{
-			if ( i < start )
-				start = i;
-		}
-		else
-		{
-			XERROR( i > start, "\'{}\' has not set default parameters!", param->get_name() );
-		}
-	}
+	scope_scan_visitor::scan( logger, symbols, ast );
 }
 
 bool x::semantics_analysis_visitor::is_constant( const x::expr_stat_ast * expr ) const
@@ -8684,13 +8600,13 @@ bool x::semantics_analysis_visitor::is_virtual_function( const x::decl_ast * own
 
 		for ( const auto & it : cls->get_interfaces() )
 		{
-			if ( is_virtual_function( static_cast<const x::decl_ast *>( symbols()->find_symbol( it )->ast().get() ), ast ) )
+			if ( is_virtual_function( static_cast<const x::decl_ast *>( symbols()->find_ast( it ).get() ), ast ) )
 			{
 				return true;
 			}
 		}
 
-		if ( is_virtual_function( static_cast<const x::decl_ast *>( symbols()->find_symbol( cls->get_base() )->ast().get() ), ast ) )
+		if ( is_virtual_function( static_cast<const x::decl_ast *>( symbols()->find_ast( cls->get_base() ).get() ), ast ) )
 		{
 			return true;
 		}
@@ -8709,13 +8625,13 @@ bool x::semantics_analysis_visitor::is_virtual_function( const x::decl_ast * own
 
 		for ( const auto & it : cls->get_interfaces() )
 		{
-			if ( is_virtual_function( static_cast<const x::decl_ast *>( symbols()->find_symbol( it )->ast().get() ), ast ) )
+			if ( is_virtual_function( static_cast<const x::decl_ast *>( symbols()->find_ast( it ).get() ), ast ) )
 			{
 				return true;
 			}
 		}
 
-		if ( is_virtual_function( static_cast<const x::decl_ast *>( symbols()->find_symbol( cls->get_base() )->ast().get() ), ast ) )
+		if ( is_virtual_function( static_cast<const x::decl_ast *>( symbols()->find_ast( cls->get_base() ).get() ), ast ) )
 		{
 			return true;
 		}

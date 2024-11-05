@@ -50,12 +50,11 @@ namespace x
 		void scanning();
 		void analysis();
 		void optimize();
-		void import();
 		void generate();
-		void linking();
+		void linkmodule();
 
 	private:
-		virtual void compile_module();
+		virtual void compilemodule();
 		virtual x::symbols_ptr make_symbols() const;
 		virtual std::filesystem::path make_stdpath() const;
 
@@ -72,7 +71,6 @@ namespace x
 		x::uint32 _version = 0;
 		x::module_ptr _module;
 		x::logger_ptr _logger;
-		x::grammar_ptr _grammar;
 		x::symbols_ptr _symbols;
 		std::vector<x::module_ptr> _modules;
 		std::vector<x::compiler::object_ptr> _objects;
@@ -88,8 +86,8 @@ namespace x
 	public:
 		llvm::module_ptr llvm_module() const;
 
-	protected:
-		void compile_module() override;
+	private:
+		void compilemodule() override;
 		x::symbols_ptr make_symbols() const override;
 		std::filesystem::path make_stdpath() const override;
 
@@ -106,8 +104,8 @@ namespace x
 	public:
 		spirv::module_ptr spirv_module() const;
 
-	protected:
-		void compile_module() override;
+	private:
+		void compilemodule() override;
 		x::symbols_ptr make_symbols() const override;
 		std::filesystem::path make_stdpath() const override;
 
